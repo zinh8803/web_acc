@@ -177,9 +177,6 @@ const UserLayout: React.FC = () => {
             <ThunderboltOutlined style={{ fontSize: '22px', color: '#fff' }} />
           </div>
           <div>
-            <div style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: '20px', fontWeight: 800, color: '#fff', letterSpacing: '0.5px', lineHeight: 1.1 }}>
-              SHOPACC<span style={{ color: '#06b6d4' }}>LIENQUAN</span>.VN
-            </div>
             <div style={{ fontSize: '10px', color: '#f59e0b', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 700 }}>
               Chuyên Acc Liên Quân Số 1 VN
             </div>
