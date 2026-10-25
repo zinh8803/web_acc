@@ -1,21 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Rajdhani:wght@600;700&display=swap');
 
 :root {
-  --bg-dark: #0a0a14;
-  --bg-card: #121324;
-  --bg-card-hover: #191a32;
-  --bg-surface: #1e2038;
+  --bg-dark: #f5f7fb;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8faff;
+  --bg-surface: #eef2ff;
   --accent-primary: #6366f1;
   --accent-cyan: #06b6d4;
   --accent-rose: #f43f5e;
   --accent-amber: #f59e0b;
   --accent-emerald: #10b981;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-glow: rgba(99, 102, 241, 0.4);
-  --glow-primary: 0 0 25px rgba(99, 102, 241, 0.35);
-  --glow-cyan: 0 0 25px rgba(6, 182, 212, 0.35);
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --border-subtle: #e2e8f0;
+  --border-glow: rgba(99, 102, 241, 0.35);
+  --glow-primary: 0 8px 24px rgba(99, 102, 241, 0.12);
+  --glow-cyan: 0 8px 24px rgba(6, 182, 212, 0.12);
 }
 
 * {
@@ -46,11 +46,11 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f101d;
+  background: #f1f5f9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2a2d48;
+  background: #cbd5e1;
   border-radius: 4px;
 }
 
@@ -60,7 +60,7 @@ body {
 
 /* Glassmorphism & Card Styles */
 .glass-panel {
-  background: rgba(18, 19, 36, 0.75);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-subtle);
@@ -127,7 +127,7 @@ body {
   text-transform: uppercase;
 }
 
-/* Ant Design overrides for dark gaming feel */
+/* Ant Design overrides for the light storefront theme */
 .ant-card {
   background: var(--bg-card) !important;
   border: 1px solid var(--border-subtle) !important;
@@ -145,3 +145,42 @@ body {
   box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5) !important;
   transform: translateY(-1px);
 }
+
+/* Bring legacy inline dark surfaces along with the shared theme. */
+[style*="#0a0a14"], [style*="rgb(10, 10, 20)"],
+[style*="#0d0e1c"], [style*="rgb(13, 14, 28)"],
+[style*="#121324"], [style*="rgb(18, 19, 36)"],
+[style*="#191a32"], [style*="rgb(25, 26, 50)"],
+[style*="#1e2038"], [style*="rgb(30, 32, 56)"],
+[style*="rgba(18, 19, 36"], [style*="rgba(15, 23, 42"] {
+  background-color: #fff !important;
+  color: #1e293b !important;
+  border-color: #e2e8f0 !important;
+}
+
+[style*="rgba(255, 255, 255"] {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+[style*="color: rgb(255, 255, 255)"]:not(svg), [style*="color: rgb(248, 250, 252)"]:not(svg) {
+  color: #1e293b !important;
+}
+
+[style*="color: rgb(148, 163, 184)"], [style*="color: rgb(100, 116, 139)"] {
+  color: #64748b !important;
+}
+
+[style*="color: rgb(203, 213, 225)"], [style*="color: rgb(199, 210, 254)"],
+[style*="color: rgb(254, 205, 211)"] {
+  color: #334155 !important;
+}
+
+.ant-layout, .ant-layout-content { background: #f5f7fb; }
+.ant-menu-dark, .ant-menu-dark > .ant-menu { background: #fff; color: #334155; }
+.ant-card { background: #fff !important; border-color: #e2e8f0 !important; }
+.ant-input, .ant-input-affix-wrapper, .ant-select-selector, .ant-picker {
+  background-color: #fff !important;
+  border-color: #cbd5e1 !important;
+}
+.ant-input::placeholder, .ant-input-affix-wrapper input::placeholder { color: #94a3b8; }

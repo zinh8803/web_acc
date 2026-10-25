@@ -3,15 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Order extends Model
 {
-    use SoftDeletes;
-
     protected $fillable = [
         'order_code', 'user_id', 'status', 'subtotal', 'discount_total', 'total',
-        'coupon_id', 'coupon_code', 'payment_method_code', 'customer_note',
+        'coupon_id', 'coupon_code', 'payment_method_code', 'payment_reference', 'customer_note',
         'expires_at', 'paid_at', 'completed_at', 'cancelled_at', 'cancel_reason', 'ip_address',
     ];
 
@@ -35,29 +32,10 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
-    public function payments()
-    {
-        return $this->hasMany(Payment::class);
-    }
-
-    public function statusHistories()
-    {
-        return $this->hasMany(OrderStatusHistory::class)->orderBy('created_at');
-    }
 
     public function coupon()
     {
         return $this->belongsTo(Coupon::class);
-    }
-
-    public function refunds()
-    {
-        return $this->hasMany(Refund::class);
-    }
-
-    public function latestPayment()
-    {
-        return $this->hasOne(Payment::class)->latestOfMany();
     }
 
     // Status helpers

@@ -60,17 +60,6 @@ class AdminReportController extends Controller
             ->orderByDesc('total_amount')
             ->get();
 
-        // Payment Methods stats from DB
-        $paymentStats = \Illuminate\Support\Facades\DB::table('payment_methods')
-            ->leftJoin('payments', function ($join) {
-                $join->on('payment_methods.code', '=', 'payments.method')
-                    ->where('payments.status', 'SUCCESS');
-            })
-            ->select('payment_methods.name', 'payment_methods.code', \Illuminate\Support\Facades\DB::raw('COUNT(payments.id) as tx_count'), \Illuminate\Support\Facades\DB::raw('COALESCE(SUM(payments.amount), 0) as total_amount'))
-            ->groupBy('payment_methods.name', 'payment_methods.code')
-            ->orderByDesc('tx_count')
-            ->get();
-
         return response()->json([
             'success' => true,
             'data' => [
@@ -85,7 +74,6 @@ class AdminReportController extends Controller
                 'recent_orders' => $recentOrders,
                 'daily_trend' => $daily,
                 'game_revenue' => $gameRevenue,
-                'payment_stats' => $paymentStats,
             ]
         ]);
     }

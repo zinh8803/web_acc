@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Game;
 use App\Models\Product;
+use App\Models\GameAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -182,6 +183,40 @@ class CatalogController extends Controller
         $data['available_count'] = $availableCount;
 
         return $this->success($data);
+    }
+
+    /** Return public data for individually selectable accounts, without credentials. */
+    public function accounts(Request $request, string $slug): JsonResponse
+    {
+        $product = Product::where('slug', $slug)
+            ->where('type', 'ACCOUNT')
+            ->where('status', 'ACTIVE')
+            ->firstOrFail();
+
+        $accounts = GameAccount::query()
+            ->with(['variant:id,price,sale_price,status'])
+            ->where('product_id', $product->id)
+            ->where('status', 'AVAILABLE')
+            ->whereHas('variant', fn ($query) => $query->where('status', 'ACTIVE'))
+            ->orderBy('id')
+            ->paginate(min(max((int) $request->get('per_page', 24), 1), 100));
+
+        $accounts->getCollection()->transform(fn (GameAccount $account) => [
+            'id' => $account->id,
+            'product_id' => $account->product_id,
+            'variant_id' => $account->variant_id,
+            'image_url' => $account->image_url ?: $product->thumbnail_url,
+            'public_details' => $account->public_details ?? [],
+            'price' => $account->variant?->sale_price ?? $account->variant?->price ?? $product->min_price,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'product' => ['id' => $product->id, 'name' => $product->name, 'slug' => $product->slug],
+                'accounts' => $accounts,
+            ],
+        ]);
     }
 
     private function getCategoryIds(int $categoryId): array

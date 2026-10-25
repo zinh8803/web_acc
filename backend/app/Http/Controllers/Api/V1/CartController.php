@@ -20,7 +20,7 @@ class CartController extends Controller
     public function show(Request $request): JsonResponse
     {
         $cart = Cart::firstOrCreate(['user_id' => $request->user()->id]);
-        $cart->load(['items.variant.product.primaryImage', 'items.variant.product.game']);
+        $cart->load(['items.variant.product.primaryImage', 'items.variant.product.game', 'items.gameAccount']);
 
         return $this->success($cart);
     }
@@ -30,8 +30,10 @@ class CartController extends Controller
      */
     public function addItem(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'variant_id' => 'required|integer|exists:product_variants,id',
+            'game_account_id' => 'nullable|integer|exists:game_accounts,id',
+            'quantity' => 'sometimes|integer|min:1|max:10',
         ]);
 
         $variant = ProductVariant::with('product')->findOrFail($request->variant_id);
@@ -40,20 +42,66 @@ class CartController extends Controller
             return $this->error('Sản phẩm dịch vụ không thể thêm vào giỏ hàng. Vui lòng mua ngay.', 422, 'SERVICE_NO_CART');
         }
 
-        if ($variant->stock_quantity <= 0) {
+        $availableStock = $variant->product->type === 'ACCOUNT'
+            ? GameAccount::where('variant_id', $variant->id)->where('status', 'AVAILABLE')->count()
+            : $variant->stock_quantity;
+        if ($availableStock <= 0) {
             return $this->error('Sản phẩm này đã hết hàng.', 422, 'OUT_OF_STOCK');
+        }
+
+        $account = null;
+        if (!empty($validated['game_account_id'])) {
+            $account = GameAccount::whereKey($validated['game_account_id'])
+                ->where('product_id', $variant->product_id)
+                ->where('variant_id', $variant->id)
+                ->where('status', 'AVAILABLE')
+                ->first();
+            if (!$account) {
+                return $this->error('Tài khoản này vừa được người khác chọn hoặc đã hết hàng.', 409, 'ACCOUNT_UNAVAILABLE');
+            }
         }
 
         $cart = Cart::firstOrCreate(['user_id' => $request->user()->id]);
 
-        $item = CartItem::firstOrCreate(
-            ['cart_id' => $cart->id, 'variant_id' => $request->variant_id],
-            ['quantity' => 1]
-        );
+        $item = $account
+            ? CartItem::firstOrCreate(
+                ['cart_id' => $cart->id, 'game_account_id' => $account->id],
+                ['variant_id' => $variant->id, 'quantity' => 1]
+            )
+            : CartItem::firstOrCreate(
+                ['cart_id' => $cart->id, 'variant_id' => $variant->id, 'game_account_id' => null],
+                ['quantity' => $validated['quantity'] ?? 1]
+            );
 
-        $item->load('variant.product.primaryImage');
+        if (!$account && !$item->wasRecentlyCreated) {
+            $item->increment('quantity', $validated['quantity'] ?? 1);
+        }
+
+        $item->load(['variant.product.primaryImage', 'gameAccount']);
 
         return $this->success($item, 201);
+    }
+
+    /** Update an item quantity in the authenticated user's cart. */
+    public function updateItem(Request $request, CartItem $item): JsonResponse
+    {
+        $validated = $request->validate([
+            'quantity' => 'required|integer|min:1|max:10',
+        ]);
+
+        $cart = Cart::where('user_id', $request->user()->id)->firstOrFail();
+        if ($item->cart_id !== $cart->id) {
+            return $this->error('Không tìm thấy sản phẩm trong giỏ hàng.', 404);
+        }
+
+        if ($item->game_account_id && $validated['quantity'] !== 1) {
+            return $this->error('Mỗi tài khoản game là một sản phẩm riêng, số lượng luôn là 1.', 422);
+        }
+
+        $item->update(['quantity' => $validated['quantity']]);
+        $item->load('variant.product.primaryImage');
+
+        return $this->success($item);
     }
 
     /**

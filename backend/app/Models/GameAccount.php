@@ -13,7 +13,12 @@ class GameAccount extends Model
         'account_username_enc', 'account_password_enc', 'extra_info_enc',
         'original_owner_info_enc', 'status', 'reserved_by_order_id',
         'reserved_until', 'sold_order_item_id', 'sold_at',
-        'cost_price', 'verified_at', 'verified_by', 'note', 'created_by'
+        'cost_price', 'verified_at', 'verified_by', 'note', 'created_by',
+        'image_url', 'public_details'
+    ];
+
+    protected $hidden = [
+        'account_username_enc', 'account_password_enc', 'extra_info_enc', 'original_owner_info_enc',
     ];
 
     protected $casts = [
@@ -21,6 +26,7 @@ class GameAccount extends Model
         'sold_at' => 'datetime',
         'verified_at' => 'datetime',
         'cost_price' => 'decimal:0',
+        'public_details' => 'array',
     ];
 
     public function product(): BelongsTo

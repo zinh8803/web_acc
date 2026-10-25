@@ -2,18 +2,20 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Sanctum\HasApiTokens;
 
 class AdminUser extends Authenticatable
 {
-    use HasApiTokens, Notifiable;
+    use HasApiTokens, Notifiable, SoftDeletes;
+
+    protected $table = 'users';
 
     protected $fillable = [
-        'email', 'password_hash', 'full_name', 'role_id',
-        'status', 'two_factor_secret_enc', 'last_login_at', 'created_by'
+        'email', 'password_hash', 'full_name', 'role',
+        'status', 'two_factor_secret_enc', 'last_login_at'
     ];
 
     protected $hidden = [
@@ -26,8 +28,8 @@ class AdminUser extends Authenticatable
         return $this->password_hash;
     }
 
-    public function role(): BelongsTo
+    public function isSuperAdmin(): bool
     {
-        return $this->belongsTo(Role::class);
+        return $this->role === 'SUPER_ADMIN';
     }
 }

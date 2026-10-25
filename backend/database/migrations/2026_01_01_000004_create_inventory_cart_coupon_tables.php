@@ -17,7 +17,7 @@ return new class extends Migration
             $table->tinyInteger('trust_level')->default(3); // 1-5
             $table->enum('status', ['ACTIVE', 'BLOCKED'])->default('ACTIVE');
             $table->text('note')->nullable();
-            $table->foreignId('created_by')->nullable()->constrained('admin_users')->nullOnDelete();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
 
@@ -38,40 +38,13 @@ return new class extends Migration
             $table->timestamp('sold_at')->nullable();
             $table->decimal('cost_price', 15, 0)->nullable();
             $table->timestamp('verified_at')->nullable();
-            $table->foreignId('verified_by')->nullable()->constrained('admin_users')->nullOnDelete();
+            $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();
             $table->text('note')->nullable();
-            $table->foreignId('created_by')->nullable()->constrained('admin_users')->nullOnDelete();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
             $table->index(['product_id', 'status']);
             $table->index(['status', 'reserved_until']);
-        });
-
-        Schema::create('game_account_logs', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('game_account_id')->constrained('game_accounts')->restrictOnDelete();
-            $table->enum('action', [
-                'IMPORTED', 'RESERVED', 'RELEASED', 'SOLD',
-                'LOCKED', 'RECOVERED', 'REPLACED', 'CREDENTIAL_CHANGED'
-            ]);
-            $table->enum('actor_type', ['SYSTEM', 'USER', 'ADMIN']);
-            $table->unsignedBigInteger('actor_id')->nullable();
-            $table->unsignedBigInteger('order_id')->nullable();
-            $table->unsignedBigInteger('claim_id')->nullable();
-            $table->text('note')->nullable();
-            $table->timestamp('created_at')->useCurrent();
-        });
-
-        Schema::create('credential_access_logs', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('game_account_id')->constrained('game_accounts')->restrictOnDelete();
-            $table->enum('actor_type', ['USER', 'ADMIN']);
-            $table->unsignedBigInteger('actor_id');
-            $table->unsignedBigInteger('order_item_id')->nullable();
-            $table->enum('action', ['VIEW', 'COPY'])->default('VIEW');
-            $table->string('ip_address', 45)->nullable();
-            $table->string('user_agent')->nullable();
-            $table->timestamp('created_at')->useCurrent();
         });
 
         // ==================== GROUP E: CART & COUPONS ====================
@@ -107,36 +80,17 @@ return new class extends Migration
             $table->timestamp('starts_at')->nullable();
             $table->timestamp('ends_at')->nullable();
             $table->enum('status', ['ACTIVE', 'DISABLED'])->default('ACTIVE');
-            $table->foreignId('created_by')->nullable()->constrained('admin_users')->nullOnDelete();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
 
-        Schema::create('coupon_categories', function (Blueprint $table) {
-            $table->unsignedBigInteger('coupon_id');
-            $table->unsignedBigInteger('category_id');
-            $table->primary(['coupon_id', 'category_id']);
-            $table->foreign('coupon_id')->references('id')->on('coupons')->cascadeOnDelete();
-            $table->foreign('category_id')->references('id')->on('categories')->cascadeOnDelete();
-        });
-
-        Schema::create('coupon_products', function (Blueprint $table) {
-            $table->unsignedBigInteger('coupon_id');
-            $table->unsignedBigInteger('product_id');
-            $table->primary(['coupon_id', 'product_id']);
-            $table->foreign('coupon_id')->references('id')->on('coupons')->cascadeOnDelete();
-            $table->foreign('product_id')->references('id')->on('products')->cascadeOnDelete();
-        });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('coupon_products');
-        Schema::dropIfExists('coupon_categories');
         Schema::dropIfExists('coupons');
         Schema::dropIfExists('cart_items');
         Schema::dropIfExists('carts');
-        Schema::dropIfExists('credential_access_logs');
-        Schema::dropIfExists('game_account_logs');
         Schema::dropIfExists('game_accounts');
         Schema::dropIfExists('suppliers');
     }

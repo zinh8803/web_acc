@@ -11,7 +11,7 @@ class AdminOrderController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Order::with(['user:id,username,email,full_name', 'payments'])->orderByDesc('id');
+        $query = Order::with(['user:id,username,email,full_name'])->orderByDesc('id');
 
         if ($search = $request->get('search')) {
             $query->where('order_code', 'like', "%{$search}%");
@@ -29,7 +29,7 @@ class AdminOrderController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $order = Order::with(['user', 'items.product', 'items.gameAccount', 'payments.paymentMethod', 'coupon'])
+        $order = Order::with(['user', 'items.product', 'items.gameAccount', 'coupon'])
             ->findOrFail($id);
 
         return response()->json([

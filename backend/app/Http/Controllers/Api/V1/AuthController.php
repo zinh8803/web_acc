@@ -8,6 +8,8 @@ use App\Models\UserSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -26,18 +28,81 @@ class AuthController extends Controller
             'password' => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()],
         ]);
 
-        $user = User::create([
-            'email' => $validated['email'],
-            'phone' => $validated['phone'] ?? null,
-            'full_name' => $validated['full_name'],
-            'password_hash' => Hash::make($validated['password']),
-            'status' => 'ACTIVE',
+        $email = strtolower($validated['email']);
+        $key = 'register-otp:' . $request->ip() . ':' . $email;
+        if (RateLimiter::tooManyAttempts($key, 3)) {
+            return $this->error('Bạn đã yêu cầu quá nhiều mã OTP. Vui lòng thử lại sau.', 429, 'TOO_MANY_ATTEMPTS');
+        }
+
+        $otp = (string) random_int(100000, 999999);
+        DB::table('otp_mail')->updateOrInsert(
+            ['email' => $email],
+            [
+                'otp_hash' => Hash::make($otp),
+                'full_name' => $validated['full_name'],
+                'phone' => $validated['phone'] ?? null,
+                'password_hash' => Hash::make($validated['password']),
+                'expires_at' => now()->addMinutes(10),
+                'attempts' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        try {
+            Mail::raw("Mã OTP đăng ký tài khoản của bạn là: {$otp}\nMã có hiệu lực trong 10 phút. Không chia sẻ mã này với bất kỳ ai.", function ($message) use ($email) {
+                $message->to($email)->subject('Mã xác thực đăng ký tài khoản');
+            });
+        } catch (\Throwable $exception) {
+            DB::table('otp_mail')->where('email', $email)->delete();
+            throw $exception;
+        }
+
+        RateLimiter::hit($key, 600);
+        return $this->success(['message' => 'Mã OTP đã được gửi đến email của bạn.']);
+    }
+
+    /** Verify the registration OTP and create the account. */
+    public function verifyRegistration(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => 'required|email|max:191',
+            'otp' => 'required|digits:6',
         ]);
 
-        // Send email verification
-        // $user->sendEmailVerificationNotification();
+        $email = strtolower($validated['email']);
+        $record = DB::table('otp_mail')->where('email', $email)->first();
+        if (!$record || now()->greaterThan($record->expires_at)) {
+            return $this->error('Mã OTP không tồn tại hoặc đã hết hạn. Vui lòng đăng ký lại.', 422, 'OTP_EXPIRED');
+        }
+        if ($record->attempts >= 5) {
+            return $this->error('Bạn đã nhập sai OTP quá số lần cho phép. Vui lòng đăng ký lại.', 429, 'OTP_ATTEMPTS_EXCEEDED');
+        }
+        if (!Hash::check($validated['otp'], $record->otp_hash)) {
+            DB::table('otp_mail')->where('email', $email)->increment('attempts');
+            return $this->error('Mã OTP không chính xác.', 422, 'INVALID_OTP');
+        }
 
-        return $this->success(['message' => 'Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.'], 201);
+        $user = DB::transaction(function () use ($record, $email) {
+            $user = User::create([
+                'email' => $email,
+                'phone' => $record->phone,
+                'full_name' => $record->full_name,
+                'password_hash' => $record->password_hash,
+                'status' => 'ACTIVE',
+                'email_verified_at' => now(),
+            ]);
+            DB::table('otp_mail')->where('email', $email)->delete();
+            return $user;
+        });
+
+        $token = $user->createToken('access-token')->plainTextToken;
+        return $this->success([
+            'message' => 'Xác thực email và đăng ký thành công.',
+            'access_token' => $token,
+            'token' => $token,
+            'user' => $this->formatUser($user),
+        ], 201);
     }
 
     /**

@@ -85,7 +85,7 @@ return new class extends Migration
             $table->integer('claim_sla_hours')->default(24);
             $table->text('description')->nullable();
             $table->enum('status', ['ACTIVE', 'DISABLED'])->default('ACTIVE');
-            $table->foreignId('created_by')->nullable()->constrained('admin_users')->nullOnDelete();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
 
@@ -111,7 +111,7 @@ return new class extends Migration
             $table->integer('rating_count')->default(0);
             $table->string('seo_title', 255)->nullable();
             $table->text('seo_description')->nullable();
-            $table->foreignId('created_by')->nullable()->constrained('admin_users')->nullOnDelete();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
 
@@ -165,21 +165,10 @@ return new class extends Migration
             $table->index(['attribute_id', 'value_number']);
         });
 
-        Schema::create('product_price_histories', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('variant_id')->constrained('product_variants')->cascadeOnDelete();
-            $table->decimal('old_price', 15, 0)->nullable();
-            $table->decimal('new_price', 15, 0);
-            $table->decimal('old_sale_price', 15, 0)->nullable();
-            $table->decimal('new_sale_price', 15, 0)->nullable();
-            $table->foreignId('changed_by')->nullable()->constrained('admin_users')->nullOnDelete();
-            $table->timestamp('changed_at')->useCurrent();
-        });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('product_price_histories');
         Schema::dropIfExists('product_attribute_values');
         Schema::dropIfExists('product_images');
         Schema::dropIfExists('product_variants');

@@ -7,17 +7,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderItem extends Model
 {
+    public $timestamps = false;
+
     protected $fillable = [
         'order_id', 'product_id', 'variant_id', 'game_account_id',
         'item_type', 'product_name', 'quantity', 'unit_price',
-        'total_price', 'delivery_data', 'warranty_until'
+        'variant_name', 'thumbnail_url', 'line_total', 'warranty_policy_id',
+        'warranty_snapshot', 'warranty_expires_at', 'fulfillment_status', 'delivered_at'
     ];
 
     protected $casts = [
         'unit_price' => 'decimal:2',
-        'total_price' => 'decimal:2',
-        'delivery_data' => 'array',
-        'warranty_until' => 'datetime',
+        'line_total' => 'decimal:0',
+        'warranty_snapshot' => 'array',
+        'warranty_expires_at' => 'datetime',
+        'delivered_at' => 'datetime',
     ];
 
     public function order(): BelongsTo

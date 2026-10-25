@@ -7,7 +7,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CartItem extends Model
 {
-    protected $fillable = ['cart_id', 'product_id', 'variant_id', 'quantity', 'price'];
+    // cart_items uses added_at and intentionally has no created_at/updated_at columns.
+    public $timestamps = false;
+
+    protected $fillable = ['cart_id', 'variant_id', 'game_account_id', 'quantity'];
 
     protected $casts = [
         'price' => 'decimal:2',
@@ -22,5 +25,15 @@ class CartItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function variant(): BelongsTo
+    {
+        return $this->belongsTo(ProductVariant::class, 'variant_id');
+    }
+
+    public function gameAccount(): BelongsTo
+    {
+        return $this->belongsTo(GameAccount::class, 'game_account_id');
     }
 }

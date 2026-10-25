@@ -8,10 +8,8 @@ use App\Models\Category;
 use App\Models\Coupon;
 use App\Models\Game;
 use App\Models\GameAccount;
-use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\ProductVariant;
-use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -22,22 +20,13 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. RBAC & Admin User
-        $superAdminRole = Role::firstOrCreate(
-            ['code' => 'SUPER_ADMIN'],
-            [
-                'name' => 'Super Administrator',
-                'description' => 'Quản trị viên toàn quyền hệ thống',
-                'is_system' => true,
-            ]
-        );
-
+        // 1. Admin User (role is stored directly on the account)
         $admin = AdminUser::firstOrCreate(
             ['email' => 'admin@gamehub.vn'],
             [
                 'password_hash' => Hash::make('Admin@123456'),
                 'full_name' => 'Hệ Thống Quản Trị Viên',
-                'role_id' => $superAdminRole->id,
+                'role' => 'SUPER_ADMIN',
                 'status' => 'ACTIVE',
             ]
         );
@@ -52,37 +41,6 @@ class DatabaseSeeder extends Seeder
                 'status' => 'ACTIVE',
             ]
         );
-
-        // 3. Payment Methods
-        PaymentMethod::create([
-            'code' => 'vietqr',
-            'name' => 'Chuyển Khoản Ngân Hàng 24/7 (VietQR)',
-            'provider' => 'SEPAY',
-            'icon_url' => 'https://img.vietqr.io/image/MB-0987654321-compact2.png',
-            'fee_percent' => 0,
-            'is_active' => true,
-            'sort_order' => 1,
-        ]);
-
-        PaymentMethod::create([
-            'code' => 'momo',
-            'name' => 'Ví Điện Tử MoMo',
-            'provider' => 'MOMO',
-            'icon_url' => 'https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png',
-            'fee_percent' => 0,
-            'is_active' => true,
-            'sort_order' => 2,
-        ]);
-
-        PaymentMethod::create([
-            'code' => 'vnpay',
-            'name' => 'Cổng Thanh Toán VNPAY-QR',
-            'provider' => 'VNPAY',
-            'icon_url' => 'https://vnpay.vn/assets/images/logo.svg',
-            'fee_percent' => 0,
-            'is_active' => true,
-            'sort_order' => 3,
-        ]);
 
         // 4. Games
         $gamesData = [
@@ -130,11 +88,11 @@ class DatabaseSeeder extends Seeder
 
         $games = [];
         foreach ($gamesData as $g) {
-            $games[$g['slug']] = Game::create($g);
+            $games[$g['slug']] = Game::updateOrCreate(['slug' => $g['slug']], $g);
         }
 
         // 5. Categories
-        $lqCatVip = Category::create([
+        $lqCatVip = Category::updateOrCreate(['slug' => 'nick-lien-quan-vip'], [
             'game_id' => $games['lien-quan-mobile']->id,
             'type' => 'ACCOUNT',
             'name' => 'Nick Liên Quân VIP Rank Thách Đấu',
@@ -144,7 +102,7 @@ class DatabaseSeeder extends Seeder
             'status' => 'ACTIVE',
         ]);
 
-        $lqCatGiaRe = Category::create([
+        $lqCatGiaRe = Category::updateOrCreate(['slug' => 'nick-lien-quan-gia-re'], [
             'game_id' => $games['lien-quan-mobile']->id,
             'type' => 'ACCOUNT',
             'name' => 'Nick Liên Quân Giá Rẻ Tân Thủ',
@@ -154,7 +112,7 @@ class DatabaseSeeder extends Seeder
             'status' => 'ACTIVE',
         ]);
 
-        $genshinCat = Category::create([
+        $genshinCat = Category::updateOrCreate(['slug' => 'nick-genshin-ar55-vip'], [
             'game_id' => $games['genshin-impact']->id,
             'type' => 'ACCOUNT',
             'name' => 'Nick Genshin Impact AR 55+ VIP',
@@ -164,7 +122,7 @@ class DatabaseSeeder extends Seeder
             'status' => 'ACTIVE',
         ]);
 
-        $valCat = Category::create([
+        $valCat = Category::updateOrCreate(['slug' => 'nick-valorant-skin-vip'], [
             'game_id' => $games['valorant']->id,
             'type' => 'ACCOUNT',
             'name' => 'Nick Valorant Skin VIP',
@@ -174,7 +132,7 @@ class DatabaseSeeder extends Seeder
             'status' => 'ACTIVE',
         ]);
 
-        $serviceCat = Category::create([
+        $serviceCat = Category::updateOrCreate(['slug' => 'dich-vu-cay-thue-lq'], [
             'game_id' => $games['lien-quan-mobile']->id,
             'type' => 'SERVICE',
             'name' => 'Dịch Vụ Cày Thuê Rank & Chiến Tướng',
@@ -284,7 +242,7 @@ class DatabaseSeeder extends Seeder
             $price = $p['price'];
             $salePrice = $p['sale_price'];
 
-            $product = Product::create([
+            $product = Product::updateOrCreate(['slug' => $p['slug']], [
                 'sku' => $p['sku'],
                 'type' => $p['type'],
                 'category_id' => $p['category_id'],
@@ -299,9 +257,8 @@ class DatabaseSeeder extends Seeder
                 'is_featured' => $p['is_featured'],
             ]);
 
-            $variant = ProductVariant::create([
+            $variant = ProductVariant::updateOrCreate(['sku' => $p['sku'] . '-V1'], [
                 'product_id' => $product->id,
-                'sku' => $p['sku'] . '-V1',
                 'name' => 'Mặc định',
                 'price' => $price,
                 'sale_price' => $salePrice,
@@ -311,7 +268,8 @@ class DatabaseSeeder extends Seeder
             ]);
 
             if ($product->type === 'ACCOUNT' && $accUser && $accPass) {
-                GameAccount::createWithEncryption(
+                if (!GameAccount::where('product_id', $product->id)->exists()) {
+                    GameAccount::createWithEncryption(
                     productId: $product->id,
                     variantId: $variant->id,
                     username: $accUser,
@@ -322,13 +280,13 @@ class DatabaseSeeder extends Seeder
                         'additional_info' => 'Mã PIN cấp 2: 123456. Vui lòng đổi mật khẩu ngay sau khi đăng nhập!',
                         'cost_price' => 50000,
                     ]
-                );
+                    );
+                }
             }
         }
 
         // 7. Coupons
-        Coupon::create([
-            'code' => 'CHAOBANMOI',
+        Coupon::updateOrCreate(['code' => 'CHAOBANMOI'], [
             'name' => 'Chào bạn mới giảm 10%',
             'description' => 'Giảm 10% cho khách hàng mới gia nhập hệ thống',
             'discount_type' => 'PERCENT',
@@ -339,8 +297,7 @@ class DatabaseSeeder extends Seeder
             'status' => 'ACTIVE',
         ]);
 
-        Coupon::create([
-            'code' => 'GAMEVIP',
+        Coupon::updateOrCreate(['code' => 'GAMEVIP'], [
             'name' => 'VIP giảm 50K',
             'description' => 'Giảm ngay 50.000đ cho đơn hàng từ 300.000đ',
             'discount_type' => 'FIXED',
@@ -351,16 +308,14 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // 8. Banners
-        Banner::create([
-            'title' => 'Mừng Đại Lễ - Xả Kho Acc Game VIP Giảm Đến 50%',
+        Banner::updateOrCreate(['title' => 'Mừng Đại Lễ - Xả Kho Acc Game VIP Giảm Đến 50%'], [
             'image_url' => 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&auto=format&fit=crop&q=80',
             'link_url' => '/catalog',
             'sort_order' => 1,
             'status' => 'ACTIVE',
         ]);
 
-        Banner::create([
-            'title' => 'Bảo Hành Trọn Đời - Đổi Trả Miễn Phí Trong 7 Ngày',
+        Banner::updateOrCreate(['title' => 'Bảo Hành Trọn Đời - Đổi Trả Miễn Phí Trong 7 Ngày'], [
             'image_url' => 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1600&auto=format&fit=crop&q=80',
             'link_url' => '/warranty',
             'sort_order' => 2,
@@ -368,8 +323,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // 9. Settings
-        Setting::create([
-            'key' => 'general_settings',
+        Setting::updateOrCreate(['key' => 'general_settings'], [
             'value' => [
                 'site_name' => 'GAMEHUB VN - Sàn Giao Dịch Acc Game & Dịch Vụ',
                 'hotline' => '0987.654.321',

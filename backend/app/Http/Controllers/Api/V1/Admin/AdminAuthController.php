@@ -18,7 +18,9 @@ class AdminAuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $admin = AdminUser::with('role')->where('email', $validated['email'])->first();
+        $admin = AdminUser::where('email', $validated['email'])
+            ->whereIn('role', ['SUPER_ADMIN', 'STAFF_SERVICE', 'STAFF_SUPPORT'])
+            ->first();
 
         if (!$admin || !Hash::check($validated['password'], $admin->password_hash)) {
             throw ValidationException::withMessages([
@@ -49,7 +51,7 @@ class AdminAuthController extends Controller
                     'id' => $admin->id,
                     'full_name' => $admin->full_name,
                     'email' => $admin->email,
-                    'role' => $admin->role?->code,
+                    'role' => $admin->role,
                 ],
             ]
         ]);
@@ -67,14 +69,14 @@ class AdminAuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        $admin = $request->user()->load('role');
+        $admin = $request->user();
         return response()->json([
             'success' => true,
             'data' => [
                 'id' => $admin->id,
                 'full_name' => $admin->full_name,
                 'email' => $admin->email,
-                'role' => $admin->role?->code,
+                'role' => $admin->role,
             ]
         ]);
     }
