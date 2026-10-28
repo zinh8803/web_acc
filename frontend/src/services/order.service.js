@@ -1,7 +1,10 @@
 import api from './api';
+
 export const orderService = {
     // Create order
     checkout: (data) => api.post('/orders', data),
+    // Create VNPay checkout URL (creates order only upon successful callback)
+    createVnPayCheckoutUrl: (data) => api.post('/payments/vnpay/create-url', data),
     // List orders
     getOrders: (params) => api.get('/orders', { params }),
     // Get order detail

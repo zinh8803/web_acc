@@ -3,13 +3,21 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cart;
+use App\Models\Coupon;
+use App\Models\CouponUsage;
 use App\Models\GameAccount;
 use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\ProductVariant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class PaymentController extends Controller
 {
@@ -86,6 +94,177 @@ class PaymentController extends Controller
         ]);
     }
 
+    public function createVnPayCheckoutUrl(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.variant_id' => 'required|integer|exists:product_variants,id',
+            'items.*.game_account_id' => 'nullable|integer|exists:game_accounts,id',
+            'items.*.quantity' => 'required|integer|min:1|max:10',
+            'coupon_code' => 'nullable|string|max:40',
+            'customer_notes' => 'nullable|string|max:500',
+        ]);
+
+        $tmnCode = config('vnpay.vnp_TmnCode');
+        $hashSecret = config('vnpay.vnp_HashSecret');
+        $vnpUrl = config('vnpay.vnp_Url');
+        $returnUrl = config('vnpay.vnp_Returnurl');
+
+        if (!$tmnCode || !$hashSecret || !$vnpUrl || !$returnUrl) {
+            Log::error('VNPay configuration invalid');
+            return response()->json(['success' => false, 'message' => 'Cấu hình VNPay chưa đầy đủ.'], 503);
+        }
+
+        $user = $request->user();
+
+        try {
+            $checkoutData = DB::transaction(function () use ($validated, $user, $request) {
+                $subtotal = 0;
+                $preparedItems = [];
+                $reservedAccountIds = [];
+
+                foreach ($validated['items'] as $requestedItem) {
+                    $variant = ProductVariant::with('product')->lockForUpdate()->findOrFail($requestedItem['variant_id']);
+                    $product = $variant->product;
+                    if (!$product || $product->status !== 'ACTIVE' || $variant->status !== 'ACTIVE') {
+                        throw ValidationException::withMessages(['items' => ['Một sản phẩm trong giỏ không còn khả dụng.']]);
+                    }
+
+                    $quantity = $requestedItem['quantity'];
+                    $unitPrice = $variant->sale_price ?? $variant->price;
+                    $lineTotal = (int) $unitPrice * $quantity;
+                    $accountIds = [];
+
+                    if ($product->type === 'ACCOUNT') {
+                        if (!empty($requestedItem['game_account_id'])) {
+                            if ($quantity !== 1) {
+                                throw ValidationException::withMessages(['items' => ['Mỗi tài khoản được bán riêng lẻ, số lượng phải bằng 1.']]);
+                            }
+                            $acc = GameAccount::whereKey($requestedItem['game_account_id'])
+                                ->where('variant_id', $variant->id)
+                                ->where('product_id', $product->id)
+                                ->where('status', 'AVAILABLE')
+                                ->lockForUpdate()
+                                ->first();
+                            if (!$acc) {
+                                throw ValidationException::withMessages(['items' => ['Tài khoản bạn chọn không còn khả dụng.']]);
+                            }
+                            $accountIds = [$acc->id];
+                        } else {
+                            $accounts = GameAccount::where('variant_id', $variant->id)
+                                ->where('status', 'AVAILABLE')
+                                ->lockForUpdate()
+                                ->limit($quantity)
+                                ->get();
+                            if ($accounts->count() < $quantity) {
+                                throw ValidationException::withMessages(['items' => ["Sản phẩm '{$product->name}' không đủ hàng trong kho."]]);
+                            }
+                            $accountIds = $accounts->pluck('id')->toArray();
+                        }
+
+                        // Tạm giữ chỗ trong 20 phút để khách thanh toán
+                        GameAccount::whereIn('id', $accountIds)->update([
+                            'status' => 'RESERVED',
+                            'reserved_until' => now()->addMinutes(20),
+                        ]);
+                        $variant->update([
+                            'stock_quantity' => GameAccount::where('variant_id', $variant->id)->where('status', 'AVAILABLE')->count(),
+                        ]);
+                        $reservedAccountIds = array_merge($reservedAccountIds, $accountIds);
+                    }
+
+                    $preparedItems[] = [
+                        'product_id' => $product->id,
+                        'variant_id' => $variant->id,
+                        'product_name' => $product->name,
+                        'variant_name' => $variant->name,
+                        'thumbnail_url' => $product->thumbnail_url,
+                        'item_type' => $product->type,
+                        'unit_price' => $unitPrice,
+                        'quantity' => $quantity,
+                        'line_total' => $lineTotal,
+                        'account_ids' => $accountIds,
+                        'warranty_policy_id' => $product->warranty_policy_id,
+                        'warranty_duration_days' => $product->warrantyPolicy?->duration_days,
+                    ];
+                    $subtotal += $lineTotal;
+                }
+
+                $coupon = null;
+                $discount = 0;
+                if (!empty($validated['coupon_code'])) {
+                    $coupon = Coupon::where('code', strtoupper($validated['coupon_code']))
+                        ->where('status', 'ACTIVE')
+                        ->lockForUpdate()
+                        ->first();
+                    if (!$coupon || ($coupon->starts_at && $coupon->starts_at->isFuture()) || ($coupon->ends_at && $coupon->ends_at->isPast())) {
+                        throw ValidationException::withMessages(['coupon_code' => ['Mã giảm giá không hợp lệ hoặc đã hết hạn.']]);
+                    }
+                    if (($coupon->usage_limit && $coupon->used_count >= $coupon->usage_limit)
+                        || CouponUsage::where('coupon_id', $coupon->id)->where('user_id', $user->id)->where('status', 'USED')->count() >= $coupon->usage_per_user
+                        || $subtotal < $coupon->min_order_amount) {
+                        throw ValidationException::withMessages(['coupon_code' => ['Đơn hàng không đủ điều kiện sử dụng mã giảm giá này.']]);
+                    }
+                    $discount = $coupon->discount_type === 'PERCENT'
+                        ? (int) round(min($subtotal * $coupon->discount_value / 100, $coupon->max_discount_amount ?: $subtotal))
+                        : (int) min($coupon->discount_value, $subtotal);
+                }
+
+                $total = max(0, $subtotal - $discount);
+
+                return [
+                    'user_id' => $user->id,
+                    'subtotal' => $subtotal,
+                    'discount' => $discount,
+                    'total' => $total,
+                    'coupon_id' => $coupon?->id,
+                    'coupon_code' => $coupon?->code,
+                    'customer_notes' => $validated['customer_notes'] ?? null,
+                    'items' => $preparedItems,
+                    'reserved_account_ids' => $reservedAccountIds,
+                    'ip' => $request->ip(),
+                ];
+            });
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?? 'Dữ liệu không hợp lệ.',
+                'errors' => $e->errors(),
+            ], 422);
+        }
+
+        $txnRef = 'VNP' . date('YmdHis') . random_int(1000, 9999);
+        Cache::put('vnpay_checkout_' . $txnRef, $checkoutData, now()->addMinutes(25));
+
+        $inputData = [
+            'vnp_Version' => '2.1.0',
+            'vnp_TmnCode' => $tmnCode,
+            'vnp_Amount' => (int) $checkoutData['total'] * 100,
+            'vnp_Command' => 'pay',
+            'vnp_CreateDate' => now()->format('YmdHis'),
+            'vnp_CurrCode' => 'VND',
+            'vnp_IpAddr' => $request->ip(),
+            'vnp_Locale' => 'vn',
+            'vnp_OrderInfo' => 'Thanh toan don hang ' . $txnRef,
+            'vnp_OrderType' => 'other',
+            'vnp_ReturnUrl' => $returnUrl,
+            'vnp_TxnRef' => $txnRef,
+        ];
+        ksort($inputData);
+        $query = http_build_query($inputData);
+        $secureHash = hash_hmac('sha512', $query, $hashSecret);
+        $paymentUrl = $vnpUrl . '?' . $query . '&vnp_SecureHash=' . $secureHash;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'payment_url' => $paymentUrl,
+                'txn_ref' => $txnRef,
+                'total' => $checkoutData['total'],
+            ],
+        ]);
+    }
+
     public function createVnPayPayment(Request $request, string $orderCode): JsonResponse
     {
         $order = Order::where('order_code', $orderCode)
@@ -151,33 +330,166 @@ class PaymentController extends Controller
         }
         $hashSecret = (string) config('vnpay.vnp_HashSecret', '');
         $expectedHash = $hashSecret !== '' ? hash_hmac('sha512', $hashData, $hashSecret) : '';
+        $validSignature = $expectedHash !== '' && $receivedHash !== '' && hash_equals($expectedHash, $receivedHash);
+        $frontend = rtrim((string) config('vnpay.frontend_url'), '/');
+
+        if (!$validSignature) {
+            return redirect($frontend . '?status=fail&message=' . urlencode('Chữ ký không hợp lệ'));
+        }
+
         $txnRef = (string) $request->query('vnp_TxnRef', '');
+        $responseCode = (string) $request->query('vnp_ResponseCode', '');
+        $transactionStatus = (string) $request->query('vnp_TransactionStatus', '');
+        $transactionNo = (string) $request->query('vnp_TransactionNo', $txnRef);
+
+        // Trường hợp 1: Luồng thanh toán tạo Order sau khi VNPay thành công (Checkout qua VNPay)
+        $checkoutData = Cache::get('vnpay_checkout_' . $txnRef);
+        if ($checkoutData) {
+            $isSuccess = ($responseCode === '00' && $transactionStatus === '00' && (int) $request->query('vnp_Amount') === (int) $checkoutData['total'] * 100);
+
+            if ($isSuccess) {
+                // Thanh toán VNPay thành công => GỌI HÀM TẠO ORDER
+                $order = DB::transaction(function () use ($checkoutData, $transactionNo) {
+                    $order = Order::create([
+                        'order_code' => 'ORD-' . strtoupper(Str::random(12)),
+                        'user_id' => $checkoutData['user_id'],
+                        'status' => 'COMPLETED',
+                        'subtotal' => $checkoutData['subtotal'],
+                        'discount_total' => $checkoutData['discount'],
+                        'total' => $checkoutData['total'],
+                        'coupon_id' => $checkoutData['coupon_id'],
+                        'coupon_code' => $checkoutData['coupon_code'],
+                        'payment_method_code' => 'vnpay',
+                        'payment_reference' => $transactionNo,
+                        'customer_note' => $checkoutData['customer_notes'],
+                        'expires_at' => now()->addMinutes(30),
+                        'paid_at' => now(),
+                        'completed_at' => now(),
+                        'ip_address' => $checkoutData['ip'] ?? null,
+                    ]);
+
+                    foreach ($checkoutData['items'] as $itemData) {
+                        if ($itemData['item_type'] === 'ACCOUNT') {
+                            foreach ($itemData['account_ids'] as $accId) {
+                                $orderItem = OrderItem::create([
+                                    'order_id' => $order->id,
+                                    'product_id' => $itemData['product_id'],
+                                    'variant_id' => $itemData['variant_id'],
+                                    'game_account_id' => $accId,
+                                    'item_type' => 'ACCOUNT',
+                                    'product_name' => $itemData['product_name'],
+                                    'variant_name' => $itemData['variant_name'],
+                                    'thumbnail_url' => $itemData['thumbnail_url'],
+                                    'unit_price' => $itemData['unit_price'],
+                                    'quantity' => 1,
+                                    'line_total' => $itemData['unit_price'],
+                                    'warranty_policy_id' => $itemData['warranty_policy_id'],
+                                    'warranty_expires_at' => !empty($itemData['warranty_duration_days'])
+                                        ? now()->addDays($itemData['warranty_duration_days'])
+                                        : null,
+                                    'fulfillment_status' => 'DELIVERED',
+                                    'delivered_at' => now(),
+                                ]);
+
+                                GameAccount::whereKey($accId)->update([
+                                    'status' => 'SOLD',
+                                    'sold_at' => now(),
+                                    'sold_order_item_id' => $orderItem->id,
+                                    'reserved_by_order_id' => null,
+                                    'reserved_until' => null,
+                                ]);
+                            }
+                            \App\Models\ProductVariant::whereKey($itemData['variant_id'])->update([
+                                'stock_quantity' => GameAccount::where('variant_id', $itemData['variant_id'])->where('status', 'AVAILABLE')->count(),
+                            ]);
+                        } else {
+                            OrderItem::create([
+                                'order_id' => $order->id,
+                                'product_id' => $itemData['product_id'],
+                                'variant_id' => $itemData['variant_id'],
+                                'item_type' => 'SERVICE',
+                                'product_name' => $itemData['product_name'],
+                                'variant_name' => $itemData['variant_name'],
+                                'thumbnail_url' => $itemData['thumbnail_url'],
+                                'unit_price' => $itemData['unit_price'],
+                                'quantity' => $itemData['quantity'],
+                                'line_total' => $itemData['line_total'],
+                                'warranty_policy_id' => $itemData['warranty_policy_id'],
+                                'fulfillment_status' => 'PENDING',
+                            ]);
+                        }
+                    }
+
+                    if (!empty($checkoutData['coupon_id'])) {
+                        CouponUsage::create([
+                            'coupon_id' => $checkoutData['coupon_id'],
+                            'user_id' => $checkoutData['user_id'],
+                            'order_id' => $order->id,
+                            'discount_amount' => $checkoutData['discount'],
+                        ]);
+                        Coupon::whereKey($checkoutData['coupon_id'])->increment('used_count');
+                    }
+
+                    Cart::where('user_id', $checkoutData['user_id'])->first()?->items()->delete();
+
+                    return $order;
+                });
+
+                Cache::forget('vnpay_checkout_' . $txnRef);
+
+                $returnData = $request->all();
+                $returnData['order_code'] = $order->order_code;
+                $returnData['status'] = 'success';
+                return redirect($frontend . '?' . http_build_query($returnData));
+            } else {
+                // Thanh toán thất bại hoặc người dùng huỷ => KHÔNG TẠO ORDER!
+                if (!empty($checkoutData['reserved_account_ids'])) {
+                    GameAccount::whereIn('id', $checkoutData['reserved_account_ids'])
+                        ->where('status', 'RESERVED')
+                        ->update([
+                            'status' => 'AVAILABLE',
+                            'reserved_until' => null,
+                        ]);
+                    foreach ($checkoutData['items'] as $itemData) {
+                        if ($itemData['item_type'] === 'ACCOUNT') {
+                            \App\Models\ProductVariant::whereKey($itemData['variant_id'])->update([
+                                'stock_quantity' => GameAccount::where('variant_id', $itemData['variant_id'])->where('status', 'AVAILABLE')->count(),
+                            ]);
+                        }
+                    }
+                }
+
+                Cache::forget('vnpay_checkout_' . $txnRef);
+
+                $returnData = $request->all();
+                $returnData['status'] = 'fail';
+                $returnData['message'] = 'Thanh toán VNPay không thành công hoặc đã bị huỷ.';
+                return redirect($frontend . '?' . http_build_query($returnData));
+            }
+        }
+
+        // Trường hợp 2: Đơn hàng đã tồn tại trước đó (tương thích ngược)
         $order = Order::where('payment_reference', $txnRef)->first();
         $orderCode = $order?->order_code ?? '';
-        $validSignature = $expectedHash !== '' && $receivedHash !== '' && hash_equals($expectedHash, $receivedHash);
-        $validPayment = $validSignature
-            && $order
+        $validPayment = $order
             && $order->payment_method_code === 'vnpay'
-            && (string) $request->query('vnp_ResponseCode') === '00'
-            && (string) $request->query('vnp_TransactionStatus') === '00'
+            && $responseCode === '00'
+            && $transactionStatus === '00'
             && (int) $request->query('vnp_Amount') === (int) $order->total * 100;
 
         if ($validPayment && $order->status === 'PENDING_PAYMENT') {
             $this->settleOrder($order);
-            $order->update(['payment_reference' => (string) $request->query('vnp_TransactionNo', '')]);
+            $order->update(['payment_reference' => $transactionNo]);
         }
         $result = $validPayment && $order->refresh()->isPaid() ? 'success' : 'fail';
-        if ($validSignature && $order && $result === 'fail' && $order->status === 'PENDING_PAYMENT') {
+        if ($order && $result === 'fail' && $order->status === 'PENDING_PAYMENT') {
             $order->update(['payment_reference' => null]);
         }
-        $frontend = rtrim((string) config('vnpay.frontend_url'), '/');
-        if ($validSignature) {
-            $returnData = $request->all();
-            $returnData['order_code'] = $orderCode;
-            $returnData['status'] = $result;
-            return redirect($frontend . '?' . http_build_query($returnData));
-        }
-        return redirect($frontend . '?status=fail&message=' . urlencode('Chữ ký không hợp lệ') . '&order_code=' . urlencode($orderCode));
+
+        $returnData = $request->all();
+        $returnData['order_code'] = $orderCode;
+        $returnData['status'] = $result;
+        return redirect($frontend . '?' . http_build_query($returnData));
     }
 
     public function initiateZaloPayPayment(Request $request, string $orderCode): JsonResponse

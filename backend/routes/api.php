@@ -92,6 +92,7 @@ Route::prefix('v1')->group(function () {
         Route::post('orders/{code}/items/{item}/credentials', [OrderController::class, 'viewCredentials']);
 
         // Payments
+        Route::post('payments/vnpay/create-url', [PaymentController::class, 'createVnPayCheckoutUrl']);
         Route::get('orders/{code}/payments', [PaymentController::class, 'initiate']);
         Route::get('orders/{code}/payments/status', [PaymentController::class, 'checkStatus']);
         Route::post('orders/{code}/payments/vnpay', [PaymentController::class, 'createVnPayPayment'])->name('payments.vnpay.create');
