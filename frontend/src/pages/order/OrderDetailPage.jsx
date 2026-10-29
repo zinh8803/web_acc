@@ -56,6 +56,65 @@ const OrderDetailPage = () => {
         message.success(`Đã sao chép ${label}!`);
     };
 
+    const labelMapping = {
+        sec_email: 'Email liên kết',
+        email: 'Email liên kết',
+        sec_phone: 'SĐT bảo mật',
+        phone: 'Số điện thoại',
+        additional_info: 'Ghi chú bổ sung',
+        note: 'Ghi chú',
+        notes: 'Ghi chú',
+        pin: 'Mã PIN cấp 2',
+        pin_code: 'Mã PIN cấp 2',
+        two_factor: 'Mã 2FA / OTP',
+        '2fa': 'Mã 2FA / OTP',
+        backup_code: 'Mã dự phòng',
+        login_method: 'Cổng đăng nhập',
+        clean_account: 'Tình trạng thông tin',
+        server: 'Máy chủ',
+    };
+
+    const renderAccountExtraInfo = (extra) => {
+        if (!extra) return null;
+        let obj = extra;
+        if (typeof extra === 'string') {
+            try {
+                obj = JSON.parse(extra);
+            } catch {
+                return <div style={{ marginTop: '8px', color: '#cbd5e1', fontSize: '13px' }}>{extra}</div>;
+            }
+        }
+        if (typeof obj !== 'object' || obj === null) {
+            return <div style={{ marginTop: '8px', color: '#cbd5e1', fontSize: '13px' }}>{String(obj)}</div>;
+        }
+
+        const entries = Object.entries(obj).filter(([k, v]) =>
+            !['cost_price', 'supplier', 'supplier_id', 'created_by'].includes(k) && v !== null && v !== ''
+        );
+
+        if (entries.length === 0) return null;
+
+        return (
+            <div style={{ marginTop: '12px', padding: '12px 14px', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '8px' }}>
+                <div style={{ color: '#818cf8', fontWeight: 700, fontSize: '13px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    📌 Thông tin bổ sung tài khoản:
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px' }}>
+                    {entries.map(([k, v]) => (
+                        <div key={k} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+                            <span style={{ color: '#94a3b8' }}>
+                                {labelMapping[k] || k.replace(/_/g, ' ')}:
+                            </span>
+                            <strong style={{ color: '#f8fafc', background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: '4px' }}>
+                                {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                            </strong>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
     const handleOpenServiceModal = (item) => {
         setActiveOrderItem(item);
         form.resetFields();
@@ -75,7 +134,6 @@ const OrderDetailPage = () => {
                 game_login: JSON.stringify(loginInfo),
                 customer_note: values.notes || null,
                 form_data: {
-                    server: values.server || 'Mặc định',
                     ingame_name: values.ingame_name || '',
                     current_rank: values.current_rank || '',
                     target_rank: values.target_rank || activeOrderItem.variant_name,
@@ -376,14 +434,7 @@ const OrderDetailPage = () => {
                                             </div>
                                         </Col>
                                     </Row>
-                                    {creds.extra_info && (
-                                        <div style={{ marginTop: '12px', padding: '10px 12px', background: 'rgba(99,102,241,0.08)', borderRadius: '6px', color: '#cbd5e1', fontSize: '13px' }}>
-                                            📌 <strong>Thông tin bổ sung:</strong>{' '}
-                                            {typeof creds.extra_info === 'object'
-                                                ? (creds.extra_info.additional_info || Object.entries(creds.extra_info).map(([k, v]) => `${k}: ${v}`).join(' | '))
-                                                : String(creds.extra_info)}
-                                        </div>
-                                    )}
+                                    {renderAccountExtraInfo(creds.extra_info)}
                                 </div>
                             );
                         })}
@@ -461,28 +512,19 @@ const OrderDetailPage = () => {
                     </Form.Item>
                     <Row gutter={12}>
                         <Col span={12}>
-                            <Form.Item name="server" label="Máy chủ / Server">
-                                <Input placeholder="VD: Mặt Trời, Asia..." />
-                            </Form.Item>
-                        </Col>
-                        <Col span={12}>
                             <Form.Item name="ingame_name" label="Tên nhân vật (Ingame)">
                                 <Input placeholder="Tên nhân vật..." />
                             </Form.Item>
                         </Col>
-                    </Row>
-                    <Row gutter={12}>
                         <Col span={12}>
                             <Form.Item name="current_rank" label="Rank hiện tại">
                                 <Input placeholder="VD: Kim Cương..." />
                             </Form.Item>
                         </Col>
-                        <Col span={12}>
-                            <Form.Item name="target_rank" label="Rank / Tướng mong muốn">
-                                <Input placeholder="VD: Cao Thủ..." />
-                            </Form.Item>
-                        </Col>
                     </Row>
+                    <Form.Item name="target_rank" label="Rank / Tướng mong muốn">
+                        <Input placeholder="VD: Cao Thủ..." />
+                    </Form.Item>
                     <Form.Item name="notes" label="Ghi chú thêm cho kỹ thuật viên">
                         <Input.TextArea rows={2} placeholder="Thời gian không được vào nick, tướng ưu tiên..." />
                     </Form.Item>

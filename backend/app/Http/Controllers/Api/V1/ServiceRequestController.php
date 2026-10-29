@@ -69,6 +69,9 @@ class ServiceRequestController extends Controller
             'status' => 'PENDING',
         ]);
 
+        // Gửi email xác nhận tiếp nhận thông tin cày thuê
+        \App\Services\OrderMailService::sendServiceRequestMail($service);
+
         return response()->json([
             'success' => true,
             'message' => 'Yêu cầu dịch vụ đã được gửi.',

@@ -11,7 +11,7 @@ class AdminOrderController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Order::with(['user:id,username,email,full_name'])->orderByDesc('id');
+        $query = Order::with(['user:id,email,full_name,phone'])->orderByDesc('id');
 
         if ($search = $request->get('search')) {
             $query->where('order_code', 'like', "%{$search}%");
@@ -63,9 +63,19 @@ class AdminOrderController extends Controller
             'admin_notes' => 'nullable|string',
         ]);
 
-        $order->update([
-            'status' => strtoupper($validated['status']),
-        ]);
+        $newStatus = strtoupper($validated['status']);
+        $wasPaid = $order->isPaid();
+
+        $updateData = ['status' => $newStatus];
+        if (!$order->paid_at && in_array($newStatus, ['PAID', 'PROCESSING', 'COMPLETED'], true)) {
+            $updateData['paid_at'] = now();
+        }
+        $order->update($updateData);
+
+        // Nếu chuyển sang trạng thái đã thanh toán => gửi thông tin tài khoản & dịch vụ về mail
+        if (!$wasPaid && in_array($newStatus, ['PAID', 'PROCESSING', 'COMPLETED'], true)) {
+            \App\Services\OrderMailService::sendOrderSuccessMail($order);
+        }
 
         return response()->json([
             'success' => true,

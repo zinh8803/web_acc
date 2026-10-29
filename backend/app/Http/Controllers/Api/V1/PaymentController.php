@@ -464,6 +464,9 @@ class PaymentController extends Controller
                     return $order;
                 });
 
+                // Gửi thông tin tài khoản & xác nhận dịch vụ về email của khách
+                \App\Services\OrderMailService::sendOrderSuccessMail($order);
+
                 Cache::forget('vnpay_checkout_' . $txnRef);
 
                 $returnData = $request->all();
@@ -717,6 +720,9 @@ class PaymentController extends Controller
                 'paid_at' => now(),
             ]);
         });
+
+        // Gửi thông tin tài khoản & xác nhận dịch vụ về email của khách
+        \App\Services\OrderMailService::sendOrderSuccessMail($order);
     }
 
     /**

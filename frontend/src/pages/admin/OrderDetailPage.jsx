@@ -150,6 +150,32 @@ const AdminOrderDetailPage = () => {
                                         <span style={{ color: '#fff' }}>TK: <strong>{item.credentials.username}</strong></span>
                                         <span style={{ color: '#fbbf24' }}>MK: <strong>{item.credentials.password}</strong></span>
                                     </div>
+                                    {item.credentials.extra_info && (
+                                        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed rgba(255,255,255,0.1)', fontSize: '13px' }}>
+                                            <span style={{ color: '#94a3b8' }}>Thông tin phụ: </span>
+                                            {typeof item.credentials.extra_info === 'object' ? (
+                                                <div style={{ marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                                                    {Object.entries(item.credentials.extra_info).map(([k, v]) => {
+                                                        const labelMap = {
+                                                            sec_email: 'Email liên kết',
+                                                            sec_phone: 'SĐT bảo mật',
+                                                            additional_info: 'Ghi chú',
+                                                            cost_price: 'Giá vốn',
+                                                            pin: 'Mã PIN',
+                                                        };
+                                                        return v ? (
+                                                            <span key={k} style={{ color: '#cbd5e1' }}>
+                                                                <span style={{ color: '#94a3b8' }}>{labelMap[k] || k}:</span>{' '}
+                                                                <strong style={{ color: '#fff' }}>{String(v)}</strong>
+                                                            </span>
+                                                        ) : null;
+                                                    })}
+                                                </div>
+                                            ) : (
+                                                <span style={{ color: '#fff' }}>{String(item.credentials.extra_info)}</span>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

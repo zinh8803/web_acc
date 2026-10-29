@@ -286,11 +286,13 @@ const AdminServiceRequestsPage = () => {
                         {/* CHI TIẾT YÊU CẦU CÀY THUÊ */}
                         <Card size="small" title="Thông tin chi tiết cày nick do khách gửi" style={{ marginBottom: '16px', background: '#0f172a' }}>
                             <Row gutter={[16, 8]}>
-                                <Col span={12}>
-                                    <span style={{ color: '#94a3b8' }}>Máy chủ / Server: </span>
-                                    <strong style={{ color: '#fff' }}>{selectedService.form_data?.server || 'Mặc định'}</strong>
-                                </Col>
-                                <Col span={12}>
+                                {selectedService.form_data?.server && (
+                                    <Col span={12}>
+                                        <span style={{ color: '#94a3b8' }}>Máy chủ / Server: </span>
+                                        <strong style={{ color: '#fff' }}>{selectedService.form_data.server}</strong>
+                                    </Col>
+                                )}
+                                <Col span={selectedService.form_data?.server ? 12 : 24}>
                                     <span style={{ color: '#94a3b8' }}>Tên nhân vật (Ingame): </span>
                                     <strong style={{ color: '#fff' }}>{selectedService.form_data?.ingame_name || '---'}</strong>
                                 </Col>

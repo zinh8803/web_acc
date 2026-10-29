@@ -47,10 +47,12 @@ class OrderController extends Controller
             $itemData = $item->toArray();
             if ($isPaid && $item->gameAccount) {
                 $credentials = $item->gameAccount->decryptCredentials();
+                $extra = is_array($credentials['extra'] ?? null) ? $credentials['extra'] : [];
+                unset($extra['cost_price'], $extra['supplier'], $extra['supplier_id']);
                 $itemData['credentials'] = [
                     'username' => $credentials['username'],
                     'password' => $credentials['password'],
-                    'extra_info' => $credentials['extra'],
+                    'extra_info' => !empty($extra) ? $extra : null,
                 ];
             }
             return $itemData;

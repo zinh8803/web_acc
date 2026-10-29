@@ -1,21 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Table, Tag, Select, message, Button, Space } from 'antd';
-import { EyeOutlined } from '@ant-design/icons';
+import { Table, Tag, Select, Input, message, Button, Space } from 'antd';
+import { EyeOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../services/api';
 
 const AdminOrdersPage = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState(undefined);
 
-    const fetchOrders = async () => {
+    const fetchOrders = async (s = search, st = statusFilter) => {
         setLoading(true);
         try {
-            const res = await api.get('/admin/orders');
+            const params = {};
+            if (s) params.search = s;
+            if (st) params.status = st;
+            const res = await api.get('/admin/orders', { params });
             const list = res.data?.data?.data || res.data?.data || [];
             setOrders(Array.isArray(list) ? list : []);
         } catch (e) {
+            console.error('Fetch orders error:', e);
             message.error('Không thể tải danh sách đơn hàng.');
         } finally {
             setLoading(false);
@@ -103,6 +109,45 @@ const AdminOrdersPage = () => {
                 QUẢN LÝ ĐƠN HÀNG & GIAO DỊCH 🧾
             </h1>
             <div style={{ background: '#121324', borderRadius: '14px', padding: '20px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                    <Input.Search
+                        placeholder="Tìm theo mã đơn (ORD-...)..."
+                        style={{ width: 280 }}
+                        allowClear
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        onSearch={(val) => {
+                            setSearch(val);
+                            fetchOrders(val, statusFilter);
+                        }}
+                    />
+                    <Select
+                        placeholder="Lọc theo trạng thái"
+                        style={{ width: 180 }}
+                        allowClear
+                        value={statusFilter}
+                        onChange={(val) => {
+                            setStatusFilter(val);
+                            fetchOrders(search, val);
+                        }}
+                    >
+                        <Select.Option value="PENDING_PAYMENT">Chờ thanh toán</Select.Option>
+                        <Select.Option value="PAID">Đã thanh toán</Select.Option>
+                        <Select.Option value="PROCESSING">Đang xử lý</Select.Option>
+                        <Select.Option value="COMPLETED">Hoàn tất / Bàn giao</Select.Option>
+                        <Select.Option value="CANCELLED">Huỷ đơn</Select.Option>
+                    </Select>
+                    <Button
+                        icon={<ReloadOutlined />}
+                        onClick={() => {
+                            setSearch('');
+                            setStatusFilter(undefined);
+                            fetchOrders('', undefined);
+                        }}
+                    >
+                        Làm mới
+                    </Button>
+                </div>
                 <Table columns={columns} dataSource={orders} rowKey="id" loading={loading} />
             </div>
         </div>

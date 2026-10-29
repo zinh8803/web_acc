@@ -121,7 +121,6 @@ const ProductDetailPage = () => {
             const serviceData = {
                 game_username: values.game_username,
                 game_password: values.game_password,
-                server: values.server || 'Mặt Trời',
                 ingame_name: values.ingame_name || '',
                 current_rank: values.current_rank || '',
                 target_rank: values.target_rank || selectedVariant.name,
@@ -317,24 +316,19 @@ const ProductDetailPage = () => {
 
                                     <Row gutter={16}>
                                         <Col xs={24} sm={12}>
-                                            <Form.Item name="server" label={<span style={{ color: '#cbd5e1' }}>Máy chủ / Server</span>}>
-                                                <Input placeholder="VD: Mặt Trời, Việt Nam, Asia..." size="large" />
-                                            </Form.Item>
-                                        </Col>
-                                        <Col xs={24} sm={12}>
                                             <Form.Item name="ingame_name" label={<span style={{ color: '#cbd5e1' }}>Tên nhân vật trong game (Ingame)</span>}>
                                                 <Input placeholder="VD: ProPlayer99..." size="large" />
                                             </Form.Item>
                                         </Col>
-                                    </Row>
-
-                                    <Row gutter={16}>
                                         <Col xs={24} sm={12}>
                                             <Form.Item name="current_rank" label={<span style={{ color: '#cbd5e1' }}>Rank hiện tại</span>}>
                                                 <Input placeholder="VD: Đồng I, Kim Cương IV..." size="large" />
                                             </Form.Item>
                                         </Col>
-                                        <Col xs={24} sm={12}>
+                                    </Row>
+
+                                    <Row gutter={16}>
+                                        <Col xs={24}>
                                             <Form.Item name="target_hero" label={<span style={{ color: '#cbd5e1' }}>Tướng muốn cày (Nếu cày top tướng)</span>}>
                                                 <Input placeholder="VD: Florentino, Điêu Thuyền..." size="large" />
                                             </Form.Item>
