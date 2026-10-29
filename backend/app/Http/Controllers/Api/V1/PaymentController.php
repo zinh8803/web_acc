@@ -101,6 +101,7 @@ class PaymentController extends Controller
             'items.*.variant_id' => 'required|integer|exists:product_variants,id',
             'items.*.game_account_id' => 'nullable|integer|exists:game_accounts,id',
             'items.*.quantity' => 'required|integer|min:1|max:10',
+            'items.*.service_data' => 'nullable|array',
             'coupon_code' => 'nullable|string|max:40',
             'customer_notes' => 'nullable|string|max:500',
         ]);
@@ -186,6 +187,8 @@ class PaymentController extends Controller
                         'account_ids' => $accountIds,
                         'warranty_policy_id' => $product->warranty_policy_id,
                         'warranty_duration_days' => $product->warrantyPolicy?->duration_days,
+                        'service_data' => $requestedItem['service_data'] ?? null,
+                        'game_id' => $product->game_id,
                     ];
                     $subtotal += $lineTotal;
                 }
@@ -403,7 +406,7 @@ class PaymentController extends Controller
                                 'stock_quantity' => GameAccount::where('variant_id', $itemData['variant_id'])->where('status', 'AVAILABLE')->count(),
                             ]);
                         } else {
-                            OrderItem::create([
+                            $orderItem = OrderItem::create([
                                 'order_id' => $order->id,
                                 'product_id' => $itemData['product_id'],
                                 'variant_id' => $itemData['variant_id'],
@@ -417,6 +420,32 @@ class PaymentController extends Controller
                                 'warranty_policy_id' => $itemData['warranty_policy_id'],
                                 'fulfillment_status' => 'PENDING',
                             ]);
+
+                            $serviceData = $itemData['service_data'] ?? null;
+                            if ($serviceData) {
+                                $loginInfo = [];
+                                if (!empty($serviceData['game_username'])) $loginInfo['username'] = $serviceData['game_username'];
+                                if (!empty($serviceData['game_password'])) $loginInfo['password'] = $serviceData['game_password'];
+                                if (!empty($serviceData['two_factor'])) $loginInfo['two_factor'] = $serviceData['two_factor'];
+
+                                \App\Models\ServiceRequest::create([
+                                    'request_code' => 'SRV-' . strtoupper(Str::random(8)),
+                                    'order_item_id' => $orderItem->id,
+                                    'user_id' => $checkoutData['user_id'],
+                                    'game_id' => $itemData['game_id'] ?? null,
+                                    'form_data' => [
+                                        'server' => $serviceData['server'] ?? null,
+                                        'ingame_name' => $serviceData['ingame_name'] ?? null,
+                                        'current_rank' => $serviceData['current_rank'] ?? null,
+                                        'target_rank' => $serviceData['target_rank'] ?? null,
+                                        'target_hero' => $serviceData['target_hero'] ?? null,
+                                        'variant_name' => $itemData['variant_name'] ?? null,
+                                    ],
+                                    'game_login_enc' => !empty($loginInfo) ? \Illuminate\Support\Facades\Crypt::encryptString(json_encode($loginInfo)) : null,
+                                    'customer_note' => $serviceData['notes'] ?? $checkoutData['customer_notes'] ?? null,
+                                    'status' => 'PENDING',
+                                ]);
+                            }
                         }
                     }
 

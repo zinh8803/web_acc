@@ -38,4 +38,19 @@ class OrderItem extends Model
     {
         return $this->belongsTo(GameAccount::class);
     }
+
+    public function serviceRequest(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ServiceRequest::class);
+    }
+
+    public function warrantyPolicy(): BelongsTo
+    {
+        return $this->belongsTo(WarrantyPolicy::class, 'warranty_policy_id');
+    }
+
+    public function warrantyClaims(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(WarrantyClaim::class);
+    }
 }

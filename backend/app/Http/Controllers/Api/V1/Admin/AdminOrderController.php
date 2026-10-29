@@ -18,7 +18,7 @@ class AdminOrderController extends Controller
         }
 
         if ($status = $request->get('status')) {
-            $query->where('status', $status);
+            $query->where('status', strtoupper($status));
         }
 
         return response()->json([
@@ -27,27 +27,45 @@ class AdminOrderController extends Controller
         ]);
     }
 
-    public function show(int $id): JsonResponse
+    public function show(string $code): JsonResponse
     {
-        $order = Order::with(['user', 'items.product', 'items.gameAccount', 'coupon'])
-            ->findOrFail($id);
+        $order = Order::with(['user', 'items.product', 'items.gameAccount', 'items.serviceRequest.staff', 'coupon'])
+            ->where('order_code', $code)
+            ->orWhere('id', $code)
+            ->firstOrFail();
+
+        $data = $order->toArray();
+        $data['items'] = $order->items->map(function ($item) {
+            $itemData = $item->toArray();
+            if ($item->gameAccount) {
+                $credentials = $item->gameAccount->decryptCredentials();
+                $itemData['credentials'] = [
+                    'username' => $credentials['username'],
+                    'password' => $credentials['password'],
+                    'extra_info' => $credentials['extra'] ?? null,
+                ];
+            }
+            return $itemData;
+        });
 
         return response()->json([
             'success' => true,
-            'data' => $order,
+            'data' => $data,
         ]);
     }
 
-    public function updateStatus(Request $request, int $id): JsonResponse
+    public function updateStatus(Request $request, string $code): JsonResponse
     {
-        $order = Order::findOrFail($id);
+        $order = Order::where('order_code', $code)->orWhere('id', $code)->firstOrFail();
 
         $validated = $request->validate([
-            'status' => 'required|in:pending_payment,paid,processing,completed,cancelled,refunded',
+            'status' => 'required|string',
             'admin_notes' => 'nullable|string',
         ]);
 
-        $order->update($validated);
+        $order->update([
+            'status' => strtoupper($validated['status']),
+        ]);
 
         return response()->json([
             'success' => true,

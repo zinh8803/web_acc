@@ -31,10 +31,15 @@ class OrderController extends Controller
 
     public function show(Request $request, string $orderCode): JsonResponse
     {
-        $order = Order::where('order_code', $orderCode)
-            ->where('user_id', $request->user()->id)
-            ->with(['items.product', 'items.gameAccount', 'coupon'])
-            ->firstOrFail();
+        $query = Order::where('order_code', $orderCode)
+            ->with(['items.product', 'items.gameAccount', 'items.serviceRequest.staff', 'coupon']);
+
+        $user = $request->user();
+        if ($user && !in_array($user->role ?? '', ['SUPER_ADMIN', 'ADMIN', 'STAFF_SUPPORT', 'STAFF_SERVICE'], true)) {
+            $query->where('user_id', $user->id);
+        }
+
+        $order = $query->firstOrFail();
 
         $data = $order->toArray();
         $isPaid = $order->isPaid();
@@ -61,6 +66,7 @@ class OrderController extends Controller
             'items.*.variant_id' => 'required|integer|exists:product_variants,id',
             'items.*.game_account_id' => 'nullable|integer|exists:game_accounts,id',
             'items.*.quantity' => 'required|integer|min:1|max:10',
+            'items.*.service_data' => 'nullable|array',
             'payment_method_code' => 'nullable|string|max:30',
             'coupon_code' => 'nullable|string|max:40',
             'customer_notes' => 'nullable|string|max:500',
@@ -106,7 +112,8 @@ class OrderController extends Controller
                     }
                 }
 
-                $preparedItems[] = compact('variant', 'product', 'quantity', 'unitPrice', 'lineTotal', 'accounts');
+                $serviceData = $requestedItem['service_data'] ?? null;
+                $preparedItems[] = compact('variant', 'product', 'quantity', 'unitPrice', 'lineTotal', 'accounts', 'serviceData');
                 $subtotal += $lineTotal;
             }
 
@@ -177,7 +184,7 @@ class OrderController extends Controller
                         'stock_quantity' => GameAccount::where('variant_id', $variant->id)->where('status', 'AVAILABLE')->count(),
                     ]);
                 } else {
-                    OrderItem::create([
+                    $orderItem = OrderItem::create([
                         'order_id' => $order->id,
                         'product_id' => $product->id,
                         'variant_id' => $variant->id,
@@ -189,7 +196,34 @@ class OrderController extends Controller
                         'quantity' => $prepared['quantity'],
                         'line_total' => $prepared['lineTotal'],
                         'warranty_policy_id' => $product->warranty_policy_id,
+                        'fulfillment_status' => 'PENDING',
                     ]);
+
+                    $serviceData = $prepared['serviceData'] ?? null;
+                    if ($serviceData) {
+                        $loginInfo = [];
+                        if (!empty($serviceData['game_username'])) $loginInfo['username'] = $serviceData['game_username'];
+                        if (!empty($serviceData['game_password'])) $loginInfo['password'] = $serviceData['game_password'];
+                        if (!empty($serviceData['two_factor'])) $loginInfo['two_factor'] = $serviceData['two_factor'];
+
+                        \App\Models\ServiceRequest::create([
+                            'request_code' => 'SRV-' . strtoupper(Str::random(8)),
+                            'order_item_id' => $orderItem->id,
+                            'user_id' => $user->id,
+                            'game_id' => $product->game_id,
+                            'form_data' => [
+                                'server' => $serviceData['server'] ?? null,
+                                'ingame_name' => $serviceData['ingame_name'] ?? null,
+                                'current_rank' => $serviceData['current_rank'] ?? null,
+                                'target_rank' => $serviceData['target_rank'] ?? null,
+                                'target_hero' => $serviceData['target_hero'] ?? null,
+                                'variant_name' => $variant->name,
+                            ],
+                            'game_login_enc' => !empty($loginInfo) ? \Illuminate\Support\Facades\Crypt::encryptString(json_encode($loginInfo)) : null,
+                            'customer_note' => $serviceData['notes'] ?? $validated['customer_notes'] ?? null,
+                            'status' => 'PENDING',
+                        ]);
+                    }
                 }
             }
 

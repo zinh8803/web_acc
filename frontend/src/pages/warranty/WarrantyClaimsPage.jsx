@@ -1,100 +1,342 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Button, Modal, Form, Input, Select, message } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { useSearchParams, Link } from 'react-router-dom';
+import { Table, Tag, Button, Modal, Form, Input, Select, message, Card, Row, Col, Space, Alert } from 'antd';
+import {
+    PlusOutlined,
+    SafetyCertificateOutlined,
+    ClockCircleOutlined,
+    CheckCircleOutlined,
+    SyncOutlined,
+    CloseCircleOutlined,
+    EyeOutlined,
+    ExclamationCircleOutlined
+} from '@ant-design/icons';
+import dayjs from 'dayjs';
 import api from '../../services/api';
+
 const WarrantyClaimsPage = () => {
+    const [searchParams] = useSearchParams();
+    const prefillOrderCode = searchParams.get('order_code');
+    const prefillItemId = searchParams.get('order_item_id');
+
     const [claims, setClaims] = useState([]);
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
     const [form] = Form.useForm();
+
     const fetchClaims = async () => {
         try {
+            setLoading(true);
             const res = await api.get('/warranty-claims');
             const list = res.data?.data?.data || res.data?.data || [];
             setClaims(Array.isArray(list) ? list : []);
-        }
-        catch (e) {
-            console.error(e);
-        }
-        finally {
+        } catch (e) {
+            console.error('Fetch claims error:', e);
+        } finally {
             setLoading(false);
         }
     };
+
     const fetchPaidOrders = async () => {
         try {
-            const res = await api.get('/orders');
+            const res = await api.get('/orders?per_page=50');
             const list = res.data?.data?.data || res.data?.data || [];
-            const paid = list.filter((o) => ['completed', 'paid', 'COMPLETED', 'PAID'].includes(o.status));
+            const paid = list.filter((o) =>
+                ['completed', 'paid', 'COMPLETED', 'PAID', 'processing', 'PROCESSING'].includes(o.status)
+            );
             setOrders(paid);
+
+            // Tự động mở modal nếu có prefill từ URL
+            if (prefillItemId || prefillOrderCode) {
+                let targetItemId = prefillItemId ? Number(prefillItemId) : null;
+                if (!targetItemId && prefillOrderCode) {
+                    const matchOrder = paid.find((o) => o.order_code === prefillOrderCode);
+                    if (matchOrder && matchOrder.items?.length > 0) {
+                        targetItemId = matchOrder.items[0].id;
+                    }
+                }
+                if (targetItemId) {
+                    form.setFieldsValue({ order_item_id: targetItemId });
+                    setIsModalOpen(true);
+                }
+            }
+        } catch (e) {
+            console.error('Fetch orders error:', e);
         }
-        catch (e) { }
     };
+
     useEffect(() => {
         fetchClaims();
         fetchPaidOrders();
     }, []);
+
     const handleCreateClaim = async (values) => {
         try {
-            const res = await api.post('/warranty-claims', {
+            setSubmitting(true);
+            const payload = {
                 order_item_id: values.order_item_id,
-                reason: values.reason,
+                claim_type: values.claim_type,
                 description: values.description,
-            });
+            };
+            const res = await api.post('/warranty-claims', payload);
             if (res.data?.success) {
-                message.success('Đã gửi yêu cầu bảo hành thành công!');
+                message.success(res.data.message || 'Đã gửi yêu cầu bảo hành thành công!');
                 setIsModalOpen(false);
                 form.resetFields();
                 fetchClaims();
             }
-        }
-        catch (err) {
+        } catch (err) {
             message.error(err.response?.data?.message || 'Không thể gửi khiếu nại bảo hành.');
+        } finally {
+            setSubmitting(false);
         }
     };
+
+    const renderStatusTag = (status) => {
+        const s = (status || '').toUpperCase();
+        switch (s) {
+            case 'SUBMITTED':
+                return <Tag color="orange" icon={<ClockCircleOutlined />}>Chờ Tiếp Nhận</Tag>;
+            case 'IN_REVIEW':
+                return <Tag color="blue" icon={<SyncOutlined spin />}>Đang Kiểm Tra</Tag>;
+            case 'NEED_INFO':
+                return <Tag color="warning" icon={<ExclamationCircleOutlined />}>Cần Bổ Sung TT</Tag>;
+            case 'APPROVED':
+            case 'RESOLVED':
+                return <Tag color="success" icon={<CheckCircleOutlined />}>Đã Xử Lý / Đổi Acc</Tag>;
+            case 'REJECTED':
+                return <Tag color="error" icon={<CloseCircleOutlined />}>Từ Chối Bảo Hành</Tag>;
+            case 'CANCELLED':
+                return <Tag color="default">Đã Huỷ</Tag>;
+            default:
+                return <Tag color="processing">{status}</Tag>;
+        }
+    };
+
     const columns = [
         {
             title: 'Mã khiếu nại',
             dataIndex: 'claim_code',
             key: 'claim_code',
-            render: (code) => _jsx(Tag, { color: "orange", style: { fontWeight: 700 }, children: code }),
+            render: (code, record) => (
+                <Link to={`/warranty-claims/${code}`}>
+                    <Tag color="cyan" style={{ fontWeight: 700, cursor: 'pointer' }}>
+                        {code}
+                    </Tag>
+                </Link>
+            ),
         },
         {
-            title: 'Lý do',
-            dataIndex: 'reason',
-            key: 'reason',
-            render: (r) => _jsx("span", { style: { color: '#fff', fontWeight: 600 }, children: r }),
+            title: 'Sản phẩm bảo hành',
+            key: 'product',
+            render: (_, record) => {
+                const item = record.order_item || record.orderItem;
+                const orderCode = item?.order?.order_code || record.order?.order_code;
+                return (
+                    <div>
+                        <div style={{ color: '#fff', fontWeight: 600 }}>
+                            {item?.product_name || item?.product?.name || 'Tài khoản / Gói dịch vụ'}
+                        </div>
+                        {orderCode && (
+                            <div style={{ color: '#94a3b8', fontSize: '12px' }}>
+                                Đơn hàng: <span style={{ color: '#06b6d4' }}>{orderCode}</span>
+                            </div>
+                        )}
+                    </div>
+                );
+            },
+        },
+        {
+            title: 'Loại sự cố',
+            key: 'claim_type',
+            render: (_, record) => (
+                <span style={{ color: '#fbbf24', fontWeight: 600 }}>
+                    {record.reason || record.claim_type}
+                </span>
+            ),
         },
         {
             title: 'Mô tả chi tiết',
             dataIndex: 'description',
             key: 'description',
             ellipsis: true,
+            render: (text) => <span style={{ color: '#cbd5e1' }}>{text}</span>,
         },
         {
             title: 'Trạng thái',
             dataIndex: 'status',
             key: 'status',
-            render: (st) => {
-                switch (st?.toLowerCase()) {
-                    case 'resolved':
-                    case 'approved':
-                        return _jsx(Tag, { color: "success", children: "\u0110\u00C3 X\u1EEC L\u00DD / \u0110\u1ED4I M\u1EDAI" });
-                    case 'rejected':
-                        return _jsx(Tag, { color: "error", children: "T\u1EEA CH\u1ED0I" });
-                    default:
-                        return _jsx(Tag, { color: "processing", children: "\u0110ANG X\u1EEC L\u00DD (SLA 24H)" });
-                }
-            },
+            render: (st) => renderStatusTag(st),
         },
         {
-            title: 'Ngày gửi',
-            dataIndex: 'created_at',
-            key: 'created_at',
-            render: (d) => new Date(d).toLocaleDateString('vi-VN'),
+            title: 'Hạn SLA giải quyết',
+            dataIndex: 'due_at',
+            key: 'due_at',
+            render: (d) =>
+                d ? (
+                    <span style={{ color: '#94a3b8', fontSize: '13px' }}>
+                        {dayjs(d).format('DD/MM/YYYY HH:mm')}
+                    </span>
+                ) : (
+                    <span style={{ color: '#64748b' }}>24h</span>
+                ),
+        },
+        {
+            title: 'Thao tác',
+            key: 'action',
+            render: (_, record) => (
+                <Link to={`/warranty-claims/${record.claim_code || record.id}`}>
+                    <Button size="small" type="primary" ghost icon={<EyeOutlined />}>
+                        Chi tiết
+                    </Button>
+                </Link>
+            ),
         },
     ];
-    return (_jsxs("div", { style: { maxWidth: '1100px', margin: '0 auto', padding: '36px 20px 60px' }, children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }, children: [_jsxs("div", { children: [_jsx("h1", { style: { color: '#fff', fontSize: '28px', fontWeight: 800, fontFamily: 'Rajdhani', margin: 0 }, children: "TRUNG T\u00C2M B\u1EA2O H\u00C0NH & KHI\u1EBEU N\u1EA0I \uD83D\uDEE1\uFE0F" }), _jsx("p", { style: { color: '#94a3b8', fontSize: '14px', marginTop: '4px' }, children: "Cam k\u1EBFt gi\u1EA3i quy\u1EBFt trong 24h. B\u1EA3o h\u00E0nh 1 \u0111\u1ED5i 1 ho\u1EB7c ho\u00E0n ti\u1EC1n n\u1EBFu acc b\u1ECB l\u1ED7i, sai pass, back nick." })] }), _jsx(Button, { type: "primary", icon: _jsx(PlusOutlined, {}), onClick: () => setIsModalOpen(true), style: { height: '42px', fontWeight: 700, borderRadius: '8px' }, children: "G\u1EEDi Y\u00EAu C\u1EA7u B\u1EA3o H\u00E0nh" })] }), _jsx("div", { style: { background: '#121324', borderRadius: '14px', padding: '20px', border: '1px solid rgba(255,255,255,0.08)' }, children: _jsx(Table, { columns: columns, dataSource: claims, rowKey: "id", loading: loading, pagination: { pageSize: 8 } }) }), _jsx(Modal, { title: _jsx("span", { style: { color: '#fff' }, children: "G\u1EEDi Y\u00EAu C\u1EA7u Khi\u1EBFu N\u1EA1i B\u1EA3o H\u00E0nh" }), open: isModalOpen, onCancel: () => setIsModalOpen(false), footer: null, children: _jsxs(Form, { form: form, layout: "vertical", onFinish: handleCreateClaim, children: [_jsx(Form.Item, { name: "order_item_id", label: "Ch\u1ECDn s\u1EA3n ph\u1EA9m trong \u0111\u01A1n \u0111\u00E3 mua", rules: [{ required: true, message: 'Vui lòng chọn sản phẩm cần bảo hành!' }], children: _jsx(Select, { placeholder: "Ch\u1ECDn s\u1EA3n ph\u1EA9m", children: orders.flatMap((o) => (o.items || []).map((i) => (_jsxs(Select.Option, { value: i.id, children: [o.order_code, " - ", i.product_name || 'Tài khoản'] }, i.id)))) }) }), _jsx(Form.Item, { name: "reason", label: "L\u00FD do b\u1EA3o h\u00E0nh", rules: [{ required: true, message: 'Vui lòng chọn lý do!' }], children: _jsxs(Select, { placeholder: "Ch\u1ECDn l\u00FD do", children: [_jsx(Select.Option, { value: "Sai m\u1EADt kh\u1EA9u ho\u1EB7c t\u00E0i kho\u1EA3n", children: "Sai m\u1EADt kh\u1EA9u ho\u1EB7c t\u00E0i kho\u1EA3n" }), _jsx(Select.Option, { value: "B\u1ECB ch\u1EE7 c\u0169 \u0111\u1ED5i th\u00F4ng tin (Back nick)", children: "B\u1ECB ch\u1EE7 c\u0169 \u0111\u1ED5i th\u00F4ng tin (Back nick)" }), _jsx(Select.Option, { value: "Thi\u1EBFu t\u01B0\u1EDBng/skin so v\u1EDBi m\u00F4 t\u1EA3", children: "Thi\u1EBFu t\u01B0\u1EDBng/skin so v\u1EDBi m\u00F4 t\u1EA3" }), _jsx(Select.Option, { value: "Kh\u00E1c", children: "L\u00FD do kh\u00E1c" })] }) }), _jsx(Form.Item, { name: "description", label: "M\u00F4 t\u1EA3 chi ti\u1EBFt s\u1EF1 c\u1ED1", rules: [{ required: true, message: 'Vui lòng mô tả chi tiết!' }], children: _jsx(Input.TextArea, { rows: 4, placeholder: "M\u00F4 t\u1EA3 c\u1EE5 th\u1EC3 th\u1EDDi gian g\u1EB7p l\u1ED7i v\u00E0 t\u00ECnh tr\u1EA1ng t\u00E0i kho\u1EA3n..." }) }), _jsx(Button, { type: "primary", block: true, htmlType: "submit", size: "large", style: { fontWeight: 700 }, children: "G\u1EEDi Y\u00EAu C\u1EA7u Cho \u0110\u1ED9i K\u1EF9 Thu\u1EADt" })] }) })] }));
+
+    return (
+        <div style={{ maxWidth: '1150px', margin: '0 auto', padding: '36px 20px 60px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                    <h1 style={{ color: '#fff', fontSize: '28px', fontWeight: 800, fontFamily: 'Rajdhani', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <SafetyCertificateOutlined style={{ color: '#10b981' }} /> TRUNG TÂM BẢO HÀNH & KHIẾU NẠI
+                    </h1>
+                    <p style={{ color: '#94a3b8', fontSize: '14px', marginTop: '6px', marginBottom: 0 }}>
+                        Cam kết giải quyết trong 24h. Bảo hành 1 đổi 1 hoặc hoàn tiền nếu tài khoản gặp sự cố, sai mật khẩu, back nick.
+                    </p>
+                </div>
+                <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                        form.resetFields();
+                        setIsModalOpen(true);
+                    }}
+                    style={{ height: '44px', fontWeight: 700, borderRadius: '8px', padding: '0 24px', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none' }}
+                >
+                    Gửi Yêu Cầu Bảo Hành
+                </Button>
+            </div>
+
+            <Row gutter={[16, 16]} style={{ marginBottom: '28px' }}>
+                <Col xs={24} sm={8}>
+                    <Card style={{ background: '#121324', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px' }}>
+                        <div style={{ color: '#94a3b8', fontSize: '13px' }}>Chính Sách Cam Kết</div>
+                        <div style={{ color: '#10b981', fontSize: '18px', fontWeight: 800, marginTop: '4px' }}>1 ĐỔI 1 HOẶC HOÀN TIỀN</div>
+                    </Card>
+                </Col>
+                <Col xs={24} sm={8}>
+                    <Card style={{ background: '#121324', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px' }}>
+                        <div style={{ color: '#94a3b8', fontSize: '13px' }}>Thời Gian Xử Lý SLA</div>
+                        <div style={{ color: '#06b6d4', fontSize: '18px', fontWeight: 800, marginTop: '4px' }}>TỐI ĐA 24 GIỜ</div>
+                    </Card>
+                </Col>
+                <Col xs={24} sm={8}>
+                    <Card style={{ background: '#121324', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px' }}>
+                        <div style={{ color: '#94a3b8', fontSize: '13px' }}>Hỗ Trợ Kỹ Thuật</div>
+                        <div style={{ color: '#fbbf24', fontSize: '18px', fontWeight: 800, marginTop: '4px' }}>24/7 TẬN TÂM</div>
+                    </Card>
+                </Col>
+            </Row>
+
+            <div style={{ background: '#121324', borderRadius: '14px', padding: '24px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, marginBottom: '16px' }}>
+                    Danh Sách Yêu Cầu Bảo Hành Của Bạn
+                </h3>
+                <Table
+                    columns={columns}
+                    dataSource={claims}
+                    rowKey="id"
+                    loading={loading}
+                    pagination={{ pageSize: 8 }}
+                    locale={{ emptyText: 'Bạn chưa có yêu cầu bảo hành nào.' }}
+                />
+            </div>
+
+            {/* MODAL GỬI KHIẾU NẠI BẢO HÀNH */}
+            <Modal
+                title={<span style={{ color: '#fff', fontSize: '18px', fontWeight: 700 }}>Gửi Yêu Cầu Khiếu Nại Bảo Hành</span>}
+                open={isModalOpen}
+                onCancel={() => setIsModalOpen(false)}
+                footer={null}
+                width={650}
+            >
+                <Alert
+                    type="info"
+                    showIcon
+                    message="Quy trình bảo hành siêu tốc"
+                    description="Chúng tôi cam kết xác minh và đổi nick mới hoặc hoàn tiền trong vòng 24h làm việc. Vui lòng cung cấp chi tiết lỗi để kỹ thuật viên hỗ trợ nhanh nhất."
+                    style={{ marginBottom: 20 }}
+                />
+
+                <Form form={form} layout="vertical" onFinish={handleCreateClaim}>
+                    <Form.Item
+                        name="order_item_id"
+                        label="Chọn sản phẩm trong đơn đã thanh toán *"
+                        rules={[{ required: true, message: 'Vui lòng chọn sản phẩm cần bảo hành!' }]}
+                    >
+                        <Select placeholder="Chọn sản phẩm đã mua để bảo hành..." size="large">
+                            {orders.flatMap((o) =>
+                                (o.items || []).map((i) => (
+                                    <Select.Option key={i.id} value={i.id}>
+                                        [{o.order_code}] {i.product_name || i.product?.name || 'Tài khoản'} {i.variant_name ? `(${i.variant_name})` : ''}
+                                    </Select.Option>
+                                ))
+                            )}
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item
+                        name="claim_type"
+                        label="Loại sự cố / Lý do bảo hành *"
+                        rules={[{ required: true, message: 'Vui lòng chọn loại sự cố!' }]}
+                    >
+                        <Select placeholder="Chọn loại sự cố gặp phải..." size="large">
+                            <Select.Option value="WRONG_CREDENTIALS">
+                                🔑 Sai mật khẩu hoặc tài khoản không đăng nhập được
+                            </Select.Option>
+                            <Select.Option value="RECOVERED_BY_OLD_OWNER">
+                                ⚠️ Bị chủ cũ đổi thông tin (Back nick)
+                            </Select.Option>
+                            <Select.Option value="LOSS_ACCESS">
+                                🚫 Mất quyền truy cập / Tài khoản bị khóa bất thường
+                            </Select.Option>
+                            <Select.Option value="SERVICE_NOT_DONE">
+                                ⚡ Dịch vụ cày thuê không hoàn thành đúng cam kết
+                            </Select.Option>
+                            <Select.Option value="OTHER">
+                                📝 Lý do khác (Mô tả chi tiết bên dưới)
+                            </Select.Option>
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item
+                        name="description"
+                        label="Mô tả chi tiết sự cố *"
+                        rules={[{ required: true, message: 'Vui lòng mô tả cụ thể tình trạng gặp phải!' }]}
+                    >
+                        <Input.TextArea
+                            rows={4}
+                            placeholder="Mô tả cụ thể thời gian xảy ra lỗi, thông báo lỗi hiển thị trên game và yêu cầu hỗ trợ (đổi acc mới hoặc hoàn tiền)..."
+                        />
+                    </Form.Item>
+
+                    <Button
+                        type="primary"
+                        block
+                        htmlType="submit"
+                        size="large"
+                        loading={submitting}
+                        style={{ height: 44, fontWeight: 700, borderRadius: 8, background: '#10b981', borderColor: '#10b981' }}
+                    >
+                        Gửi Yêu Cầu Cho Đội Kỹ Thuật
+                    </Button>
+                </Form>
+            </Modal>
+        </div>
+    );
 };
+
 export default WarrantyClaimsPage;

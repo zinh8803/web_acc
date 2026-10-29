@@ -40,4 +40,21 @@ class ServiceRequest extends Model
     {
         return $this->belongsTo(AdminUser::class, 'assigned_to');
     }
+
+    public function decryptGameLogin(): ?array
+    {
+        if (empty($this->game_login_enc)) {
+            return null;
+        }
+        try {
+            $decrypted = \Illuminate\Support\Facades\Crypt::decryptString($this->game_login_enc);
+            $data = json_decode($decrypted, true);
+            if (is_array($data)) {
+                return $data;
+            }
+            return ['login_info' => $decrypted];
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
 }

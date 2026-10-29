@@ -38,15 +38,15 @@ class CartController extends Controller
 
         $variant = ProductVariant::with('product')->findOrFail($request->variant_id);
 
-        if ($variant->product->type !== 'ACCOUNT') {
-            return $this->error('Sản phẩm dịch vụ không thể thêm vào giỏ hàng. Vui lòng mua ngay.', 422, 'SERVICE_NO_CART');
+        if ($variant->product->status !== 'ACTIVE' || $variant->status !== 'ACTIVE') {
+            return $this->error('Sản phẩm hoặc gói dịch vụ này hiện không khả dụng.', 422, 'UNAVAILABLE');
         }
 
-        $availableStock = $variant->product->type === 'ACCOUNT'
-            ? GameAccount::where('variant_id', $variant->id)->where('status', 'AVAILABLE')->count()
-            : $variant->stock_quantity;
-        if ($availableStock <= 0) {
-            return $this->error('Sản phẩm này đã hết hàng.', 422, 'OUT_OF_STOCK');
+        if ($variant->product->type === 'ACCOUNT') {
+            $availableStock = GameAccount::where('variant_id', $variant->id)->where('status', 'AVAILABLE')->count();
+            if ($availableStock <= 0) {
+                return $this->error('Sản phẩm tài khoản này đã hết hàng.', 422, 'OUT_OF_STOCK');
+            }
         }
 
         $account = null;

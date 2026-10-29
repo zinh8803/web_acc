@@ -76,6 +76,7 @@ const CheckoutPage = () => {
                     variant_id: i.variant_id,
                     game_account_id: i.game_account_id,
                     quantity: i.quantity,
+                    service_data: i.service_data || null,
                 })),
                 payment_method_code: paymentMethod,
                 coupon_code: discountAmount > 0 ? couponCode : null,

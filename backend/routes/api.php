@@ -164,6 +164,7 @@ Route::prefix('v1')->group(function () {
             // Service Requests
             Route::get('service-requests', [AdminServiceRequestController::class, 'index']);
             Route::get('service-requests/{request}', [AdminServiceRequestController::class, 'show']);
+            Route::get('service-requests/{id}/credentials', [AdminServiceRequestController::class, 'credentials']);
             Route::post('service-requests/{id}/assign', [AdminServiceRequestController::class, 'assign']);
             Route::post('service-requests/{id}/status', [AdminServiceRequestController::class, 'updateStatus']);
 
