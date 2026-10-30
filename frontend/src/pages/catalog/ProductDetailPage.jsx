@@ -24,6 +24,30 @@ const ProductDetailPage = () => {
     const [serviceForm] = Form.useForm();
     const [serviceSubmitting, setServiceSubmitting] = useState(false);
 
+    const handleSelectVariant = (variantId, currentProduct = product) => {
+        setSelectedVariantId(variantId);
+        const v = currentProduct?.variants?.find((item) => item.id === variantId);
+        if (v) {
+            if (v.name.includes('Đồng -> Cao Thủ')) {
+                serviceForm.setFieldsValue({ current_rank: 'Đồng', target_rank: 'Cao Thủ' });
+            } else if (v.name.includes('Cao Thủ -> Chiến Tướng')) {
+                serviceForm.setFieldsValue({ current_rank: 'Cao Thủ', target_rank: 'Chiến Tướng' });
+            } else if (v.name.includes('Chiến Tướng -> Chiến Thần')) {
+                serviceForm.setFieldsValue({ current_rank: 'Chiến Tướng', target_rank: 'Chiến Thần' });
+            } else if (v.name.includes('Chiến Thần -> Thách Đấu')) {
+                serviceForm.setFieldsValue({ current_rank: 'Chiến Thần', target_rank: 'Thách Đấu' });
+            } else if (v.name.includes('Top Tỉnh')) {
+                serviceForm.setFieldsValue({ target_rank: 'Top Tỉnh (Chiến lực 4.000+)' });
+            } else if (v.name.includes('Top Miền')) {
+                serviceForm.setFieldsValue({ target_rank: 'Top Miền (Chiến lực 6.000+)' });
+            } else if (v.name.includes('Top Việt Nam')) {
+                serviceForm.setFieldsValue({ target_rank: 'Top Việt Nam (Chiến lực 8.000+)' });
+            } else if (v.name.includes('Top Server')) {
+                serviceForm.setFieldsValue({ target_rank: 'Top 1-10 Toàn Server' });
+            }
+        }
+    };
+
     const fetchAccounts = async (page = 1) => {
         setAccountsLoading(true);
         try {
@@ -52,7 +76,7 @@ const ProductDetailPage = () => {
                     await fetchAccounts(1);
                 } else if (detail?.type === 'SERVICE') {
                     if (detail.variants && detail.variants.length > 0) {
-                        setSelectedVariantId(detail.variants[0].id);
+                        handleSelectVariant(detail.variants[0].id, detail);
                     }
                 }
             } catch (error) {
@@ -220,7 +244,7 @@ const ProductDetailPage = () => {
                                 {product.variants && product.variants.length > 0 ? (
                                     <Radio.Group
                                         value={selectedVariantId}
-                                        onChange={(e) => setSelectedVariantId(e.target.value)}
+                                        onChange={(e) => handleSelectVariant(e.target.value)}
                                         style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px' }}
                                     >
                                         {product.variants.map((v) => {
@@ -229,7 +253,7 @@ const ProductDetailPage = () => {
                                             return (
                                                 <div
                                                     key={v.id}
-                                                    onClick={() => setSelectedVariantId(v.id)}
+                                                    onClick={() => handleSelectVariant(v.id)}
                                                     style={{
                                                         padding: '16px 20px',
                                                         borderRadius: '10px',
@@ -315,14 +339,22 @@ const ProductDetailPage = () => {
                                     </Row>
 
                                     <Row gutter={16}>
-                                        <Col xs={24} sm={12}>
+                                        <Col xs={24}>
                                             <Form.Item name="ingame_name" label={<span style={{ color: '#cbd5e1' }}>Tên nhân vật trong game (Ingame)</span>}>
                                                 <Input placeholder="VD: ProPlayer99..." size="large" />
                                             </Form.Item>
                                         </Col>
+                                    </Row>
+
+                                    <Row gutter={16}>
                                         <Col xs={24} sm={12}>
-                                            <Form.Item name="current_rank" label={<span style={{ color: '#cbd5e1' }}>Rank hiện tại</span>}>
-                                                <Input placeholder="VD: Đồng I, Kim Cương IV..." size="large" />
+                                            <Form.Item name="current_rank" label={<span style={{ color: '#cbd5e1', whiteSpace: 'nowrap' }}>Rank hiện tại</span>}>
+                                                <Input placeholder="VD: Đồng, Kim Cương..." size="large" />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col xs={24} sm={12}>
+                                            <Form.Item name="target_rank" label={<span style={{ color: '#cbd5e1', whiteSpace: 'nowrap' }}>Rank muốn lên *</span>} rules={[{ required: true, message: 'Vui lòng nhập rank muốn lên' }]}>
+                                                <Input placeholder="VD: Cao Thủ, Chiến Tướng..." size="large" />
                                             </Form.Item>
                                         </Col>
                                     </Row>

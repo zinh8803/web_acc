@@ -131,7 +131,27 @@ class AdminProductController extends Controller
             ...collect($validated)->except(['price', 'sale_price', 'cost_price', 'thumbnail_file'])->all(),
             'min_price' => $salePrice ?? $price,
         ]);
-        if (isset($validated['price'])) {
+        if ($request->has('variants')) {
+            $variantsData = is_string($request->variants) ? json_decode($request->variants, true) : $request->variants;
+            if (is_array($variantsData)) {
+                foreach ($variantsData as $vItem) {
+                    if (!empty($vItem['id'])) {
+                        $variant = ProductVariant::where('product_id', $product->id)->find($vItem['id']);
+                        if ($variant) {
+                            $variant->update([
+                                'name' => $vItem['name'] ?? $variant->name,
+                                'price' => isset($vItem['price']) ? (float)$vItem['price'] : $variant->price,
+                                'sale_price' => !empty($vItem['sale_price']) ? (float)$vItem['sale_price'] : null,
+                            ]);
+                        }
+                    }
+                }
+                $minPrice = $product->variants()->min('sale_price') ?: $product->variants()->min('price');
+                if ($minPrice) {
+                    $product->update(['min_price' => $minPrice]);
+                }
+            }
+        } elseif (isset($validated['price'])) {
             $variant = $product->variants()->orderBy('sort_order')->first();
             if ($variant) {
                 $variant->update(['price' => $price, 'sale_price' => $salePrice]);

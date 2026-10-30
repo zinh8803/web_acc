@@ -89,6 +89,52 @@ const UserLayout = () => {
         })),
     ];
 
+    const serviceDropdownItems = [
+        {
+            key: 'service-rank',
+            label: (
+                <Link to="/products/cay-thue-rank-lien-quan-mobile" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 4px' }}>
+                    <span style={{ fontSize: '18px' }}>🏆</span>
+                    <div>
+                        <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '14px' }}>
+                            Dịch Vụ Cày Rank
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                            Đồng &rarr; Cao Thủ &rarr; Chiến Tướng &rarr; Thách Đấu
+                        </div>
+                    </div>
+                </Link>
+            ),
+        },
+        {
+            key: 'service-top-hero',
+            label: (
+                <Link to="/products/cay-thue-top-tuong-lien-quan" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 4px' }}>
+                    <span style={{ fontSize: '18px' }}>⚔️</span>
+                    <div>
+                        <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '14px' }}>
+                            Dịch Vụ Cày Top Tướng
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                            Top Tỉnh, Top Miền, Top Việt Nam, Top Server
+                        </div>
+                    </div>
+                </Link>
+            ),
+        },
+        {
+            type: 'divider',
+        },
+        {
+            key: 'all-services',
+            label: (
+                <Link to="/catalog?category=dich-vu-cay-thue-lq" style={{ fontWeight: 700, color: '#f43f5e', display: 'flex', alignItems: 'center', gap: '8px', padding: '4px' }}>
+                    <FireOutlined /> Xem Tất Cả Dịch Vụ Cày Thuê
+                </Link>
+            ),
+        },
+    ];
+
     const userMenuItems = [
         {
             key: 'profile',
@@ -151,25 +197,27 @@ const UserLayout = () => {
                 justifyContent: 'space-between',
                 padding: '0 32px',
                 height: '70px',
+                lineHeight: 'normal',
             }}>
-                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none', lineHeight: 'normal' }}>
                     <div style={{
-                        width: '40px',
-                        height: '40px',
+                        width: '42px',
+                        height: '42px',
                         borderRadius: '10px',
                         background: 'linear-gradient(135deg, #6366f1, #06b6d4)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         boxShadow: '0 0 15px rgba(99, 102, 241, 0.5)',
+                        flexShrink: 0,
                     }}>
                         <ThunderboltOutlined style={{ fontSize: '22px', color: '#fff' }} />
                     </div>
-                    <div>
-                        <div style={{ fontFamily: 'Rajdhani', fontSize: '20px', fontWeight: 800, color: '#fff', lineHeight: 1 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', lineHeight: 'normal' }}>
+                        <div style={{ fontFamily: 'Rajdhani', fontSize: '22px', fontWeight: 800, color: '#fff', lineHeight: 1.1, letterSpacing: '0.5px' }}>
                             GAME<span style={{ color: '#06b6d4' }}>HUB</span>
                         </div>
-                        <div style={{ fontSize: '10px', color: '#06b6d4', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 700 }}>
+                        <div style={{ fontSize: '10px', color: '#06b6d4', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 700, lineHeight: 1.2, marginTop: '2px' }}>
                             Shop Game Uy Tín
                         </div>
                     </div>
@@ -187,7 +235,7 @@ const UserLayout = () => {
 
                     <Dropdown menu={{ items: categoryDropdownItems }} placement="bottomLeft">
                         <span style={{
-                            color: location.pathname.startsWith('/catalog') ? '#6366f1' : '#cbd5e1',
+                            color: location.pathname.startsWith('/catalog') && !location.search.includes('cay-thue') ? '#6366f1' : '#cbd5e1',
                             fontWeight: 600,
                             fontSize: '15px',
                             cursor: 'pointer',
@@ -207,16 +255,20 @@ const UserLayout = () => {
                         Kho Nick Game
                     </Link>
 
-                    <Link to="/catalog?type=service" style={{
-                        color: location.search.includes('type=service') ? '#f43f5e' : '#cbd5e1',
-                        fontWeight: 600,
-                        fontSize: '15px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                    }}>
-                        <FireOutlined style={{ color: '#f43f5e' }} /> Dịch Vụ Cày Thuê
-                    </Link>
+                    <Dropdown menu={{ items: serviceDropdownItems }} placement="bottomLeft" trigger={['click', 'hover']}>
+                        <span style={{
+                            color: location.pathname.includes('cay-thue') || location.search.includes('cay-thue') ? '#f43f5e' : '#cbd5e1',
+                            fontWeight: 600,
+                            fontSize: '15px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'color 0.2s',
+                        }}>
+                            <FireOutlined style={{ color: '#f43f5e' }} /> Dịch Vụ Cày Thuê <DownOutlined style={{ fontSize: '11px' }} />
+                        </span>
+                    </Dropdown>
 
                     <Link to="/warranty-claims" style={{
                         color: location.pathname.startsWith('/warranty') ? '#10b981' : '#cbd5e1',
