@@ -18,7 +18,11 @@ const CatalogPage = () => {
     const selectedGame = searchParams.get('game') || '';
     const selectedCategory = searchParams.get('category') || '';
     const searchKeyword = searchParams.get('q') || '';
+    const requestedType = searchParams.get('type') || '';
     const [priceRange, setPriceRange] = useState([0, 5000000]);
+
+    // Kiểm tra xem có phải đang chủ động xem dịch vụ cày thuê hay đang ở Kho Nick Game
+    const isServiceView = requestedType === 'service' || selectedCategory === 'dich-vu-cay-thue-lq';
 
     // Fetch games and categories from Database
     useEffect(() => {
@@ -47,6 +51,13 @@ const CatalogPage = () => {
             if (priceRange[0] > 0) params.min_price = priceRange[0];
             if (priceRange[1] < 5000000) params.max_price = priceRange[1];
 
+            // Trong Kho Nick Game: KHÔNG HIỂN THỊ DỊCH VỤ CÀY THUÊ, chỉ lấy sản phẩm ACCOUNT
+            if (isServiceView) {
+                params.type = 'SERVICE';
+            } else {
+                params.type = 'ACCOUNT';
+            }
+
             const res = await api.get('/products', { params });
             const list = res.data?.data?.data || res.data?.data || [];
             setProducts(Array.isArray(list) ? list : []);
@@ -59,21 +70,27 @@ const CatalogPage = () => {
 
     useEffect(() => {
         fetchProducts();
-    }, [selectedGame, selectedCategory, searchKeyword]);
+    }, [selectedGame, selectedCategory, searchKeyword, requestedType]);
 
-    // Filter categories shown in dropdown if a game is selected
+    // Trong Kho Nick Game, lọc bỏ danh mục cày thuê khỏi dropdown danh mục
+    const relevantCategories = isServiceView
+        ? categories.filter((c) => c.slug === 'dich-vu-cay-thue-lq')
+        : categories.filter((c) => c.slug !== 'dich-vu-cay-thue-lq');
+
     const filteredCategories = selectedGame
-        ? categories.filter((c) => c.game?.slug === selectedGame || !c.game)
-        : categories;
+        ? relevantCategories.filter((c) => c.game?.slug === selectedGame || !c.game)
+        : relevantCategories;
 
     return (
         <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 20px 60px' }}>
             <div style={{ marginBottom: '28px' }}>
                 <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#fff', fontFamily: 'Rajdhani', marginBottom: '8px' }}>
-                    KHO ACC LIÊN QUÂN MOBILE & DỊCH VỤ ⚔️
+                    {isServiceView ? 'DỊCH VỤ CÀY THUÊ GAME LIÊN QUÂN MOBILE ⚡' : 'KHO NICK GAME LIÊN QUÂN MOBILE & ESPORTS ⚔️'}
                 </h1>
                 <p style={{ color: '#94a3b8', fontSize: '15px' }}>
-                    Kho tài khoản Liên Quân chính chủ, trắng thông tin 100%, dịch vụ cày thuê uy tín và giao dịch tự động 24/7.
+                    {isServiceView
+                        ? 'Dịch vụ cày thuê rank, cày điểm chiến lực top tướng chuyên nghiệp, bảo mật nick tuyệt đối 24/7.'
+                        : 'Kho tài khoản Liên Quân tuyển chọn chính chủ, trắng thông tin 100%, bảo hành uy tín và giao dịch tự động 24/7.'}
                 </p>
             </div>
 
@@ -176,7 +193,7 @@ const CatalogPage = () => {
                         </div>
                     ) : products.length === 0 ? (
                         <div style={{ background: '#121324', padding: '60px 20px', borderRadius: '12px', textAlign: 'center' }}>
-                            <Empty description={<span style={{ color: '#94a3b8' }}>Không tìm thấy sản phẩm nào trong danh mục này</span>} />
+                            <Empty description={<span style={{ color: '#94a3b8' }}>Không tìm thấy tài khoản nào phù hợp</span>} />
                         </div>
                     ) : (
                         <Row gutter={[20, 24]}>

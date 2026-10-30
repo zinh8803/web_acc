@@ -71,7 +71,7 @@ const AdminLayout = () => {
             >
                 <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
                     <div style={{ fontFamily: 'Rajdhani', fontSize: '18px', fontWeight: 800, color: '#fff' }}>
-                        GAMEHUB <Tag color="purple">ADMIN</Tag>
+                        GAMEHUB2003 <Tag color="purple">ADMIN</Tag>
                     </div>
                     <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
                         Hệ Thống Quản Trị Trung Tâm

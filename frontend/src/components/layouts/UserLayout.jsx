@@ -175,7 +175,7 @@ const UserLayout = () => {
                 letterSpacing: '0.3px',
             }}>
                 <Space size="middle">
-                    <span>⚡ Chào mừng đến với hệ thống GameHub - Mua bán tài khoản & dịch vụ game số 1</span>
+                    <span>⚡ Chào mừng đến với hệ thống GAMEHUB2003 - Mua bán tài khoản & dịch vụ game số 1</span>
                     {siteSettings?.general_settings?.hotline && (
                         <>
                             <span>•</span>
@@ -215,7 +215,7 @@ const UserLayout = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', lineHeight: 'normal' }}>
                         <div style={{ fontFamily: 'Rajdhani', fontSize: '22px', fontWeight: 800, color: '#fff', lineHeight: 1.1, letterSpacing: '0.5px' }}>
-                            GAME<span style={{ color: '#06b6d4' }}>HUB</span>
+                            GAMEHUB<span style={{ color: '#06b6d4' }}>2003</span>
                         </div>
                         <div style={{ fontSize: '10px', color: '#06b6d4', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 700, lineHeight: 1.2, marginTop: '2px' }}>
                             Shop Game Uy Tín
@@ -346,7 +346,7 @@ const UserLayout = () => {
                 }}>
                     <div>
                         <div style={{ fontFamily: 'Rajdhani', fontSize: '24px', fontWeight: 800, color: '#fff', marginBottom: '12px' }}>
-                            GAME<span style={{ color: '#06b6d4' }}>HUB</span>.VN
+                            GAMEHUB<span style={{ color: '#06b6d4' }}>2003</span>
                         </div>
                         <p style={{ fontSize: '14px', lineHeight: 1.6, color: '#94a3b8' }}>
                             Chuyên trang mua bán tài khoản game & dịch vụ cày thuê uy tín hàng đầu Việt Nam. Bàn giao tài khoản tự động 24/7 tức thì, bảo mật tuyệt đối, bảo hành 100% an toàn.
@@ -419,7 +419,7 @@ const UserLayout = () => {
                     fontSize: '13px',
                     color: '#64748b',
                 }}>
-                    © 2026 GAMEHUB.VN. All rights reserved. Hệ thống thương mại điện tử chuyên nghiệp cho cộng đồng game thủ.
+                    © 2026 GAMEHUB2003. All rights reserved. Hệ thống thương mại điện tử chuyên nghiệp cho cộng đồng game thủ.
                 </div>
             </Footer>
         </Layout>

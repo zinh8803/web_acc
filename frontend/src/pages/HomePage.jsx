@@ -17,7 +17,7 @@ const HomePage = () => {
                 const [gamesRes, catsRes, prodsRes, bannersRes] = await Promise.all([
                     api.get('/games'),
                     api.get('/categories'),
-                    api.get('/products', { params: { limit: 8 } }),
+                    api.get('/products', { params: { limit: 8, type: 'ACCOUNT' } }),
                     api.get('/banners'),
                 ]);
                 if (gamesRes.data?.data)

@@ -1,10 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, Button, Card, Col, Empty, Form, Image, Input, message, Pagination, Radio, Row, Skeleton, Space, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Col, Empty, Form, Image, Input, message, Pagination, Radio, Row, Select, Skeleton, Space, Tag, Typography } from 'antd';
 import { ClockCircleOutlined, LockOutlined, SafetyCertificateOutlined, ShoppingCartOutlined, ThunderboltOutlined, UserOutlined } from '@ant-design/icons';
 import api from '../../services/api';
 import { useCartStore } from '../../stores/cartStore';
 import { useAuthStore } from '../../stores/authStore';
+
+const PROVINCES_VN = [
+    'An Giang', 'Bà Rịa - Vũng Tàu', 'Bắc Giang', 'Bắc Kạn', 'Bạc Liêu', 'Bắc Ninh',
+    'Bến Tre', 'Bình Định', 'Bình Dương', 'Bình Phước', 'Bình Thuận', 'Cà Mau',
+    'Cần Thơ', 'Cao Bằng', 'Đà Nẵng', 'Đắk Lắk', 'Đắk Nông', 'Điện Biên',
+    'Đồng Nai', 'Đồng Tháp', 'Gia Lai', 'Hà Giang', 'Hà Nam', 'Hà Nội',
+    'Hà Tĩnh', 'Hải Dương', 'Hải Phòng', 'Hậu Giang', 'Hòa Bình', 'Hưng Yên',
+    'Khánh Hòa', 'Kiên Giang', 'Kon Tum', 'Lai Châu', 'Lâm Đồng', 'Lạng Sơn',
+    'Lào Cai', 'Long An', 'Nam Định', 'Nghệ An', 'Ninh Bình', 'Ninh Thuận',
+    'Phú Thọ', 'Phú Yên', 'Quảng Bình', 'Quảng Nam', 'Quảng Ngãi', 'Quảng Ninh',
+    'Quảng Trị', 'Sóc Trăng', 'Sơn La', 'Tây Ninh', 'Thái Bình', 'Thái Nguyên',
+    'Thanh Hóa', 'Thừa Thiên Huế', 'Tiền Giang', 'TP. Hồ Chí Minh', 'Trà Vinh',
+    'Tuyên Quang', 'Vĩnh Long', 'Vĩnh Phúc', 'Yên Bái'
+];
+
+const REGIONS_VN = [
+    { label: 'Miền Bắc', value: 'Miền Bắc' },
+    { label: 'Miền Trung', value: 'Miền Trung' },
+    { label: 'Miền Nam', value: 'Miền Nam' },
+];
 
 const ProductDetailPage = () => {
     const { slug } = useParams();
@@ -24,26 +44,23 @@ const ProductDetailPage = () => {
     const [serviceForm] = Form.useForm();
     const [serviceSubmitting, setServiceSubmitting] = useState(false);
 
+    const isTopHeroService = product?.slug?.includes('top-tuong') || product?.name?.toLowerCase().includes('top');
+    const isRankService = product?.type === 'SERVICE' && !isTopHeroService;
+
     const handleSelectVariant = (variantId, currentProduct = product) => {
         setSelectedVariantId(variantId);
         const v = currentProduct?.variants?.find((item) => item.id === variantId);
         if (v) {
-            if (v.name.includes('Đồng -> Cao Thủ')) {
-                serviceForm.setFieldsValue({ current_rank: 'Đồng', target_rank: 'Cao Thủ' });
-            } else if (v.name.includes('Cao Thủ -> Chiến Tướng')) {
-                serviceForm.setFieldsValue({ current_rank: 'Cao Thủ', target_rank: 'Chiến Tướng' });
-            } else if (v.name.includes('Chiến Tướng -> Chiến Thần')) {
-                serviceForm.setFieldsValue({ current_rank: 'Chiến Tướng', target_rank: 'Chiến Thần' });
-            } else if (v.name.includes('Chiến Thần -> Thách Đấu')) {
-                serviceForm.setFieldsValue({ current_rank: 'Chiến Thần', target_rank: 'Thách Đấu' });
-            } else if (v.name.includes('Top Tỉnh')) {
-                serviceForm.setFieldsValue({ target_rank: 'Top Tỉnh (Chiến lực 4.000+)' });
+            if (v.name.includes('Top Tỉnh')) {
+                serviceForm.setFieldsValue({ target_rank: 'Gói Cày Top Tỉnh' });
             } else if (v.name.includes('Top Miền')) {
-                serviceForm.setFieldsValue({ target_rank: 'Top Miền (Chiến lực 6.000+)' });
-            } else if (v.name.includes('Top Việt Nam')) {
-                serviceForm.setFieldsValue({ target_rank: 'Top Việt Nam (Chiến lực 8.000+)' });
+                serviceForm.setFieldsValue({ target_rank: 'Gói Cày Top Miền (Bắc - Trung - Nam)' });
+            } else if (v.name.includes('Top VN') || v.name.includes('Top Việt Nam')) {
+                serviceForm.setFieldsValue({ target_rank: 'Gói Cày Top VN' });
             } else if (v.name.includes('Top Server')) {
-                serviceForm.setFieldsValue({ target_rank: 'Top 1-10 Toàn Server' });
+                serviceForm.setFieldsValue({ target_rank: 'Gói Cày Top Server' });
+            } else {
+                serviceForm.setFieldsValue({ target_rank: v.name });
             }
         }
     };
@@ -142,13 +159,25 @@ const ProductDetailPage = () => {
             }
 
             setServiceSubmitting(true);
+
+            // Xử lý mục tiêu cày / target_rank chuẩn xác theo loại dịch vụ
+            let computedTarget = selectedVariant.name;
+            if (isRankService) {
+                computedTarget = selectedVariant.name;
+            } else if (isTopHeroService) {
+                const subTarget = values.target_province || values.target_region || '';
+                computedTarget = subTarget ? `${selectedVariant.name} - ${subTarget}` : selectedVariant.name;
+            }
+
             const serviceData = {
                 game_username: values.game_username,
                 game_password: values.game_password,
                 ingame_name: values.ingame_name || '',
                 current_rank: values.current_rank || '',
-                target_rank: values.target_rank || selectedVariant.name,
+                target_rank: computedTarget,
                 target_hero: values.target_hero || '',
+                target_province: values.target_province || '',
+                target_region: values.target_region || '',
                 notes: values.notes || '',
             };
 
@@ -238,7 +267,7 @@ const ProductDetailPage = () => {
                     <Row gutter={[28, 28]}>
                         <Col xs={24} lg={12}>
                             <Card
-                                title={<span style={{ color: '#fff', fontSize: '18px', fontWeight: 700 }}>1. Chọn Gói Cày / Hạng Mục Dịch Vụ</span>}
+                                title={<span style={{ color: '#fff', fontSize: '18px', fontWeight: 700 }}>{isTopHeroService ? '1. Chọn Gói Cày Top Tướng' : '1. Chọn Gói Cày Rank'}</span>}
                                 style={{ background: '#121324', borderColor: 'rgba(255,255,255,.1)' }}
                             >
                                 {product.variants && product.variants.length > 0 ? (
@@ -290,7 +319,7 @@ const ProductDetailPage = () => {
 
                                 {selectedVariant && (
                                     <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(99,102,241,0.08)', borderRadius: '10px', border: '1px solid rgba(99,102,241,0.2)' }}>
-                                        <div style={{ color: '#94a3b8', fontSize: '13px' }}>Gói bạn đang chọn:</div>
+                                        <div style={{ color: '#94a3b8', fontSize: '13px' }}>{isTopHeroService ? 'Gói Cày Top đang chọn:' : 'Gói Cày Rank đang chọn:'}</div>
                                         <div style={{ color: '#fff', fontSize: '17px', fontWeight: 800, marginTop: '4px' }}>
                                             {selectedVariant.name}
                                         </div>
@@ -304,7 +333,7 @@ const ProductDetailPage = () => {
 
                         <Col xs={24} lg={12}>
                             <Card
-                                title={<span style={{ color: '#fff', fontSize: '18px', fontWeight: 700 }}>2. Nhập Thông Tin Tài Khoản Game Cần Cày</span>}
+                                title={<span style={{ color: '#fff', fontSize: '18px', fontWeight: 700 }}>{isTopHeroService ? '2. Nhập Thông Tin Tài Khoản & Chỉ Tiêu Top Tướng' : '2. Nhập Thông Tin Tài Khoản Nhận Cày Rank'}</span>}
                                 style={{ background: '#121324', borderColor: 'rgba(255,255,255,.1)' }}
                             >
                                 <Alert
@@ -346,26 +375,87 @@ const ProductDetailPage = () => {
                                         </Col>
                                     </Row>
 
-                                    <Row gutter={16}>
-                                        <Col xs={24} sm={12}>
-                                            <Form.Item name="current_rank" label={<span style={{ color: '#cbd5e1', whiteSpace: 'nowrap' }}>Rank hiện tại</span>}>
-                                                <Input placeholder="VD: Đồng, Kim Cương..." size="large" />
-                                            </Form.Item>
-                                        </Col>
-                                        <Col xs={24} sm={12}>
-                                            <Form.Item name="target_rank" label={<span style={{ color: '#cbd5e1', whiteSpace: 'nowrap' }}>Rank muốn lên *</span>} rules={[{ required: true, message: 'Vui lòng nhập rank muốn lên' }]}>
-                                                <Input placeholder="VD: Cao Thủ, Chiến Tướng..." size="large" />
-                                            </Form.Item>
-                                        </Col>
-                                    </Row>
+                                    {/* NẾU LÀ CÀY RANK: KHÔNG CẦN RANK HIỆN TẠI, RANK MUỐN LÊN (ĐÃ CHỌN Ở GÓI BÊN TRÁI), KHÔNG CÓ CHỌN TƯỚNG */}
+                                    {isRankService && (
+                                        <div style={{ marginBottom: 16, padding: '12px 16px', background: 'rgba(99, 102, 241, 0.08)', borderRadius: '8px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                                            <span style={{ color: '#94a3b8', fontSize: '13px' }}>Hạng mục rank bạn đăng ký: </span>
+                                            <strong style={{ color: '#38bdf8', fontSize: '15px' }}>{selectedVariant?.name || 'Chưa chọn gói'}</strong>
+                                        </div>
+                                    )}
 
-                                    <Row gutter={16}>
-                                        <Col xs={24}>
-                                            <Form.Item name="target_hero" label={<span style={{ color: '#cbd5e1' }}>Tướng muốn cày (Nếu cày top tướng)</span>}>
-                                                <Input placeholder="VD: Florentino, Điêu Thuyền..." size="large" />
-                                            </Form.Item>
-                                        </Col>
-                                    </Row>
+                                    {/* NẾU LÀ CÀY TOP TƯỚNG: CÓ CHỌN TƯỚNG, CHỌN TỈNH/MIỀN TÙY GÓI, KHÔNG CÓ RANK HIỆN TẠI */}
+                                    {isTopHeroService && (
+                                        <>
+                                            <Row gutter={16}>
+                                                <Col xs={24}>
+                                                    <Form.Item
+                                                        name="target_hero"
+                                                        label={<span style={{ color: '#cbd5e1' }}>Tướng muốn cày Top *</span>}
+                                                        rules={[{ required: true, message: 'Vui lòng nhập tên tướng bạn muốn leo top (VD: Florentino, Raz, Nakroth...)' }]}
+                                                    >
+                                                        <Input placeholder="VD: Florentino, Raz, Nakroth, Elsu..." size="large" />
+                                                    </Form.Item>
+                                                </Col>
+                                            </Row>
+
+                                            {/* NẾU CHỌN GÓI TOP TỈNH: HIỂN THỊ CHỌN TỈNH THÀNH VIỆT NAM */}
+                                            {selectedVariant?.name?.includes('Top Tỉnh') && (
+                                                <Row gutter={16}>
+                                                    <Col xs={24}>
+                                                        <Form.Item
+                                                            name="target_province"
+                                                            label={<span style={{ color: '#cbd5e1' }}>Chọn Tỉnh / Thành phố muốn leo Top *</span>}
+                                                            rules={[{ required: true, message: 'Vui lòng chọn tỉnh thành cần cày top.' }]}
+                                                        >
+                                                            <Select
+                                                                size="large"
+                                                                showSearch
+                                                                placeholder="Chọn tỉnh thành (VD: Hà Nội, TP. Hồ Chí Minh, Đà Nẵng...)"
+                                                                filterOption={(input, option) =>
+                                                                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                                                                }
+                                                            >
+                                                                {PROVINCES_VN.map((province) => (
+                                                                    <Select.Option key={province} value={province}>
+                                                                        {province}
+                                                                    </Select.Option>
+                                                                ))}
+                                                            </Select>
+                                                        </Form.Item>
+                                                    </Col>
+                                                </Row>
+                                            )}
+
+                                            {/* NẾU CHỌN GÓI TOP MIỀN: HIỂN THỊ CHỌN BẮC / TRUNG / NAM */}
+                                            {selectedVariant?.name?.includes('Top Miền') && (
+                                                <Row gutter={16}>
+                                                    <Col xs={24}>
+                                                        <Form.Item
+                                                            name="target_region"
+                                                            label={<span style={{ color: '#cbd5e1' }}>Chọn Khu Vực Miền Muốn Leo Top *</span>}
+                                                            rules={[{ required: true, message: 'Vui lòng chọn khu vực miền (Bắc - Trung - Nam).' }]}
+                                                        >
+                                                            <Select size="large" placeholder="Chọn khu vực miền...">
+                                                                {REGIONS_VN.map((region) => (
+                                                                    <Select.Option key={region.value} value={region.value}>
+                                                                        {region.label}
+                                                                    </Select.Option>
+                                                                ))}
+                                                            </Select>
+                                                        </Form.Item>
+                                                    </Col>
+                                                </Row>
+                                            )}
+
+                                            {/* NẾU CHỌN GÓI TOP VN HOẶC TOP SERVER: HIỂN THỊ THÔNG TIN MỤC TIÊU */}
+                                            {(selectedVariant?.name?.includes('Top VN') || selectedVariant?.name?.includes('Top Server')) && (
+                                                <div style={{ marginBottom: 16, padding: '12px 16px', background: 'rgba(6, 182, 212, 0.08)', borderRadius: '8px', border: '1px solid rgba(6, 182, 212, 0.2)' }}>
+                                                    <span style={{ color: '#94a3b8', fontSize: '13px' }}>Mục tiêu xếp hạng: </span>
+                                                    <strong style={{ color: '#06b6d4', fontSize: '15px' }}>{selectedVariant?.name}</strong>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
 
                                     <Form.Item name="notes" label={<span style={{ color: '#cbd5e1' }}>Ghi chú đặc biệt cho kỹ thuật viên</span>}>
                                         <Input.TextArea rows={2} placeholder="VD: Chỉ cày vào buổi sáng từ 8h-12h, không được tiêu vàng/quân huy..." />
