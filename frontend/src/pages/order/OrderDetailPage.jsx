@@ -11,7 +11,9 @@ import {
     SyncOutlined,
     ExclamationCircleOutlined,
     LockOutlined,
-    UserOutlined
+    UserOutlined,
+    EyeOutlined,
+    EyeInvisibleOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../services/api';
@@ -20,6 +22,14 @@ const OrderDetailPage = () => {
     const { code } = useParams();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [visiblePasswords, setVisiblePasswords] = useState({});
+
+    const togglePasswordVisibility = (itemId) => {
+        setVisiblePasswords((prev) => ({
+            ...prev,
+            [itemId]: !prev[itemId],
+        }));
+    };
 
     // Modal nhập bổ sung thông tin cày nick
     const [modalVisible, setModalVisible] = useState(false);
@@ -379,7 +389,7 @@ const OrderDetailPage = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                         <KeyOutlined style={{ fontSize: '24px', color: '#10b981' }} />
                         <h2 style={{ color: '#fff', fontSize: '20px', fontWeight: 800, margin: 0 }}>
-                            THÔNG TIN TÀI KHOẢN ĐÃ BÀN GIAO (MÃ HOÁ AES-256)
+                            THÔNG TIN TÀI KHOẢN ĐÃ BÀN GIAO
                         </h2>
                     </div>
                     <Alert
@@ -425,11 +435,19 @@ const OrderDetailPage = () => {
                                                 <div style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Mật khẩu đăng nhập:</div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <span style={{ color: '#fbbf24', fontSize: '16px', fontWeight: 700, fontFamily: 'monospace' }}>
-                                                        {creds.password}
+                                                        {visiblePasswords[item.id] ? creds.password : '••••••••••••'}
                                                     </span>
-                                                    <Button size="small" type="primary" icon={<CopyOutlined />} onClick={() => copyToClipboard(creds.password, 'Mật khẩu')}>
-                                                        Chép
-                                                    </Button>
+                                                    <Space>
+                                                        <Button
+                                                            size="small"
+                                                            icon={visiblePasswords[item.id] ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                                                            onClick={() => togglePasswordVisibility(item.id)}
+                                                            title={visiblePasswords[item.id] ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                                                        />
+                                                        <Button size="small" type="primary" icon={<CopyOutlined />} onClick={() => copyToClipboard(creds.password, 'Mật khẩu')}>
+                                                            Chép
+                                                        </Button>
+                                                    </Space>
                                                 </div>
                                             </div>
                                         </Col>
@@ -500,7 +518,7 @@ const OrderDetailPage = () => {
                 <Alert
                     type="info"
                     message="Bảo mật tuyệt đối"
-                    description="Thông tin đăng nhập game của bạn được mã hoá AES-256 an toàn và chỉ cung cấp cho nhân viên cày game được phân công."
+                    description="Thông tin đăng nhập game của bạn được bảo mật an toàn và chỉ cung cấp cho kỹ thuật viên phụ trách."
                     style={{ marginBottom: 16 }}
                 />
                 <Form form={form} layout="vertical" onFinish={handleSubmitServiceInfo}>

@@ -80,7 +80,7 @@ const LoginPage = () => {
                                 justifyContent: 'center',
                                 margin: '0 auto 16px',
                                 boxShadow: '0 0 20px rgba(99, 102, 241, 0.4)',
-                            }, children: _jsx(ThunderboltOutlined, { style: { fontSize: '26px', color: '#fff' } }) }), _jsx("h2", { style: { color: '#fff', fontSize: '22px', fontWeight: 800, fontFamily: 'Rajdhani', margin: 0 }, children: "\u0110\u0102NG NH\u1EACP SHOPACCLIENQUAN" }), _jsx("p", { style: { color: '#64748b', fontSize: '13px', marginTop: '6px' }, children: "Truy c\u1EADp \u0111\u1EC3 qu\u1EA3n l\u00FD \u0111\u01A1n h\u00E0ng & nh\u1EADn t\u00E0i kho\u1EA3n t\u1EE9c th\u00EC" })] }), _jsx(Tabs, { activeKey: activeTab, onChange: (key) => setActiveTab(key), centered: true, items: [
+                            }, children: _jsx(ThunderboltOutlined, { style: { fontSize: '26px', color: '#fff' } }) }), _jsx("h2", { style: { color: '#fff', fontSize: '22px', fontWeight: 800, fontFamily: 'Rajdhani', margin: 0 }, children: "\u0110\u0102NG NH\u1EACP GAMEHUB" }), _jsx("p", { style: { color: '#64748b', fontSize: '13px', marginTop: '6px' }, children: "Truy c\u1EADp \u0111\u1EC3 qu\u1EA3n l\u00FD \u0111\u01A1n h\u00E0ng & nh\u1EADn t\u00E0i kho\u1EA3n t\u1EE9c th\u00EC" })] }), _jsx(Tabs, { activeKey: activeTab, onChange: (key) => setActiveTab(key), centered: true, items: [
                         {
                             key: 'customer',
                             label: (_jsxs("span", { style: { fontWeight: 600 }, children: [_jsx(UserOutlined, {}), " Kh\u00E1ch H\u00E0ng"] })),

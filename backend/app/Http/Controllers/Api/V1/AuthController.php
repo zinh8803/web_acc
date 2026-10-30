@@ -96,6 +96,25 @@ class AuthController extends Controller
             return $user;
         });
 
+        // Tự động gửi email tặng mã giảm giá CHAOBANMOI cho khách hàng mới gia nhập hệ thống
+        try {
+            $welcomeCoupon = \App\Models\Coupon::firstOrCreate(
+                ['code' => 'CHAOBANMOI'],
+                [
+                    'name' => 'Ưu đãi chào mừng khách hàng mới',
+                    'description' => 'Giảm 10% cho khách hàng mới gia nhập hệ thống',
+                    'discount_type' => 'PERCENT',
+                    'discount_value' => 10.00,
+                    'usage_per_user' => 1,
+                    'status' => 'ACTIVE',
+                ]
+            );
+
+            Mail::to($user->email)->send(new \App\Mail\WelcomeCouponMail($user, $welcomeCoupon));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send welcome coupon email: ' . $e->getMessage());
+        }
+
         $token = $user->createToken('access-token')->plainTextToken;
         return $this->success([
             'message' => 'Xác thực email và đăng ký thành công.',

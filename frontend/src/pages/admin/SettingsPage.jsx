@@ -1,10 +1,11 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import React, { useEffect, useState } from 'react';
 import { Form, Input, Button, message, Spin } from 'antd';
 import api from '../../services/api';
+
 const AdminSettingsPage = () => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(true);
+
     useEffect(() => {
         const fetchSettings = async () => {
             try {
@@ -16,16 +17,15 @@ const AdminSettingsPage = () => {
                         form.setFieldsValue(val);
                     }
                 }
-            }
-            catch (e) {
+            } catch (e) {
                 console.error('Failed to load settings', e);
-            }
-            finally {
+            } finally {
                 setLoading(false);
             }
         };
         fetchSettings();
     }, [form]);
+
     const onFinish = async (values) => {
         try {
             await api.put('/admin/settings', {
@@ -33,12 +33,42 @@ const AdminSettingsPage = () => {
                     general_settings: values,
                 },
             });
-            message.success('Đã lưu cấu hình vào cơ sở dữ liệu thành công!');
-        }
-        catch (e) {
+            message.success('Đã lưu cấu hình hệ thống thành công!');
+        } catch (e) {
             message.error('Không thể lưu cấu hình.');
         }
     };
-    return (_jsxs("div", { style: { maxWidth: '800px' }, children: [_jsx("h1", { style: { color: '#fff', fontSize: '24px', fontWeight: 800, fontFamily: 'Rajdhani', marginBottom: '24px' }, children: "C\u1EA4U H\u00CCNH H\u1EC6 TH\u1ED0NG & THANH TO\u00C1N (DB) \u2699\uFE0F" }), _jsx("div", { style: { background: '#121324', borderRadius: '14px', padding: '32px', border: '1px solid rgba(255,255,255,0.08)' }, children: loading ? (_jsx("div", { style: { textAlign: 'center', padding: '40px' }, children: _jsx(Spin, {}) })) : (_jsxs(Form, { form: form, layout: "vertical", onFinish: onFinish, children: [_jsx(Form.Item, { name: "site_name", label: "T\u00EAn website", children: _jsx(Input, {}) }), _jsx(Form.Item, { name: "hotline", label: "Hotline CSKH", children: _jsx(Input, {}) }), _jsx(Form.Item, { name: "zalo", label: "S\u1ED1 Zalo h\u1ED7 tr\u1EE3", children: _jsx(Input, {}) }), _jsx(Form.Item, { name: "telegram", label: "Telegram h\u1ED7 tr\u1EE3", children: _jsx(Input, {}) }), _jsx(Button, { type: "primary", size: "large", htmlType: "submit", style: { fontWeight: 700, marginTop: '10px' }, children: "L\u01B0u V\u00E0o Database" })] })) })] }));
+
+    return (
+        <div style={{ maxWidth: '800px' }}>
+            <h1 style={{ color: '#fff', fontSize: '24px', fontWeight: 800, fontFamily: 'Rajdhani', marginBottom: '24px' }}>
+                CẤU HÌNH HỆ THỐNG & LIÊN HỆ ⚙️
+            </h1>
+            <div style={{ background: '#121324', borderRadius: '14px', padding: '32px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: '40px' }}><Spin /></div>
+                ) : (
+                    <Form form={form} layout="vertical" onFinish={onFinish}>
+                        <Form.Item name="site_name" label="Tên website">
+                            <Input placeholder="VD: GAMEHUB.VN" />
+                        </Form.Item>
+                        <Form.Item name="hotline" label="Hotline CSKH">
+                            <Input placeholder="VD: 0912.345.678" />
+                        </Form.Item>
+                        <Form.Item name="zalo" label="Số Zalo hỗ trợ">
+                            <Input placeholder="VD: 0912.345.678" />
+                        </Form.Item>
+                        <Form.Item name="telegram" label="Telegram hỗ trợ">
+                            <Input placeholder="VD: @cskh_gamehub" />
+                        </Form.Item>
+                        <Button type="primary" size="large" htmlType="submit" style={{ fontWeight: 700, marginTop: '10px' }}>
+                            Lưu Cấu Hình
+                        </Button>
+                    </Form>
+                )}
+            </div>
+        </div>
+    );
 };
+
 export default AdminSettingsPage;

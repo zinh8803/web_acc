@@ -1,8 +1,7 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { Row, Col, Radio, Input, Button, Space, message, Tag, Spin } from 'antd';
-import { ThunderboltOutlined, TagOutlined } from '@ant-design/icons';
+import { ThunderboltOutlined, TagOutlined, CheckCircleFilled, SafetyCertificateOutlined } from '@ant-design/icons';
 import api from '../services/api';
 import { useCartStore } from '../stores/cartStore';
 
@@ -10,7 +9,7 @@ const CheckoutPage = () => {
     const navigate = useNavigate();
     const { items, clearCart } = useCartStore();
     const [paymentMethods, setPaymentMethods] = useState([]);
-    const [paymentMethod, setPaymentMethod] = useState('vietqr');
+    const [paymentMethod, setPaymentMethod] = useState('vnpay');
     const [couponCode, setCouponCode] = useState('');
     const [discountAmount, setDiscountAmount] = useState(0);
     const [couponMessage, setCouponMessage] = useState('');
@@ -22,15 +21,32 @@ const CheckoutPage = () => {
         const fetchMethods = async () => {
             try {
                 const res = await api.get('/payment-methods');
-                if (res.data?.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
-                    setPaymentMethods(res.data.data);
-                    setPaymentMethod(res.data.data[0].code);
+                if (res.data?.data && Array.isArray(res.data.data)) {
+                    // Lọc ở frontend: Chỉ giữ lại cổng thanh toán VNPay (Xóa chuyển khoản ngân hàng & ZaloPay)
+                    const vnpayMethod = res.data.data.filter(pm => pm.code === 'vnpay');
+                    if (vnpayMethod.length > 0) {
+                        setPaymentMethods(vnpayMethod);
+                        setPaymentMethod('vnpay');
+                    } else {
+                        setPaymentMethods([{
+                            code: 'vnpay',
+                            name: 'Cổng thanh toán VNPay (ATM / QR / Visa / Master)',
+                            provider: 'VNPay',
+                            description: 'Thanh toán trực tuyến bảo mật, an toàn. Xử lý và nhận tài khoản / kích hoạt dịch vụ tự động ngay lập tức.',
+                        }]);
+                        setPaymentMethod('vnpay');
+                    }
                 }
-            }
-            catch (err) {
-                console.error('Failed to load payment methods from DB', err);
-            }
-            finally {
+            } catch (err) {
+                console.error('Failed to load payment methods', err);
+                setPaymentMethods([{
+                    code: 'vnpay',
+                    name: 'Cổng thanh toán VNPay',
+                    provider: 'VNPay',
+                    description: 'Thanh toán an toàn qua cổng VNPay 24/7.',
+                }]);
+                setPaymentMethod('vnpay');
+            } finally {
                 setLoadingMethods(false);
             }
         };
@@ -41,8 +57,7 @@ const CheckoutPage = () => {
     const totalAmount = Math.max(0, subtotal - discountAmount);
 
     const handleApplyCoupon = async () => {
-        if (!couponCode.trim())
-            return;
+        if (!couponCode.trim()) return;
         try {
             const res = await api.post('/coupons/validate', {
                 code: couponCode.trim(),
@@ -54,12 +69,10 @@ const CheckoutPage = () => {
                 setDiscountAmount(disc);
                 setCouponMessage(`Áp dụng thành công! Giảm ${Number(disc).toLocaleString('vi-VN')} đ`);
                 message.success('Mã giảm giá đã được áp dụng!');
-            }
-            else {
+            } else {
                 message.error(res.data?.message || 'Mã giảm giá không hợp lệ.');
             }
-        }
-        catch (err) {
+        } catch (err) {
             message.error(err.response?.data?.error?.message || err.response?.data?.message || 'Mã giảm giá không tồn tại hoặc đã hết hạn.');
         }
     };
@@ -78,73 +91,200 @@ const CheckoutPage = () => {
                     quantity: i.quantity,
                     service_data: i.service_data || null,
                 })),
-                payment_method_code: paymentMethod,
+                payment_method_code: 'vnpay',
                 coupon_code: discountAmount > 0 ? couponCode : null,
                 customer_notes: notes,
             };
 
-            // NẾU LÀ VNPAY: Tạo URL thanh toán VNPay trực tiếp (Đơn hàng chỉ được tạo khi VNPay callback thành công)
-            if (paymentMethod === 'vnpay') {
-                const res = await api.post('/payments/vnpay/create-url', payload);
-                if (res.data?.success && res.data?.data?.payment_url) {
-                    message.loading('Đang chuyển hướng sang cổng VNPay...', 1.5);
-                    window.location.assign(res.data.data.payment_url);
-                    return;
-                } else {
-                    message.error(res.data?.message || 'Không thể tạo liên kết thanh toán VNPay.');
-                    setSubmitting(false);
-                    return;
-                }
-            }
-
-            // CÁC PHƯƠNG THỨC KHÁC: Tạo đơn hàng trước
-            const res = await api.post('/orders', payload);
-            if (res.data?.success) {
-                const orderCode = res.data.data.order.order_code;
-                clearCart();
-                message.success('Đặt hàng thành công! Đang chuyển đến cổng thanh toán.');
-                navigate(`/payment/${orderCode}`);
-            }
-            else {
-                message.error(res.data?.message || 'Không thể tạo đơn hàng.');
-            }
-        }
-        catch (err) {
-            message.error(err.response?.data?.message || 'Lỗi khi tạo đơn hàng. Vui lòng thử lại.');
-        }
-        finally {
-            if (paymentMethod !== 'vnpay') {
+            // Tạo liên kết thanh toán VNPay trực tiếp (Đơn hàng được khởi tạo và kích hoạt tự động sau khi VNPay thành công)
+            const res = await api.post('/payments/vnpay/create-url', payload);
+            if (res.data?.success && res.data?.data?.payment_url) {
+                message.loading('Đang chuyển hướng sang cổng thanh toán VNPay...', 1.5);
+                window.location.assign(res.data.data.payment_url);
+            } else {
+                message.error(res.data?.message || 'Không thể tạo liên kết thanh toán VNPay.');
                 setSubmitting(false);
             }
+        } catch (err) {
+            message.error(err.response?.data?.error?.message || err.response?.data?.message || 'Lỗi khi tạo liên kết thanh toán. Vui lòng thử lại.');
+            setSubmitting(false);
         }
     };
 
     if (!items || items.length === 0) {
-        navigate('/cart');
-        return null;
+        return <Navigate to="/cart" replace />;
     }
 
-    return (_jsxs("div", { style: { maxWidth: '1100px', margin: '0 auto', padding: '36px 20px 60px' }, children: [_jsx("h1", { style: { color: '#fff', fontSize: '28px', fontWeight: 800, fontFamily: 'Rajdhani', marginBottom: '28px' }, children: "XÁC NHẬN ĐƠN HÀNG & THANH TOÁN ⚡" }), _jsxs(Row, { gutter: [32, 32], children: [_jsxs(Col, { xs: 24, lg: 15, children: [_jsxs("div", { style: { background: '#121324', borderRadius: '14px', padding: '28px', border: '1px solid rgba(255,255,255,0.08)', marginBottom: '24px' }, children: [_jsx("h3", { style: { color: '#fff', fontSize: '18px', fontWeight: 700, marginBottom: '20px' }, children: "1. Chọn Phương Thức Thanh Toán" }), loadingMethods ? (_jsx("div", { style: { textAlign: 'center', padding: '20px' }, children: _jsx(Spin, {}) })) : (_jsx(Radio.Group, { value: paymentMethod, onChange: (e) => setPaymentMethod(e.target.value), style: { width: '100%', display: 'flex', flexDirection: 'column', gap: '14px' }, children: paymentMethods.map((pm) => (_jsxs("div", { onClick: () => setPaymentMethod(pm.code), style: {
-                                                padding: '16px 20px',
-                                                borderRadius: '10px',
-                                                border: paymentMethod === pm.code ? '2px solid #6366f1' : '1px solid rgba(255,255,255,0.08)',
-                                                background: paymentMethod === pm.code ? 'rgba(99, 102, 241, 0.08)' : 'rgba(255,255,255,0.02)',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s',
-                                            }, children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }, children: [_jsx(Radio, { value: pm.code, style: { color: '#fff', fontWeight: 700, fontSize: '15px' }, children: pm.name }), pm.provider && _jsx(Tag, { color: "cyan", style: { fontWeight: 700 }, children: pm.provider })] }), _jsx("div", { style: { paddingLeft: '28px', color: '#94a3b8', fontSize: '13px' }, children: pm.description || '' })] }, pm.code))) }))] }), _jsxs("div", { style: { background: '#121324', borderRadius: '14px', padding: '28px', border: '1px solid rgba(255,255,255,0.08)' }, children: [_jsx("h3", { style: { color: '#fff', fontSize: '18px', fontWeight: 700, marginBottom: '16px' }, children: "2. Ghi Chú Đơn Hàng (Tùy chọn)" }), _jsx(Input.TextArea, { rows: 3, placeholder: "Nhập yêu cầu đặc biệt hoặc ghi chú cho hệ thống...", value: notes, onChange: (e) => setNotes(e.target.value) })] })] }), _jsx(Col, { xs: 24, lg: 9, children: _jsxs("div", { style: { background: '#121324', borderRadius: '14px', padding: '28px', border: '1px solid rgba(255,255,255,0.08)' }, children: [_jsx("h3", { style: { color: '#fff', fontSize: '18px', fontWeight: 700, marginBottom: '20px' }, children: "Chi Tiết Đơn Hàng" }), _jsx("div", { style: { display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }, children: items.map((i) => (_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: '12px' }, children: [_jsx("img", { src: i.thumbnailUrl, alt: i.name || 'Sản phẩm', style: { width: '42px', height: '42px', borderRadius: '6px', objectFit: 'cover' } }), _jsxs("div", { children: [_jsx("div", { style: { color: '#f8fafc', fontSize: '14px', fontWeight: 600, maxWidth: '170px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, children: i.name }), _jsxs("div", { style: { color: '#94a3b8', fontSize: '12px' }, children: ["Số lượng: ", i.quantity] })] })] }), _jsxs("div", { style: { color: '#06b6d4', fontWeight: 700, fontFamily: 'Rajdhani', fontSize: '15px' }, children: [((i.price || 0) * i.quantity).toLocaleString('vi-VN'), " đ"] })] }, i.id))) }), _jsxs("div", { style: { marginBottom: '24px' }, children: [_jsx("div", { style: { color: '#cbd5e1', fontSize: '13px', fontWeight: 600, marginBottom: '8px' }, children: "Mã giảm giá / Voucher:" }), _jsxs(Space.Compact, { style: { width: '100%' }, children: [_jsx(Input, { placeholder: "Nhập mã giảm giá", value: couponCode, onChange: (e) => setCouponCode(e.target.value.toUpperCase()), prefix: _jsx(TagOutlined, { style: { color: '#6366f1' } }) }), _jsx(Button, { type: "primary", onClick: handleApplyCoupon, children: "Áp Dụng" })] }), couponMessage && (_jsxs("div", { style: { color: '#10b981', fontSize: '12px', marginTop: '6px', fontWeight: 600 }, children: ["✓ ", couponMessage] }))] }), _jsxs("div", { style: { borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }, children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', color: '#94a3b8', fontSize: '14px' }, children: [_jsx("span", { children: "Tạm tính:" }), _jsxs("span", { children: [subtotal.toLocaleString('vi-VN'), " đ"] })] }), discountAmount > 0 && (_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', color: '#10b981', fontSize: '14px', fontWeight: 600 }, children: [_jsx("span", { children: "Giảm giá:" }), _jsxs("span", { children: ["-", discountAmount.toLocaleString('vi-VN'), " đ"] })] })), _jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', color: '#94a3b8', fontSize: '14px' }, children: [_jsx("span", { children: "Phí vận chuyển & bàn giao:" }), _jsx("span", { style: { color: '#10b981' }, children: "0 đ (Tự động 24/7)" })] }), _jsxs("div", { style: {
-                                                borderTop: '1px solid rgba(255,255,255,0.08)',
-                                                paddingTop: '14px',
-                                                marginTop: '6px',
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'baseline',
-                                            }, children: [_jsx("span", { style: { color: '#fff', fontSize: '16px', fontWeight: 700 }, children: "Tổng cần trả:" }), _jsxs("span", { style: { color: '#06b6d4', fontSize: '28px', fontWeight: 800, fontFamily: 'Rajdhani' }, children: [totalAmount.toLocaleString('vi-VN'), " đ"] })] })] }), _jsx(Button, { type: "primary", size: "large", block: true, loading: submitting, icon: _jsx(ThunderboltOutlined, {}), onClick: handlePlaceOrder, style: {
-                                        marginTop: '24px',
-                                        height: '50px',
-                                        fontSize: '16px',
-                                        fontWeight: 800,
-                                        borderRadius: '8px',
-                                    }, children: paymentMethod === 'vnpay' ? "THANH TOÁN QUA VNPAY" : "THANH TOÁN NGAY" })] }) })] })] }));
+    return (
+        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '36px 20px 60px' }}>
+            <h1 style={{ color: '#fff', fontSize: '28px', fontWeight: 800, fontFamily: 'Rajdhani', marginBottom: '28px' }}>
+                XÁC NHẬN ĐƠN HÀNG & THANH TOÁN ⚡
+            </h1>
+            <Row gutter={[32, 32]}>
+                <Col xs={24} lg={15}>
+                    <div style={{ background: '#121324', borderRadius: '14px', padding: '28px', border: '1px solid rgba(255,255,255,0.08)', marginBottom: '24px' }}>
+                        <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>
+                            1. Phương Thức Thanh Toán
+                        </h3>
+                        {loadingMethods ? (
+                            <div style={{ textAlign: 'center', padding: '20px' }}>
+                                <Spin />
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                {paymentMethods.map((pm) => (
+                                    <div
+                                        key={pm.code}
+                                        style={{
+                                            padding: '20px',
+                                            borderRadius: '12px',
+                                            border: '2px solid #6366f1',
+                                            background: 'rgba(99, 102, 241, 0.08)',
+                                            boxShadow: '0 4px 20px rgba(99, 102, 241, 0.15)',
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <CheckCircleFilled style={{ color: '#6366f1', fontSize: '18px' }} />
+                                                <span style={{ color: '#fff', fontWeight: 700, fontSize: '16px' }}>
+                                                    {pm.name || 'Cổng thanh toán VNPay'}
+                                                </span>
+                                            </div>
+                                            <Space>
+                                                <Tag color="cyan" style={{ fontWeight: 700 }}>VNPAY</Tag>
+                                                <Tag color="green" style={{ fontWeight: 700 }}>TỰ ĐỘNG 24/7</Tag>
+                                            </Space>
+                                        </div>
+                                        <div style={{ paddingLeft: '28px', color: '#94a3b8', fontSize: '13px', lineHeight: '1.6' }}>
+                                            {pm.description || 'Thanh toán an toàn qua VNPAY-QR, Thẻ ATM nội địa, Thẻ quốc tế Visa/Mastercard. Bàn giao tài khoản và kích hoạt dịch vụ tự động ngay sau khi thanh toán thành công.'}
+                                        </div>
+                                        <div style={{ paddingLeft: '28px', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '12px', fontWeight: 600 }}>
+                                            <SafetyCertificateOutlined /> Cổng thanh toán chính thức & bảo mật
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div style={{ background: '#121324', borderRadius: '14px', padding: '28px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, marginBottom: '16px' }}>
+                            2. Ghi Chú Đơn Hàng (Tùy chọn)
+                        </h3>
+                        <Input.TextArea
+                            rows={3}
+                            placeholder="Nhập yêu cầu đặc biệt hoặc ghi chú cho hệ thống..."
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                        />
+                    </div>
+                </Col>
+
+                <Col xs={24} lg={9}>
+                    <div style={{ background: '#121324', borderRadius: '14px', padding: '28px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>
+                            Chi Tiết Đơn Hàng
+                        </h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
+                            {items.map((i) => (
+                                <div key={i.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <img
+                                            src={i.thumbnailUrl}
+                                            alt={i.name || 'Sản phẩm'}
+                                            style={{ width: '42px', height: '42px', borderRadius: '6px', objectFit: 'cover' }}
+                                        />
+                                        <div>
+                                            <div style={{ color: '#f8fafc', fontSize: '14px', fontWeight: 600, maxWidth: '170px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {i.name}
+                                            </div>
+                                            <div style={{ color: '#94a3b8', fontSize: '12px' }}>
+                                                Số lượng: {i.quantity}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style={{ color: '#06b6d4', fontWeight: 700, fontFamily: 'Rajdhani', fontSize: '15px' }}>
+                                        {((i.price || 0) * i.quantity).toLocaleString('vi-VN')} đ
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div style={{ marginBottom: '24px' }}>
+                            <div style={{ color: '#cbd5e1', fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>
+                                Mã giảm giá / Voucher:
+                            </div>
+                            <Space.Compact style={{ width: '100%' }}>
+                                <Input
+                                    placeholder="Nhập mã giảm giá"
+                                    value={couponCode}
+                                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                    prefix={<TagOutlined style={{ color: '#6366f1' }} />}
+                                />
+                                <Button type="primary" onClick={handleApplyCoupon}>
+                                    Áp Dụng
+                                </Button>
+                            </Space.Compact>
+                            {couponMessage && (
+                                <div style={{ color: '#10b981', fontSize: '12px', marginTop: '6px', fontWeight: 600 }}>
+                                    ✓ {couponMessage}
+                                </div>
+                            )}
+                        </div>
+
+                        <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', fontSize: '14px' }}>
+                                <span>Tạm tính:</span>
+                                <span>{subtotal.toLocaleString('vi-VN')} đ</span>
+                            </div>
+                            {discountAmount > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981', fontSize: '14px', fontWeight: 600 }}>
+                                    <span>Giảm giá:</span>
+                                    <span>-{discountAmount.toLocaleString('vi-VN')} đ</span>
+                                </div>
+                            )}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', fontSize: '14px' }}>
+                                <span>Phí vận chuyển & bàn giao:</span>
+                                <span style={{ color: '#10b981' }}>0 đ (Tự động 24/7)</span>
+                            </div>
+                            <div style={{
+                                borderTop: '1px solid rgba(255,255,255,0.08)',
+                                paddingTop: '14px',
+                                marginTop: '6px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'baseline',
+                            }}>
+                                <span style={{ color: '#fff', fontSize: '16px', fontWeight: 700 }}>Tổng cần trả:</span>
+                                <span style={{ color: '#06b6d4', fontSize: '28px', fontWeight: 800, fontFamily: 'Rajdhani' }}>
+                                    {totalAmount.toLocaleString('vi-VN')} đ
+                                </span>
+                            </div>
+                        </div>
+
+                        <Button
+                            type="primary"
+                            size="large"
+                            block
+                            loading={submitting}
+                            icon={<ThunderboltOutlined />}
+                            onClick={handlePlaceOrder}
+                            style={{
+                                marginTop: '24px',
+                                height: '50px',
+                                fontSize: '16px',
+                                fontWeight: 800,
+                                borderRadius: '8px',
+                                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                            }}
+                        >
+                            THANH TOÁN QUA VNPAY ⚡
+                        </Button>
+                    </div>
+                </Col>
+            </Row>
+        </div>
+    );
 };
 
 export default CheckoutPage;

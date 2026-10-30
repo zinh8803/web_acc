@@ -27,9 +27,7 @@ class PaymentController extends Controller
     public function methods(): JsonResponse
     {
         $methods = [
-            ['code' => 'vietqr', 'name' => 'Chuyển khoản ngân hàng (VietQR)'],
-            ['code' => 'vnpay', 'name' => 'Cổng thanh toán VNPay', 'provider' => 'VNPay'],
-            ['code' => 'zalopay', 'name' => 'Ví điện tử ZaloPay', 'provider' => 'ZaloPay'],
+            ['code' => 'vnpay', 'name' => 'Cổng thanh toán VNPay', 'provider' => 'VNPay', 'description' => 'Thanh toán trực tuyến bảo mật qua cổng VNPay (Hỗ trợ VNPAY-QR, Thẻ ATM nội địa, Thẻ quốc tế Visa/Mastercard).'],
         ];
 
         return response()->json([
@@ -200,14 +198,37 @@ class PaymentController extends Controller
                         ->where('status', 'ACTIVE')
                         ->lockForUpdate()
                         ->first();
-                    if (!$coupon || ($coupon->starts_at && $coupon->starts_at->isFuture()) || ($coupon->ends_at && $coupon->ends_at->isPast())) {
-                        throw ValidationException::withMessages(['coupon_code' => ['Mã giảm giá không hợp lệ hoặc đã hết hạn.']]);
+                    if (!$coupon) {
+                        throw ValidationException::withMessages(['coupon_code' => ['Mã giảm giá không tồn tại hoặc đã ngừng hoạt động.']]);
                     }
-                    if (($coupon->usage_limit && $coupon->used_count >= $coupon->usage_limit)
-                        || CouponUsage::where('coupon_id', $coupon->id)->where('user_id', $user->id)->where('status', 'USED')->count() >= $coupon->usage_per_user
-                        || $subtotal < $coupon->min_order_amount) {
-                        throw ValidationException::withMessages(['coupon_code' => ['Đơn hàng không đủ điều kiện sử dụng mã giảm giá này.']]);
+                    if ($coupon->starts_at && now()->lt($coupon->starts_at)) {
+                        throw ValidationException::withMessages(['coupon_code' => ['Mã giảm giá chưa đến ngày áp dụng (bắt đầu từ: ' . $coupon->starts_at->format('d/m/Y H:i') . ').']]);
                     }
+                    if ($coupon->ends_at && now()->gt($coupon->ends_at)) {
+                        throw ValidationException::withMessages(['coupon_code' => ['Mã giảm giá đã hết hạn sử dụng (hạn chót: ' . $coupon->ends_at->format('d/m/Y H:i') . ').']]);
+                    }
+                    if ($coupon->usage_limit && $coupon->used_count >= $coupon->usage_limit) {
+                        throw ValidationException::withMessages(['coupon_code' => ['Mã giảm giá đã hết lượt sử dụng trên hệ thống.']]);
+                    }
+
+                    $userUsageCount = CouponUsage::where('coupon_id', $coupon->id)
+                        ->where('user_id', $user->id)
+                        ->where('status', 'USED')
+                        ->count();
+                    $orderUsageCount = Order::where('coupon_id', $coupon->id)
+                        ->where('user_id', $user->id)
+                        ->whereIn('status', ['PAID', 'COMPLETED', 'PROCESSING', 'DELIVERED'])
+                        ->count();
+                    $actualUsed = max($userUsageCount, $orderUsageCount);
+
+                    if ($actualUsed >= $coupon->usage_per_user) {
+                        throw ValidationException::withMessages(['coupon_code' => ['Bạn đã sử dụng mã giảm giá này rồi. Mỗi khách hàng chỉ được sử dụng ' . $coupon->usage_per_user . ' lần.']]);
+                    }
+
+                    if ($subtotal < $coupon->min_order_amount) {
+                        throw ValidationException::withMessages(['coupon_code' => ['Đơn hàng tối thiểu ' . number_format($coupon->min_order_amount) . 'đ để sử dụng mã này.']]);
+                    }
+
                     $discount = $coupon->discount_type === 'PERCENT'
                         ? (int) round(min($subtotal * $coupon->discount_value / 100, $coupon->max_discount_amount ?: $subtotal))
                         : (int) min($coupon->discount_value, $subtotal);
@@ -353,15 +374,27 @@ class PaymentController extends Controller
             if ($isSuccess) {
                 // Thanh toán VNPay thành công => GỌI HÀM TẠO ORDER
                 $order = DB::transaction(function () use ($checkoutData, $transactionNo) {
+                    $couponId = $checkoutData['coupon_id'] ?? null;
+                    $discount = $checkoutData['discount'] ?? 0;
+                    if ($couponId) {
+                        $coupon = Coupon::find($couponId);
+                        $usedCount = CouponUsage::where('coupon_id', $couponId)->where('user_id', $checkoutData['user_id'])->where('status', 'USED')->count();
+                        $orderUsedCount = Order::where('coupon_id', $couponId)->where('user_id', $checkoutData['user_id'])->whereIn('status', ['PAID', 'COMPLETED', 'PROCESSING'])->count();
+                        if (!$coupon || max($usedCount, $orderUsedCount) >= $coupon->usage_per_user) {
+                            $couponId = null;
+                            $discount = 0;
+                        }
+                    }
+
                     $order = Order::create([
                         'order_code' => 'ORD-' . strtoupper(Str::random(12)),
                         'user_id' => $checkoutData['user_id'],
                         'status' => 'COMPLETED',
                         'subtotal' => $checkoutData['subtotal'],
-                        'discount_total' => $checkoutData['discount'],
-                        'total' => $checkoutData['total'],
-                        'coupon_id' => $checkoutData['coupon_id'],
-                        'coupon_code' => $checkoutData['coupon_code'],
+                        'discount_total' => $discount,
+                        'total' => max(0, $checkoutData['subtotal'] - $discount),
+                        'coupon_id' => $couponId,
+                        'coupon_code' => $couponId ? ($checkoutData['coupon_code'] ?? null) : null,
                         'payment_method_code' => 'vnpay',
                         'payment_reference' => $transactionNo,
                         'customer_note' => $checkoutData['customer_notes'],
@@ -449,14 +482,14 @@ class PaymentController extends Controller
                         }
                     }
 
-                    if (!empty($checkoutData['coupon_id'])) {
+                    if (!empty($couponId)) {
                         CouponUsage::create([
-                            'coupon_id' => $checkoutData['coupon_id'],
+                            'coupon_id' => $couponId,
                             'user_id' => $checkoutData['user_id'],
                             'order_id' => $order->id,
-                            'discount_amount' => $checkoutData['discount'],
+                            'discount_amount' => $discount,
                         ]);
-                        Coupon::whereKey($checkoutData['coupon_id'])->increment('used_count');
+                        Coupon::whereKey($couponId)->increment('used_count');
                     }
 
                     Cart::where('user_id', $checkoutData['user_id'])->first()?->items()->delete();

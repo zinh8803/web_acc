@@ -1,16 +1,18 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ConfigProvider, Spin, theme } from 'antd';
 import viVN from 'antd/locale/vi_VN';
+
 // Layouts
 import UserLayout from './components/layouts/UserLayout';
 import AdminLayout from './components/layouts/AdminLayout';
+
 // Guards
 import ProtectedRoute from './components/guards/ProtectedRoute';
 import AdminRoute from './components/guards/AdminRoute';
+
 // Public pages
 const HomePage = React.lazy(() => import('./pages/HomePage'));
 const CatalogPage = React.lazy(() => import('./pages/catalog/CatalogPage'));
@@ -19,17 +21,18 @@ const LoginPage = React.lazy(() => import('./pages/auth/LoginPage'));
 const RegisterPage = React.lazy(() => import('./pages/auth/RegisterPage'));
 const ForgotPasswordPage = React.lazy(() => import('./pages/auth/ForgotPasswordPage'));
 const ResetPasswordPage = React.lazy(() => import('./pages/auth/ResetPasswordPage'));
+
 // User protected pages
 const CartPage = React.lazy(() => import('./pages/CartPage'));
 const CheckoutPage = React.lazy(() => import('./pages/CheckoutPage'));
 const PaymentPage = React.lazy(() => import('./pages/PaymentPage'));
 const VnPayReturnPage = React.lazy(() => import('./pages/VnPayReturnPage'));
-const ZaloPayReturnPage = React.lazy(() => import('./pages/ZaloPayReturnPage'));
 const OrdersPage = React.lazy(() => import('./pages/order/OrdersPage'));
 const OrderDetailPage = React.lazy(() => import('./pages/order/OrderDetailPage'));
 const WarrantyClaimsPage = React.lazy(() => import('./pages/warranty/WarrantyClaimsPage'));
 const WarrantyClaimDetailPage = React.lazy(() => import('./pages/warranty/WarrantyClaimDetailPage'));
 const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
+
 // Admin pages
 const AdminDashboard = React.lazy(() => import('./pages/admin/DashboardPage'));
 const AdminCategoriesPage = React.lazy(() => import('./pages/admin/CategoriesPage'));
@@ -47,6 +50,7 @@ const AdminStaffPage = React.lazy(() => import('./pages/admin/StaffPage'));
 const AdminAuditLogsPage = React.lazy(() => import('./pages/admin/AuditLogsPage'));
 const AdminSettingsPage = React.lazy(() => import('./pages/admin/SettingsPage'));
 const AdminReportsPage = React.lazy(() => import('./pages/admin/ReportsPage'));
+
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
@@ -55,10 +59,11 @@ const queryClient = new QueryClient({
         },
     },
 });
+
 const antTheme = {
     algorithm: theme.defaultAlgorithm,
     token: {
-        colorPrimary: '#6366f1', // indigo
+        colorPrimary: '#6366f1',
         colorBgBase: '#f5f7fb',
         colorBgContainer: '#ffffff',
         colorBgElevated: '#ffffff',
@@ -66,11 +71,78 @@ const antTheme = {
         colorTextSecondary: '#64748b',
         colorBorder: '#e2e8f0',
         borderRadius: 8,
-        fontFamily: "'Inter', 'Segoe UI', sans-serif",
+        fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
     },
 };
-const PageLoader = () => (_jsx("div", { style: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }, children: _jsx(Spin, { size: "large" }) }));
+
+const PageLoader = () => (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+        <Spin size="large" />
+    </div>
+);
+
 function App() {
-        return (_jsxs(QueryClientProvider, { client: queryClient, children: [_jsx(ConfigProvider, { locale: viVN, theme: antTheme, children: _jsx(BrowserRouter, { children: _jsx(Suspense, { fallback: _jsx(PageLoader, {}), children: _jsxs(Routes, { children: [_jsxs(Route, { path: "/admin", element: _jsx(AdminRoute, { children: _jsx(AdminLayout, {}) }), children: [_jsx(Route, { index: true, element: _jsx(AdminDashboard, {}) }), _jsx(Route, { path: "categories", element: _jsx(AdminCategoriesPage, {}) }), _jsx(Route, { path: "games", element: _jsx(AdminGamesPage, {}) }), _jsx(Route, { path: "products", element: _jsx(AdminProductsPage, {}) }), _jsx(Route, { path: "products/create", element: _jsx(AdminProductFormPage, {}) }), _jsx(Route, { path: "products/:id/edit", element: _jsx(AdminProductFormPage, {}) }), _jsx(Route, { path: "inventory", element: _jsx(AdminInventoryPage, {}) }), _jsx(Route, { path: "orders", element: _jsx(AdminOrdersPage, {}) }), _jsx(Route, { path: "orders/:code", element: _jsx(AdminOrderDetailPage, {}) }), _jsx(Route, { path: "service-requests", element: _jsx(AdminServiceRequestsPage, {}) }), _jsx(Route, { path: "warranty", element: _jsx(AdminWarrantyPage, {}) }), _jsx(Route, { path: "coupons", element: _jsx(AdminCouponsPage, {}) }), _jsx(Route, { path: "users", element: _jsx(AdminUsersPage, {}) }), _jsx(Route, { path: "staff", element: _jsx(AdminStaffPage, {}) }), _jsx(Route, { path: "audit-logs", element: _jsx(AdminAuditLogsPage, {}) }), _jsx(Route, { path: "reports", element: _jsx(AdminReportsPage, {}) }), _jsx(Route, { path: "settings", element: _jsx(AdminSettingsPage, {}) })] }), _jsxs(Route, { path: "/", element: _jsx(UserLayout, {}), children: [_jsx(Route, { index: true, element: _jsx(HomePage, {}) }), _jsx(Route, { path: "catalog", element: _jsx(CatalogPage, {}) }), _jsx(Route, { path: "catalog/:slug", element: _jsx(CatalogPage, {}) }), _jsx(Route, { path: "products/:slug", element: _jsx(ProductDetailPage, {}) }), _jsx(Route, { path: "login", element: _jsx(LoginPage, {}) }), _jsx(Route, { path: "register", element: _jsx(RegisterPage, {}) }), _jsx(Route, { path: "forgot-password", element: _jsx(ForgotPasswordPage, {}) }), _jsx(Route, { path: "reset-password", element: _jsx(ResetPasswordPage, {}) }), _jsxs(Route, { element: _jsx(ProtectedRoute, {}), children: [_jsx(Route, { path: "cart", element: _jsx(CartPage, {}) }), _jsx(Route, { path: "checkout", element: _jsx(CheckoutPage, {}) }), _jsx(Route, { path: "payment/:orderCode", element: _jsx(PaymentPage, {}) }), _jsx(Route, { path: "vnpay_return", element: _jsx(VnPayReturnPage, {}) }), _jsx(Route, { path: "zalo_return", element: _jsx(ZaloPayReturnPage, {}) }), _jsx(Route, { path: "orders", element: _jsx(OrdersPage, {}) }), _jsx(Route, { path: "orders/:code", element: _jsx(OrderDetailPage, {}) }), _jsx(Route, { path: "warranty-claims", element: _jsx(WarrantyClaimsPage, {}) }), _jsx(Route, { path: "warranty-claims/:code", element: _jsx(WarrantyClaimDetailPage, {}) }), _jsx(Route, { path: "profile", element: _jsx(ProfilePage, {}) })] })] }), _jsx(Route, { path: "*", element: _jsx(Navigate, { to: "/", replace: true }) })] }) }) }) }), _jsx(ReactQueryDevtools, { initialIsOpen: false })] }));
+    return (
+        <QueryClientProvider client={queryClient}>
+            <ConfigProvider locale={viVN} theme={antTheme}>
+                <BrowserRouter>
+                    <Suspense fallback={<PageLoader />}>
+                        <Routes>
+                            {/* Admin routes */}
+                            <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+                                <Route index element={<AdminDashboard />} />
+                                <Route path="categories" element={<AdminCategoriesPage />} />
+                                <Route path="games" element={<AdminGamesPage />} />
+                                <Route path="products" element={<AdminProductsPage />} />
+                                <Route path="products/create" element={<AdminProductFormPage />} />
+                                <Route path="products/:id/edit" element={<AdminProductFormPage />} />
+                                <Route path="inventory" element={<AdminInventoryPage />} />
+                                <Route path="orders" element={<AdminOrdersPage />} />
+                                <Route path="orders/:code" element={<AdminOrderDetailPage />} />
+                                <Route path="service-requests" element={<AdminServiceRequestsPage />} />
+                                <Route path="warranty" element={<AdminWarrantyPage />} />
+                                <Route path="coupons" element={<AdminCouponsPage />} />
+                                <Route path="users" element={<AdminUsersPage />} />
+                                <Route path="staff" element={<AdminStaffPage />} />
+                                <Route path="audit-logs" element={<AdminAuditLogsPage />} />
+                                <Route path="reports" element={<AdminReportsPage />} />
+                                <Route path="settings" element={<AdminSettingsPage />} />
+                            </Route>
+
+                            {/* Public & Customer routes */}
+                            <Route path="/" element={<UserLayout />}>
+                                <Route index element={<HomePage />} />
+                                <Route path="catalog" element={<CatalogPage />} />
+                                <Route path="catalog/:slug" element={<CatalogPage />} />
+                                <Route path="products/:slug" element={<ProductDetailPage />} />
+                                <Route path="login" element={<LoginPage />} />
+                                <Route path="register" element={<RegisterPage />} />
+                                <Route path="forgot-password" element={<ForgotPasswordPage />} />
+                                <Route path="reset-password" element={<ResetPasswordPage />} />
+
+                                {/* Protected User routes */}
+                                <Route element={<ProtectedRoute />}>
+                                    <Route path="cart" element={<CartPage />} />
+                                    <Route path="checkout" element={<CheckoutPage />} />
+                                    <Route path="payment/:orderCode" element={<PaymentPage />} />
+                                    <Route path="vnpay_return" element={<VnPayReturnPage />} />
+                                    <Route path="orders" element={<OrdersPage />} />
+                                    <Route path="orders/:code" element={<OrderDetailPage />} />
+                                    <Route path="warranty-claims" element={<WarrantyClaimsPage />} />
+                                    <Route path="warranty-claims/:code" element={<WarrantyClaimDetailPage />} />
+                                    <Route path="profile" element={<ProfilePage />} />
+                                </Route>
+                            </Route>
+
+                            {/* Fallback */}
+                            <Route path="*" element={<Navigate to="/" replace />} />
+                        </Routes>
+                    </Suspense>
+                </BrowserRouter>
+            </ConfigProvider>
+            <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
+    );
 }
+
 export default App;

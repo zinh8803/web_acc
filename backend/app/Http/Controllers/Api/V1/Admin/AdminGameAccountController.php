@@ -124,13 +124,18 @@ class AdminGameAccountController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã nhập tài khoản vào kho an toàn (Mã hoá AES-256-GCM).',
+            'message' => 'Đã nhập tài khoản vào kho thành công.',
             'data' => $account,
         ], 201);
     }
 
     public function updateListing(Request $request, int $id): JsonResponse
     {
+        $account = GameAccount::findOrFail($id);
+        if ($account->status === 'SOLD') {
+            return response()->json(['success' => false, 'message' => 'Tài khoản đã bán, không thể thay đổi thông tin.'], 422);
+        }
+
         if (is_string($request->input('public_details'))) {
             $request->merge(['public_details' => json_decode($request->input('public_details'), true)]);
         }
@@ -141,7 +146,6 @@ class AdminGameAccountController extends Controller
             'public_details.*.value' => 'required_with:public_details|string|max:255',
         ]);
 
-        $account = GameAccount::findOrFail($id);
         $account->public_details = $validated['public_details'] ?? [];
         if ($request->hasFile('image_file')) {
             $account->image_url = Storage::disk('public')->url($request->file('image_file')->store('game-accounts', 'public'));
@@ -153,6 +157,10 @@ class AdminGameAccountController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
+        $account = GameAccount::findOrFail($id);
+        if ($account->status === 'SOLD') {
+            return response()->json(['success' => false, 'message' => 'Tài khoản đã bán, không thể thay đổi thông tin.'], 422);
+        }
         if (is_string($request->input('public_details'))) {
             $request->merge(['public_details' => json_decode($request->input('public_details'), true)]);
         }

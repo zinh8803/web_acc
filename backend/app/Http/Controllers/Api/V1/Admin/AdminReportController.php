@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AdminReportController extends Controller
 {
@@ -19,19 +20,21 @@ class AdminReportController extends Controller
 
     public function revenue(Request $request): JsonResponse
     {
-        $todayRevenue = Order::whereIn('status', ['paid', 'completed'])
-            ->whereDate('created_at', today())
-            ->sum('total_amount');
+        $paidStatuses = ['PAID', 'COMPLETED', 'paid', 'completed'];
 
-        $totalRevenue = Order::whereIn('status', ['paid', 'completed'])
-            ->sum('total_amount');
+        $todayRevenue = Order::whereIn('status', $paidStatuses)
+            ->whereDate('created_at', today())
+            ->sum('total');
+
+        $totalRevenue = Order::whereIn('status', $paidStatuses)
+            ->sum('total');
 
         $totalOrders = Order::count();
-        $pendingOrders = Order::where('status', 'pending_payment')->count();
-        $completedOrders = Order::whereIn('status', ['paid', 'completed'])->count();
+        $pendingOrders = Order::whereIn('status', ['PENDING_PAYMENT', 'pending_payment'])->count();
+        $completedOrders = Order::whereIn('status', $paidStatuses)->count();
         $totalUsers = User::count();
         $totalProducts = Product::count();
-        $availableAccounts = GameAccount::where('status', 'available')->count();
+        $availableAccounts = GameAccount::whereIn('status', ['AVAILABLE', 'available'])->count();
 
         // Recent orders from DB
         $recentOrders = Order::with('user:id,full_name,email')
@@ -40,22 +43,22 @@ class AdminReportController extends Controller
             ->get();
 
         // Daily chart data for the last 7 days from DB
-        $daily = Order::whereIn('status', ['paid', 'completed'])
+        $daily = Order::whereIn('status', $paidStatuses)
             ->where('created_at', '>=', now()->subDays(7))
-            ->selectRaw('DATE(created_at) as date, sum(total_amount) as total, count(*) as count')
+            ->selectRaw('DATE(created_at) as date, sum(total) as total, count(*) as count')
             ->groupBy('date')
             ->orderBy('date')
             ->get();
 
         // Revenue by Game from DB
-        $gameRevenue = \Illuminate\Support\Facades\DB::table('games')
+        $gameRevenue = DB::table('games')
             ->leftJoin('products', 'games.id', '=', 'products.game_id')
             ->leftJoin('order_items', 'products.id', '=', 'order_items.product_id')
-            ->leftJoin('orders', function ($join) {
+            ->leftJoin('orders', function ($join) use ($paidStatuses) {
                 $join->on('order_items.order_id', '=', 'orders.id')
-                    ->whereIn('orders.status', ['paid', 'completed']);
+                    ->whereIn('orders.status', $paidStatuses);
             })
-            ->select('games.id', 'games.name', \Illuminate\Support\Facades\DB::raw('COALESCE(SUM(order_items.price * order_items.quantity), 0) as total_amount'))
+            ->select('games.id', 'games.name', DB::raw('COALESCE(SUM(order_items.line_total), 0) as total_amount'))
             ->groupBy('games.id', 'games.name')
             ->orderByDesc('total_amount')
             ->get();
@@ -94,8 +97,8 @@ class AdminReportController extends Controller
     public function warranty(Request $request): JsonResponse
     {
         $totalClaims = \App\Models\WarrantyClaim::count();
-        $pendingClaims = \App\Models\WarrantyClaim::where('status', 'PENDING')->count();
-        $approvedClaims = \App\Models\WarrantyClaim::where('status', 'APPROVED')->count();
+        $pendingClaims = \App\Models\WarrantyClaim::whereIn('status', ['SUBMITTED', 'IN_REVIEW', 'NEED_INFO'])->count();
+        $approvedClaims = \App\Models\WarrantyClaim::whereIn('status', ['APPROVED', 'RESOLVED'])->count();
 
         return response()->json([
             'success' => true,

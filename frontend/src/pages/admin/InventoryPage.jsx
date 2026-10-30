@@ -109,6 +109,10 @@ const InventoryPage = () => {
     };
 
     const editAccount = async (account) => {
+        if (account.status === 'SOLD') {
+            message.warning('Tài khoản đã bán, không thể thay đổi thông tin!');
+            return;
+        }
         try {
             const response = await api.get(`/admin/game-accounts/${account.id}`);
             const data = response.data.data;
@@ -155,13 +159,13 @@ const InventoryPage = () => {
         { title: 'ID', dataIndex: 'id', key: 'id', width: 75 },
         { title: 'Sản phẩm', dataIndex: 'product', key: 'product', render: (product) => <span style={{ color: '#fff', fontWeight: 600 }}>{product?.name || 'Tài khoản lẻ'}</span> },
         { title: 'Ảnh & thông tin công khai', key: 'listing', render: (_, account) => <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>{account.image_url && <img src={account.image_url} alt="" style={{ width: 48, height: 36, objectFit: 'cover', borderRadius: 4 }} />}<span>{(account.public_details || []).map((detail) => `${detail.label}: ${detail.value}`).join(' · ') || 'Chưa thêm thông tin'}</span></div> },
-        { title: 'Bảo mật', key: 'security', render: () => <Tag color="green"><LockOutlined /> AES-256-GCM</Tag> },
+        
         { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (status) => {
             const labels = { AVAILABLE: ['cyan', 'Sẵn sàng bán'], RESERVED: ['orange', 'Đang giữ chỗ'], SOLD: ['magenta', 'Đã bán'], LOCKED: ['default', 'Đang khóa'], RECOVERED: ['red', 'Đã thu hồi'], RETIRED: ['default', 'Ngừng bán'] };
             const [color, label] = labels[status] || ['default', status];
             return <Tag color={color}>{label}</Tag>;
         } },
-        { title: 'Thao tác', key: 'action', render: (_, record) => <div style={{ display: 'flex', gap: 8 }}><Button size="small" icon={<EditOutlined />} onClick={() => editAccount(record)}>Sửa thông tin</Button><Button size="small" type="primary" icon={<EyeOutlined />} onClick={() => viewCredentials(record.id)}>Giải mã</Button></div> },
+        { title: 'Thao tác', key: 'action', render: (_, record) => <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>{record.status === 'SOLD' ? <Tag color="magenta" style={{ margin: 0, padding: '4px 8px' }}>Đã bán (Khóa sửa)</Tag> : <Button size="small" icon={<EditOutlined />} onClick={() => editAccount(record)}>Sửa thông tin</Button>}<Button size="small" type="primary" icon={<EyeOutlined />} onClick={() => viewCredentials(record.id)}>Xem pass</Button></div> },
     ];
 
     return <div>

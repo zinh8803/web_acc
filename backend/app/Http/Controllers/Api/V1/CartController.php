@@ -140,12 +140,12 @@ class CartController extends Controller
         }
 
         // Check time validity
-        if ($coupon->starts_at && $coupon->starts_at > now()) {
-            return $this->error('Mã giảm giá chưa có hiệu lực.', 422, 'COUPON_NOT_STARTED');
+        if ($coupon->starts_at && now()->lt($coupon->starts_at)) {
+            return $this->error('Mã giảm giá chưa đến ngày áp dụng (bắt đầu từ: ' . $coupon->starts_at->format('d/m/Y H:i') . ').', 422, 'COUPON_NOT_STARTED');
         }
 
-        if ($coupon->ends_at && $coupon->ends_at < now()) {
-            return $this->error('Mã giảm giá đã hết hạn.', 422, 'COUPON_EXPIRED');
+        if ($coupon->ends_at && now()->gt($coupon->ends_at)) {
+            return $this->error('Mã giảm giá đã hết hạn sử dụng (hạn chót: ' . $coupon->ends_at->format('d/m/Y H:i') . ').', 422, 'COUPON_EXPIRED');
         }
 
         // Check usage limit
@@ -153,14 +153,21 @@ class CartController extends Controller
             return $this->error('Mã giảm giá đã hết lượt sử dụng.', 422, 'COUPON_USED_UP');
         }
 
-        // Check per-user limit
-        $userUsageCount = CouponUsage::where('coupon_id', $coupon->id)
+        // Check per-user limit strictly (both coupon_usages and paid orders)
+        $userUsageCount = \App\Models\CouponUsage::where('coupon_id', $coupon->id)
             ->where('user_id', $user->id)
             ->where('status', 'USED')
             ->count();
 
-        if ($userUsageCount >= $coupon->usage_per_user) {
-            return $this->error('Bạn đã sử dụng hết lượt dùng của mã này.', 422, 'COUPON_LIMIT_REACHED');
+        $orderUsageCount = \App\Models\Order::where('coupon_id', $coupon->id)
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['PAID', 'COMPLETED', 'PROCESSING', 'DELIVERED'])
+            ->count();
+
+        $actualUsedByUser = max($userUsageCount, $orderUsageCount);
+
+        if ($actualUsedByUser >= $coupon->usage_per_user) {
+            return $this->error('Bạn đã sử dụng mã giảm giá này rồi. Mỗi khách hàng chỉ được sử dụng ' . $coupon->usage_per_user . ' lần.', 422, 'COUPON_LIMIT_REACHED');
         }
 
         // Check minimum order amount

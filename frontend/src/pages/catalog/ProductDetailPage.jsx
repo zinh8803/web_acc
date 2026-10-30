@@ -288,7 +288,7 @@ const ProductDetailPage = () => {
                                     showIcon
                                     icon={<SafetyCertificateOutlined />}
                                     message="Bảo Mật Tuyệt Đối & Quy Trình Xử Lý"
-                                    description="Tài khoản & mật khẩu của bạn được mã hóa AES-256 an toàn. Sau khi thanh toán, đơn hàng sẽ chuyển sang trạng thái 'Chờ Admin phê duyệt'. Admin sẽ kiểm tra nick và phân công kỹ thuật viên tiến hành cày có hẹn giờ hoàn thành."
+                                    description="Tài khoản & mật khẩu của bạn được bảo mật tuyệt đối. Sau khi thanh toán, đơn hàng sẽ chuyển sang trạng thái 'Chờ Admin phê duyệt'. Admin sẽ kiểm tra nick và phân công kỹ thuật viên tiến hành cày có hẹn giờ hoàn thành."
                                     style={{ marginBottom: '20px', background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}
                                 />
 

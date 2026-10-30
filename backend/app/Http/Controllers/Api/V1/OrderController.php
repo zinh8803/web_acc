@@ -126,14 +126,37 @@ class OrderController extends Controller
                     ->where('status', 'ACTIVE')
                     ->lockForUpdate()
                     ->first();
-                if (!$coupon || ($coupon->starts_at && $coupon->starts_at->isFuture()) || ($coupon->ends_at && $coupon->ends_at->isPast())) {
-                    throw ValidationException::withMessages(['coupon_code' => ['Mã giảm giá không hợp lệ hoặc đã hết hạn.']]);
+                if (!$coupon) {
+                    throw ValidationException::withMessages(['coupon_code' => ['Mã giảm giá không tồn tại hoặc đã ngừng hoạt động.']]);
                 }
-                if (($coupon->usage_limit && $coupon->used_count >= $coupon->usage_limit)
-                    || CouponUsage::where('coupon_id', $coupon->id)->where('user_id', $user->id)->where('status', 'USED')->count() >= $coupon->usage_per_user
-                    || $subtotal < $coupon->min_order_amount) {
-                    throw ValidationException::withMessages(['coupon_code' => ['Đơn hàng không đủ điều kiện sử dụng mã giảm giá này.']]);
+                if ($coupon->starts_at && now()->lt($coupon->starts_at)) {
+                    throw ValidationException::withMessages(['coupon_code' => ['Mã giảm giá chưa đến ngày áp dụng (bắt đầu từ: ' . $coupon->starts_at->format('d/m/Y H:i') . ').']]);
                 }
+                if ($coupon->ends_at && now()->gt($coupon->ends_at)) {
+                    throw ValidationException::withMessages(['coupon_code' => ['Mã giảm giá đã hết hạn sử dụng (hạn chót: ' . $coupon->ends_at->format('d/m/Y H:i') . ').']]);
+                }
+                if ($coupon->usage_limit && $coupon->used_count >= $coupon->usage_limit) {
+                    throw ValidationException::withMessages(['coupon_code' => ['Mã giảm giá đã hết lượt sử dụng trên hệ thống.']]);
+                }
+
+                $userUsageCount = CouponUsage::where('coupon_id', $coupon->id)
+                    ->where('user_id', $user->id)
+                    ->where('status', 'USED')
+                    ->count();
+                $orderUsageCount = Order::where('coupon_id', $coupon->id)
+                    ->where('user_id', $user->id)
+                    ->whereIn('status', ['PAID', 'COMPLETED', 'PROCESSING', 'DELIVERED'])
+                    ->count();
+                $actualUsed = max($userUsageCount, $orderUsageCount);
+
+                if ($actualUsed >= $coupon->usage_per_user) {
+                    throw ValidationException::withMessages(['coupon_code' => ['Bạn đã sử dụng mã giảm giá này rồi. Mỗi khách hàng chỉ được sử dụng ' . $coupon->usage_per_user . ' lần.']]);
+                }
+
+                if ($subtotal < $coupon->min_order_amount) {
+                    throw ValidationException::withMessages(['coupon_code' => ['Đơn hàng tối thiểu ' . number_format($coupon->min_order_amount) . 'đ để sử dụng mã này.']]);
+                }
+
                 $discount = $coupon->discount_type === 'PERCENT'
                     ? (int) round(min($subtotal * $coupon->discount_value / 100, $coupon->max_discount_amount ?: $subtotal))
                     : (int) min($coupon->discount_value, $subtotal);
@@ -274,6 +297,11 @@ class OrderController extends Controller
             foreach ($reservedItems->groupBy('variant_id') as $variantId => $items) {
                 $availableCount = GameAccount::where('variant_id', $variantId)->where('status', 'AVAILABLE')->count();
                 \App\Models\ProductVariant::whereKey($variantId)->update(['stock_quantity' => $availableCount]);
+            }
+
+            if ($order->coupon_id) {
+                CouponUsage::where('order_id', $order->id)->where('status', 'USED')->update(['status' => 'REVERTED']);
+                Coupon::whereKey($order->coupon_id)->decrement('used_count');
             }
         });
 
