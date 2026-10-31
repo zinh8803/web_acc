@@ -10,7 +10,7 @@ class ServiceRequest extends Model
     protected $hidden = ['game_login_enc'];
 
     protected $fillable = [
-        'request_code', 'order_item_id', 'user_id', 'game_id', 'form_data',
+        'request_code', 'order_item_id', 'user_id', 'form_data',
         'game_login_enc', 'customer_note', 'assigned_to', 'status', 'priority',
         'due_at', 'started_at', 'completed_at', 'auto_confirm_at',
         'confirmed_at', 'cancel_reason'

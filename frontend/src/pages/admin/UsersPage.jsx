@@ -26,6 +26,6 @@ const AdminUsersPage = () => {
         { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (s) => _jsx(Tag, { color: s === 'ACTIVE' ? 'success' : 'error', children: s || 'ACTIVE' }) },
         { title: 'Ngày tham gia', dataIndex: 'created_at', key: 'created_at', render: (d) => new Date(d).toLocaleDateString('vi-VN') },
     ];
-    return (_jsxs("div", { children: [_jsx("h1", { style: { color: '#fff', fontSize: '24px', fontWeight: 800, fontFamily: 'Rajdhani', marginBottom: '24px' }, children: "QU\u1EA2N L\u00DD KH\u00C1CH H\u00C0NG \uD83D\uDC65" }), _jsx("div", { style: { background: '#121324', borderRadius: '14px', padding: '20px', border: '1px solid rgba(255,255,255,0.08)' }, children: _jsx(Table, { columns: columns, dataSource: users, rowKey: "id", loading: loading }) })] }));
+    return (_jsxs("div", { children: [_jsx("h1", { style: { color: '#fff', fontSize: '24px', fontWeight: 800, fontFamily: 'Rajdhani', marginBottom: '24px' }, children: "QU\u1EA2N L\u00DD KH\u00C1CH H\u00C0NG" }), _jsx("div", { style: { background: '#121324', borderRadius: '14px', padding: '20px', border: '1px solid rgba(255,255,255,0.08)' }, children: _jsx(Table, { columns: columns, dataSource: users, rowKey: "id", loading: loading }) })] }));
 };
 export default AdminUsersPage;

@@ -42,58 +42,8 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 4. Games
-        $gamesData = [
-            [
-                'name' => 'Liên Quân Mobile',
-                'slug' => 'lien-quan-mobile',
-                'logo_url' => 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=100&auto=format&fit=crop&q=80',
-                'description' => 'MOBA di động số 1 Việt Nam với hàng triệu game thủ thi đấu kịch tính.',
-                'status' => 'ACTIVE',
-                'sort_order' => 1,
-            ],
-            [
-                'name' => 'Genshin Impact',
-                'slug' => 'genshin-impact',
-                'logo_url' => 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=100&auto=format&fit=crop&q=80',
-                'description' => 'Siêu phẩm nhập vai thế giới mở hành động thế hệ mới Teyvat.',
-                'status' => 'ACTIVE',
-                'sort_order' => 2,
-            ],
-            [
-                'name' => 'Free Fire',
-                'slug' => 'free-fire',
-                'logo_url' => 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=100&auto=format&fit=crop&q=80',
-                'description' => 'Game bắn súng sinh tồn di động tốc độ cao hàng đầu thế giới.',
-                'status' => 'ACTIVE',
-                'sort_order' => 3,
-            ],
-            [
-                'name' => 'Valorant',
-                'slug' => 'valorant',
-                'logo_url' => 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=100&auto=format&fit=crop&q=80',
-                'description' => 'FPS chiến thuật 5v5 nhân vật đặc vụ thi đấu đỉnh cao toàn cầu.',
-                'status' => 'ACTIVE',
-                'sort_order' => 4,
-            ],
-            [
-                'name' => 'FC Online',
-                'slug' => 'fc-online',
-                'logo_url' => 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=100&auto=format&fit=crop&q=80',
-                'description' => 'Game bóng đá trực tuyến chân thực nhất dành cho fan túc cầu giáo.',
-                'status' => 'ACTIVE',
-                'sort_order' => 5,
-            ],
-        ];
-
-        $games = [];
-        foreach ($gamesData as $g) {
-            $games[$g['slug']] = Game::updateOrCreate(['slug' => $g['slug']], $g);
-        }
-
         // 5. Categories
         $lqCatVip = Category::updateOrCreate(['slug' => 'nick-lien-quan-vip'], [
-            'game_id' => $games['lien-quan-mobile']->id,
             'type' => 'ACCOUNT',
             'name' => 'Nick Liên Quân VIP Rank Thách Đấu',
             'slug' => 'nick-lien-quan-vip',
@@ -103,7 +53,6 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $lqCatGiaRe = Category::updateOrCreate(['slug' => 'nick-lien-quan-gia-re'], [
-            'game_id' => $games['lien-quan-mobile']->id,
             'type' => 'ACCOUNT',
             'name' => 'Nick Liên Quân Giá Rẻ Tân Thủ',
             'slug' => 'nick-lien-quan-gia-re',
@@ -113,7 +62,6 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $genshinCat = Category::updateOrCreate(['slug' => 'nick-genshin-ar55-vip'], [
-            'game_id' => $games['genshin-impact']->id,
             'type' => 'ACCOUNT',
             'name' => 'Nick Genshin Impact AR 55+ VIP',
             'slug' => 'nick-genshin-ar55-vip',
@@ -123,7 +71,6 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $valCat = Category::updateOrCreate(['slug' => 'nick-valorant-skin-vip'], [
-            'game_id' => $games['valorant']->id,
             'type' => 'ACCOUNT',
             'name' => 'Nick Valorant Skin VIP',
             'slug' => 'nick-valorant-skin-vip',
@@ -133,7 +80,6 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $serviceCat = Category::updateOrCreate(['slug' => 'dich-vu-cay-thue-lq'], [
-            'game_id' => $games['lien-quan-mobile']->id,
             'type' => 'SERVICE',
             'name' => 'Dịch Vụ Cày Thuê Rank & Chiến Tướng',
             'slug' => 'dich-vu-cay-thue-lq',
@@ -145,7 +91,6 @@ class DatabaseSeeder extends Seeder
         // 6. Products & Variants & Accounts
         $productsSeed = [
             [
-                'game_id' => $games['lien-quan-mobile']->id,
                 'category_id' => $lqCatVip->id,
                 'type' => 'ACCOUNT',
                 'name' => 'Acc Liên Quân #1029: Thách Đấu 50 Sao, Nakroth Thứ Nguyên, Raz Muay Thái',
@@ -163,7 +108,6 @@ class DatabaseSeeder extends Seeder
                 'acc_pass' => 'GarenaPass!2026',
             ],
             [
-                'game_id' => $games['lien-quan-mobile']->id,
                 'category_id' => $lqCatGiaRe->id,
                 'type' => 'ACCOUNT',
                 'name' => 'Acc Liên Quân #2081: Trắng TT 100%, 65 Tướng, Ngộ Không Nhóc Tì',
@@ -181,7 +125,6 @@ class DatabaseSeeder extends Seeder
                 'acc_pass' => 'LienQuan#2026',
             ],
             [
-                'game_id' => $games['genshin-impact']->id,
                 'category_id' => $genshinCat->id,
                 'type' => 'ACCOUNT',
                 'name' => 'Acc Genshin Impact #3045: AR 58, Raiden Shogun C2 R1, Furina, Hu Tao, Yelan',
@@ -199,7 +142,6 @@ class DatabaseSeeder extends Seeder
                 'acc_pass' => 'Genshin!Safe2026',
             ],
             [
-                'game_id' => $games['valorant']->id,
                 'category_id' => $valCat->id,
                 'type' => 'ACCOUNT',
                 'name' => 'Acc Valorant #4012: Vandal Kuronami + Reaver Karambit + Phantom Prime',
@@ -217,22 +159,53 @@ class DatabaseSeeder extends Seeder
                 'acc_pass' => 'Valorant@Rank99',
             ],
             [
-                'game_id' => $games['lien-quan-mobile']->id,
                 'category_id' => $serviceCat->id,
                 'type' => 'SERVICE',
-                'name' => 'Cày Thuê Rank Liên Quân Mobile - Từ Tinh Anh Lên Cao Thủ',
-                'slug' => 'cay-thue-tinh-anh-len-cao-thu',
-                'sku' => 'SRV-LQ-01',
-                'min_price' => 150000,
-                'price' => 200000,
-                'sale_price' => 150000,
-                'thumbnail_url' => 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80',
-                'short_description' => 'Cày siêu tốc trong 24h, bảo mật thông tin, tuyển thủ Thách Đấu trực tiếp cày.',
-                'description' => 'Dịch vụ cày thuê rank Liên Quân chuyên nghiệp. Đảm bảo tỷ lệ thắng >85%, không dùng tool hack, không chat trong game.',
+                'name' => 'Dịch Vụ Cày Thuê Rank Liên Quân Mobile',
+                'slug' => 'cay-thue-rank-lien-quan-mobile',
+                'sku' => 'SRV-LQ-RANK',
+                'min_price' => 50000,
+                'price' => 60000,
+                'sale_price' => 50000,
+                'thumbnail_url' => 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80',
+                'short_description' => 'Dịch vụ cày thuê rank Liên Quân Mobile chuyên nghiệp, cam kết tỷ lệ thắng > 85%, hoàn thành siêu tốc.',
+                'description' => "Dịch vụ cày rank Liên Quân Mobile chuyên nghiệp, uy tín hàng đầu.\n- Tuyển thủ Top Thách Đấu trực tiếp cày, tỷ lệ thắng cực cao (>85%).\n- Cam kết bảo mật tài khoản 100%, bảo toàn trang phục, ngọc và vàng.\n- Tuyệt đối không chat trong game, không toxic, không sử dụng phần mềm thứ ba.\n- Hoàn thành đúng tiến độ cam kết hoặc hoàn tiền 100%.",
                 'status' => 'ACTIVE',
-                'is_featured' => false,
+                'is_featured' => true,
                 'acc_user' => null,
                 'acc_pass' => null,
+                'variants_data' => [
+                    ['name' => 'Gói Đồng / Bạc lên Vàng', 'sku' => 'SRV-LQ-RANK-VANG', 'price' => 60000, 'sale_price' => 50000, 'estimated_hours' => 4, 'sort_order' => 1],
+                    ['name' => 'Gói Vàng lên Bạch Kim', 'sku' => 'SRV-LQ-RANK-BK', 'price' => 100000, 'sale_price' => 80000, 'estimated_hours' => 6, 'sort_order' => 2],
+                    ['name' => 'Gói Bạch Kim lên Kim Cương', 'sku' => 'SRV-LQ-RANK-KC', 'price' => 150000, 'sale_price' => 120000, 'estimated_hours' => 8, 'sort_order' => 3],
+                    ['name' => 'Gói Kim Cương lên Tinh Anh', 'sku' => 'SRV-LQ-RANK-TA', 'price' => 180000, 'sale_price' => 150000, 'estimated_hours' => 12, 'sort_order' => 4],
+                    ['name' => 'Gói Tinh Anh lên Cao Thủ', 'sku' => 'SRV-LQ-RANK-CT', 'price' => 220000, 'sale_price' => 180000, 'estimated_hours' => 18, 'sort_order' => 5],
+                    ['name' => 'Gói Cao Thủ lên Chiến Tướng (50 Sao)', 'sku' => 'SRV-LQ-RANK-CHIENTUONG', 'price' => 380000, 'sale_price' => 320000, 'estimated_hours' => 24, 'sort_order' => 6],
+                    ['name' => 'Gói Chiến Tướng lên Thách Đấu', 'sku' => 'SRV-LQ-RANK-THACHDAU', 'price' => 650000, 'sale_price' => 550000, 'estimated_hours' => 36, 'sort_order' => 7],
+                ],
+            ],
+            [
+                'category_id' => $serviceCat->id,
+                'type' => 'SERVICE',
+                'name' => 'Dịch Vụ Cày Top Tướng Liên Quân Mobile',
+                'slug' => 'cay-thue-top-tuong-lien-quan',
+                'sku' => 'SRV-LQ-TOP',
+                'min_price' => 130000,
+                'price' => 160000,
+                'sale_price' => 130000,
+                'thumbnail_url' => 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80',
+                'short_description' => 'Dịch vụ leo lực chiến top tướng Liên Quân Mobile (Top Tỉnh, Top Miền, Top Việt Nam, Top Server).',
+                'description' => "Dịch vụ leo Top Tướng Liên Quân Mobile uy tín nhất:\n- Nhận cày mọi vị tướng bạn yêu cầu: Florentino, Nakroth, Raz, Elsu, Điêu Thuyền, Murad, Hayate,...\n- Đội ngũ tuyển thủ tay to cày điểm lực chiến chuẩn xác, đạt Top theo đúng mục tiêu đã chọn.\n- Lựa chọn linh hoạt khu vực: Top Tỉnh (63 tỉnh thành), Top Miền (Bắc - Trung - Nam), Top Việt Nam hoặc Top Server.\n- Bảo mật 100% tài khoản, không tiêu vàng/quân huy.",
+                'status' => 'ACTIVE',
+                'is_featured' => true,
+                'acc_user' => null,
+                'acc_pass' => null,
+                'variants_data' => [
+                    ['name' => 'Gói Cày Top Tỉnh', 'sku' => 'SRV-LQ-TOP-TINH', 'price' => 160000, 'sale_price' => 130000, 'estimated_hours' => 12, 'sort_order' => 1],
+                    ['name' => 'Gói Cày Top Miền', 'sku' => 'SRV-LQ-TOP-MIEN', 'price' => 280000, 'sale_price' => 240000, 'estimated_hours' => 24, 'sort_order' => 2],
+                    ['name' => 'Gói Cày Top Việt Nam', 'sku' => 'SRV-LQ-TOP-VN', 'price' => 500000, 'sale_price' => 420000, 'estimated_hours' => 48, 'sort_order' => 3],
+                    ['name' => 'Gói Cày Top Server', 'sku' => 'SRV-LQ-TOP-SERVER', 'price' => 850000, 'sale_price' => 750000, 'estimated_hours' => 72, 'sort_order' => 4],
+                ],
             ],
         ];
 
@@ -246,7 +219,6 @@ class DatabaseSeeder extends Seeder
                 'sku' => $p['sku'],
                 'type' => $p['type'],
                 'category_id' => $p['category_id'],
-                'game_id' => $p['game_id'],
                 'name' => $p['name'],
                 'slug' => $p['slug'],
                 'min_price' => $p['min_price'],
@@ -257,30 +229,46 @@ class DatabaseSeeder extends Seeder
                 'is_featured' => $p['is_featured'],
             ]);
 
-            $variant = ProductVariant::updateOrCreate(['sku' => $p['sku'] . '-V1'], [
-                'product_id' => $product->id,
-                'name' => 'Mặc định',
-                'price' => $price,
-                'sale_price' => $salePrice,
-                'compare_at_price' => $price,
-                'stock_quantity' => 1,
-                'status' => 'ACTIVE',
-            ]);
+            if (!empty($p['variants_data'])) {
+                foreach ($p['variants_data'] as $vData) {
+                    ProductVariant::updateOrCreate(['sku' => $vData['sku']], [
+                        'product_id' => $product->id,
+                        'name' => $vData['name'],
+                        'price' => $vData['price'],
+                        'sale_price' => $vData['sale_price'],
+                        'compare_at_price' => $vData['price'],
+                        'stock_quantity' => 999,
+                        'estimated_hours' => $vData['estimated_hours'] ?? null,
+                        'status' => 'ACTIVE',
+                        'sort_order' => $vData['sort_order'] ?? 1,
+                    ]);
+                }
+            } else {
+                $variant = ProductVariant::updateOrCreate(['sku' => $p['sku'] . '-V1'], [
+                    'product_id' => $product->id,
+                    'name' => 'Mặc định',
+                    'price' => $price,
+                    'sale_price' => $salePrice,
+                    'compare_at_price' => $price,
+                    'stock_quantity' => 1,
+                    'status' => 'ACTIVE',
+                ]);
 
-            if ($product->type === 'ACCOUNT' && $accUser && $accPass) {
-                if (!GameAccount::where('product_id', $product->id)->exists()) {
-                    GameAccount::createWithEncryption(
-                    productId: $product->id,
-                    variantId: $variant->id,
-                    username: $accUser,
-                    password: $accPass,
-                    extra: [
-                        'sec_email' => $accUser . '@gmail.com',
-                        'sec_phone' => '0988776655',
-                        'additional_info' => 'Mã PIN cấp 2: 123456. Vui lòng đổi mật khẩu ngay sau khi đăng nhập!',
-                        'cost_price' => 50000,
-                    ]
-                    );
+                if ($product->type === 'ACCOUNT' && $accUser && $accPass) {
+                    if (!GameAccount::where('product_id', $product->id)->exists()) {
+                        GameAccount::createWithEncryption(
+                        productId: $product->id,
+                        variantId: $variant->id,
+                        username: $accUser,
+                        password: $accPass,
+                        extra: [
+                            'sec_email' => $accUser . '@gmail.com',
+                            'sec_phone' => '0988776655',
+                            'additional_info' => 'Mã PIN cấp 2: 123456. Vui lòng đổi mật khẩu ngay sau khi đăng nhập!',
+                            'cost_price' => 50000,
+                        ]
+                        );
+                    }
                 }
             }
         }
@@ -325,7 +313,7 @@ class DatabaseSeeder extends Seeder
         // 9. Settings
         Setting::updateOrCreate(['key' => 'general_settings'], [
             'value' => [
-                'site_name' => 'GAMEHUB VN - Sàn Giao Dịch Acc Game & Dịch Vụ',
+                'site_name' => 'GAMEHUB2003',
                 'hotline' => '0987.654.321',
                 'zalo' => '0987654321',
                 'telegram' => 'https://t.me/gamehub_support',

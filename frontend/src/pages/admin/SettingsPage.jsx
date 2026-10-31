@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Form, Input, Button, message, Spin } from 'antd';
 import api from '../../services/api';
+import { useSettingsStore } from '../../stores/settingsStore';
 
 const AdminSettingsPage = () => {
     const [form] = Form.useForm();
@@ -33,6 +34,9 @@ const AdminSettingsPage = () => {
                     general_settings: values,
                 },
             });
+            useSettingsStore.getState().setSettings({
+                general_settings: values,
+            });
             message.success('Đã lưu cấu hình hệ thống thành công!');
         } catch (e) {
             message.error('Không thể lưu cấu hình.');
@@ -42,15 +46,19 @@ const AdminSettingsPage = () => {
     return (
         <div style={{ maxWidth: '800px' }}>
             <h1 style={{ color: '#fff', fontSize: '24px', fontWeight: 800, fontFamily: 'Rajdhani', marginBottom: '24px' }}>
-                CẤU HÌNH HỆ THỐNG & LIÊN HỆ ⚙️
+                CẤU HÌNH HỆ THỐNG & LIÊN HỆ
             </h1>
             <div style={{ background: '#121324', borderRadius: '14px', padding: '32px', border: '1px solid rgba(255,255,255,0.08)' }}>
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: '40px' }}><Spin /></div>
                 ) : (
                     <Form form={form} layout="vertical" onFinish={onFinish}>
-                        <Form.Item name="site_name" label="Tên website">
-                            <Input placeholder="VD: GAMEHUB.VN" />
+                        <Form.Item
+                            name="site_name"
+                            label="Tên Website / Thương Hiệu (Hiển thị Header, Footer, Admin, Tiêu đề trang)"
+                            rules={[{ required: true, message: 'Vui lòng nhập tên website / thương hiệu!' }]}
+                        >
+                            <Input placeholder="VD: GAMEHUB2003" />
                         </Form.Item>
                         <Form.Item name="hotline" label="Hotline CSKH">
                             <Input placeholder="VD: 0912.345.678" />

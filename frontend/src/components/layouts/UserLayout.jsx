@@ -14,6 +14,7 @@ import {
 } from '@ant-design/icons';
 import { useAuthStore } from '../../stores/authStore';
 import { useCartStore } from '../../stores/cartStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 import api from '../../services/api';
 
 const { Header, Content, Footer } = Layout;
@@ -23,33 +24,43 @@ const UserLayout = () => {
     const location = useLocation();
     const { user, isAuthenticated, logout } = useAuthStore();
     const { items } = useCartStore();
+    const { siteName, settings: siteSettings, fetchSettings } = useSettingsStore();
     const [dbCategories, setDbCategories] = useState([]);
-    const [dbGames, setDbGames] = useState([]);
-    const [siteSettings, setSiteSettings] = useState(null);
+    const [dbServices, setDbServices] = useState([]);
+
+    // Tự động cuộn lên đầu trang khi người dùng chuyển trang hoặc đổi điều hướng
+    useEffect(() => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+    }, [location.pathname, location.search]);
 
     useEffect(() => {
         const fetchNavData = async () => {
             try {
-                const [catsRes, gamesRes, settingsRes] = await Promise.all([
+                const [catsRes, servicesRes] = await Promise.all([
                     api.get('/categories'),
-                    api.get('/games'),
-                    api.get('/settings/public'),
+                    api.get('/products', { params: { type: 'SERVICE', limit: 20 } }),
+                    fetchSettings(),
                 ]);
                 if (catsRes.data?.data) {
                     setDbCategories(Array.isArray(catsRes.data.data) ? catsRes.data.data : []);
                 }
-                if (gamesRes.data?.data) {
-                    setDbGames(Array.isArray(gamesRes.data.data) ? gamesRes.data.data : []);
-                }
-                if (settingsRes.data?.data) {
-                    setSiteSettings(settingsRes.data.data);
+                if (servicesRes.data?.data) {
+                    setDbServices(Array.isArray(servicesRes.data.data) ? servicesRes.data.data : []);
                 }
             } catch (err) {
-                console.error('Failed to load navigation categories/games from DB:', err);
+                console.error('Failed to load navigation categories from DB:', err);
             }
         };
         fetchNavData();
-    }, []);
+    }, [fetchSettings]);
+
+    useEffect(() => {
+        if (siteName) {
+            document.title = `${siteName} - Hệ Thống Tài Khoản & Dịch Vụ Game Uy Tín`;
+        }
+    }, [siteName]);
 
     const cartItemCount = items ? items.reduce((acc, i) => acc + i.quantity, 0) : 0;
 
@@ -69,7 +80,7 @@ const UserLayout = () => {
             key: 'all-catalog',
             label: (
                 <Link to="/catalog" style={{ fontWeight: 700, color: '#6366f1' }}>
-                    ✨ Xem Toàn Bộ Danh Mục & Nick
+                    Xem Toàn Bộ Danh Mục & Nick
                 </Link>
             ),
         },
@@ -81,57 +92,33 @@ const UserLayout = () => {
             label: (
                 <Link to={`/catalog?category=${cat.slug}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
                     <span>{cat.name}</span>
-                    {cat.game && (
-                        <Tag color="cyan" style={{ fontSize: '11px', margin: 0 }}>{cat.game.name}</Tag>
-                    )}
                 </Link>
             ),
         })),
     ];
 
-    const serviceDropdownItems = [
-        {
-            key: 'service-rank',
-            label: (
-                <Link to="/products/cay-thue-rank-lien-quan-mobile" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 4px' }}>
-                    <span style={{ fontSize: '18px' }}>🏆</span>
-                    <div>
-                        <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '14px' }}>
-                            Dịch Vụ Cày Rank
+    const serviceDropdownItems = dbServices.length > 0 ? (
+        dbServices.map((srv) => {
+            return {
+                key: `service-${srv.id}`,
+                label: (
+                    <Link to={`/products/${srv.slug}`} style={{ display: 'block', padding: '6px 4px' }}>
+                        <div>
+                            <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '14px' }}>
+                                {srv.name}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#94a3b8', maxWidth: '320px', whiteSpace: 'normal', lineHeight: 1.4 }}>
+                                {srv.short_description || `Bảng giá từ ${Number(srv.min_price || 0).toLocaleString('vi-VN')} đ`}
+                            </div>
                         </div>
-                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                            Đồng &rarr; Cao Thủ &rarr; Chiến Tướng &rarr; Thách Đấu
-                        </div>
-                    </div>
-                </Link>
-            ),
-        },
+                    </Link>
+                ),
+            };
+        })
+    ) : [
         {
-            key: 'service-top-hero',
-            label: (
-                <Link to="/products/cay-thue-top-tuong-lien-quan" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 4px' }}>
-                    <span style={{ fontSize: '18px' }}>⚔️</span>
-                    <div>
-                        <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '14px' }}>
-                            Dịch Vụ Cày Top Tướng
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                            Top Tỉnh, Top Miền, Top Việt Nam, Top Server
-                        </div>
-                    </div>
-                </Link>
-            ),
-        },
-        {
-            type: 'divider',
-        },
-        {
-            key: 'all-services',
-            label: (
-                <Link to="/catalog?category=dich-vu-cay-thue-lq" style={{ fontWeight: 700, color: '#f43f5e', display: 'flex', alignItems: 'center', gap: '8px', padding: '4px' }}>
-                    <FireOutlined /> Xem Tất Cả Dịch Vụ Cày Thuê
-                </Link>
-            ),
+            key: 'service-empty',
+            label: <span style={{ color: '#94a3b8', padding: '6px' }}>Đang tải danh sách dịch vụ...</span>,
         },
     ];
 
@@ -175,11 +162,11 @@ const UserLayout = () => {
                 letterSpacing: '0.3px',
             }}>
                 <Space size="middle">
-                    <span>⚡ Chào mừng đến với hệ thống GAMEHUB2003 - Mua bán tài khoản & dịch vụ game số 1</span>
+                    <span>Chào mừng đến với hệ thống {siteName} - Mua bán tài khoản & dịch vụ game số 1</span>
                     {siteSettings?.general_settings?.hotline && (
                         <>
                             <span>•</span>
-                            <span>📞 Hotline CSKH: <strong>{siteSettings.general_settings.hotline}</strong></span>
+                            <span>Hotline CSKH: <strong>{siteSettings.general_settings.hotline}</strong></span>
                         </>
                     )}
                 </Space>
@@ -215,7 +202,7 @@ const UserLayout = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', lineHeight: 'normal' }}>
                         <div style={{ fontFamily: 'Rajdhani', fontSize: '22px', fontWeight: 800, color: '#fff', lineHeight: 1.1, letterSpacing: '0.5px' }}>
-                            GAMEHUB<span style={{ color: '#06b6d4' }}>2003</span>
+                            {siteName}
                         </div>
                         <div style={{ fontSize: '10px', color: '#06b6d4', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 700, lineHeight: 1.2, marginTop: '2px' }}>
                             Shop Game Uy Tín
@@ -257,7 +244,7 @@ const UserLayout = () => {
 
                     <Dropdown menu={{ items: serviceDropdownItems }} placement="bottomLeft" trigger={['click', 'hover']}>
                         <span style={{
-                            color: location.pathname.includes('cay-thue') || location.search.includes('cay-thue') ? '#f43f5e' : '#cbd5e1',
+                            color: location.pathname.includes('cay-thue') || location.search.includes('cay-thue') || dbServices.some((s) => location.pathname === `/products/${s.slug}`) ? '#f43f5e' : '#cbd5e1',
                             fontWeight: 600,
                             fontSize: '15px',
                             cursor: 'pointer',
@@ -346,7 +333,7 @@ const UserLayout = () => {
                 }}>
                     <div>
                         <div style={{ fontFamily: 'Rajdhani', fontSize: '24px', fontWeight: 800, color: '#fff', marginBottom: '12px' }}>
-                            GAMEHUB<span style={{ color: '#06b6d4' }}>2003</span>
+                            {siteName}
                         </div>
                         <p style={{ fontSize: '14px', lineHeight: 1.6, color: '#94a3b8' }}>
                             Chuyên trang mua bán tài khoản game & dịch vụ cày thuê uy tín hàng đầu Việt Nam. Bàn giao tài khoản tự động 24/7 tức thì, bảo mật tuyệt đối, bảo hành 100% an toàn.
@@ -355,17 +342,17 @@ const UserLayout = () => {
 
                     <div>
                         <h4 style={{ color: '#fff', fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>
-                            Trò Chơi
+                            Dịch Vụ Cày Thuê
                         </h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px' }}>
-                            {dbGames.length > 0 ? (
-                                dbGames.map((g) => (
-                                    <Link key={g.id} to={`/catalog?game=${g.slug}`} style={{ color: '#94a3b8', transition: 'color 0.2s' }}>
-                                        {g.name}
+                            {dbServices.length > 0 ? (
+                                dbServices.map((s) => (
+                                    <Link key={s.id} to={`/products/${s.slug}`} style={{ color: '#94a3b8', transition: 'color 0.2s' }}>
+                                        {s.name}
                                     </Link>
                                 ))
                             ) : (
-                                <span style={{ color: '#64748b' }}>Đang tải trò chơi...</span>
+                                <span style={{ color: '#64748b' }}>Đang tải dịch vụ...</span>
                             )}
                         </div>
                     </div>
@@ -404,10 +391,10 @@ const UserLayout = () => {
                             Liên Hệ Hỗ Trợ 24/7
                         </h4>
                         <div style={{ fontSize: '14px', lineHeight: 1.8, color: '#94a3b8' }}>
-                            <div>📞 Hotline: <strong style={{ color: '#fff' }}>{siteSettings?.general_settings?.hotline || '1900 xxxx'}</strong></div>
-                            <div>💬 Zalo CSKH: <strong style={{ color: '#fff' }}>{siteSettings?.general_settings?.zalo || '09xxxxxxxx'}</strong></div>
-                            <div>✈️ Telegram: <span style={{ color: '#06b6d4' }}>{siteSettings?.general_settings?.telegram || '@cskh'}</span></div>
-                            <div>⏰ Thời gian hỗ trợ: 24/7 kể cả ngày lễ Tết</div>
+                            <div>Hotline: <strong style={{ color: '#fff' }}>{siteSettings?.general_settings?.hotline || '1900 xxxx'}</strong></div>
+                            <div>Zalo CSKH: <strong style={{ color: '#fff' }}>{siteSettings?.general_settings?.zalo || '09xxxxxxxx'}</strong></div>
+                            <div>Telegram: <span style={{ color: '#06b6d4' }}>{siteSettings?.general_settings?.telegram || '@cskh'}</span></div>
+                            <div>Thời gian hỗ trợ: 24/7 kể cả ngày lễ Tết</div>
                         </div>
                     </div>
                 </div>
@@ -419,7 +406,7 @@ const UserLayout = () => {
                     fontSize: '13px',
                     color: '#64748b',
                 }}>
-                    © 2026 GAMEHUB2003. All rights reserved. Hệ thống thương mại điện tử chuyên nghiệp cho cộng đồng game thủ.
+                    © 2026 {siteName}. All rights reserved. Hệ thống thương mại điện tử chuyên nghiệp cho cộng đồng game thủ.
                 </div>
             </Footer>
         </Layout>

@@ -19,12 +19,24 @@ import {
     HomeOutlined,
 } from '@ant-design/icons';
 import api from '../../services/api';
+import { useSettingsStore } from '../../stores/settingsStore';
 
 const { Header, Sider, Content } = Layout;
 
 const AdminLayout = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { siteName, fetchSettings } = useSettingsStore();
+
+    React.useEffect(() => {
+        fetchSettings();
+    }, [fetchSettings]);
+
+    React.useEffect(() => {
+        if (siteName) {
+            document.title = `${siteName} - Quản Trị Hệ Thống`;
+        }
+    }, [siteName]);
 
     const handleLogout = async () => {
         try {
@@ -42,7 +54,6 @@ const AdminLayout = () => {
     const menuItems = [
         { key: '/admin', icon: <DashboardOutlined />, label: <Link to="/admin">Tổng quan Dashboard</Link> },
         { key: '/admin/categories', icon: <AppstoreOutlined />, label: <Link to="/admin/categories">Danh mục</Link> },
-        { key: '/admin/games', icon: <AppstoreOutlined />, label: <Link to="/admin/games">Quản lý Game</Link> },
         { key: '/admin/products', icon: <ShoppingOutlined />, label: <Link to="/admin/products">Sản phẩm & Giá</Link> },
         { key: '/admin/inventory', icon: <KeyOutlined />, label: <Link to="/admin/inventory">Kho Tài Khoản Game</Link> },
         { key: '/admin/orders', icon: <OrderedListOutlined />, label: <Link to="/admin/orders">Đơn hàng & Giao dịch</Link> },
@@ -51,7 +62,6 @@ const AdminLayout = () => {
         { key: '/admin/coupons', icon: <TagOutlined />, label: <Link to="/admin/coupons">Mã giảm giá (Coupon)</Link> },
         { key: '/admin/users', icon: <UserOutlined />, label: <Link to="/admin/users">Khách hàng</Link> },
         { key: '/admin/staff', icon: <TeamOutlined />, label: <Link to="/admin/staff">Nhân sự & Phân quyền</Link> },
-        { key: '/admin/audit-logs', icon: <FileTextOutlined />, label: <Link to="/admin/audit-logs">Audit Logs</Link> },
         { key: '/admin/reports', icon: <BarChartOutlined />, label: <Link to="/admin/reports">Báo cáo Doanh thu</Link> },
         { key: '/admin/settings', icon: <SettingOutlined />, label: <Link to="/admin/settings">Cấu hình Hệ thống</Link> },
     ];
@@ -71,7 +81,7 @@ const AdminLayout = () => {
             >
                 <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
                     <div style={{ fontFamily: 'Rajdhani', fontSize: '18px', fontWeight: 800, color: '#fff' }}>
-                        GAMEHUB2003 <Tag color="purple">ADMIN</Tag>
+                        {siteName} <Tag color="purple">ADMIN</Tag>
                     </div>
                     <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
                         Hệ Thống Quản Trị Trung Tâm

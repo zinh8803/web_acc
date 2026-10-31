@@ -107,7 +107,7 @@ const OrderDetailPage = () => {
         return (
             <div style={{ marginTop: '12px', padding: '12px 14px', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '8px' }}>
                 <div style={{ color: '#818cf8', fontWeight: 700, fontSize: '13px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    📌 Thông tin bổ sung tài khoản:
+                    Thông tin bổ sung tài khoản:
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px' }}>
                     {entries.map(([k, v]) => (

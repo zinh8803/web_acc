@@ -383,7 +383,7 @@ const AdminWarrantyPage = () => {
                 items={[
                     {
                         key: 'claims',
-                        label: `📋 Danh Sách Khiếu Nại (${claimsPagination.total})`,
+                        label: `Danh Sách Khiếu Nại (${claimsPagination.total})`,
                         children: (
                             <div style={{ background: '#121324', borderRadius: '14px', padding: '20px', border: '1px solid rgba(255,255,255,0.08)' }}>
                                 <Row gutter={[12, 12]} style={{ marginBottom: '16px' }}>
@@ -435,7 +435,7 @@ const AdminWarrantyPage = () => {
                     },
                     {
                         key: 'policies',
-                        label: '⚙️ Cấu Hình Chính Sách Bảo Hành',
+                        label: 'Cấu Hình Chính Sách Bảo Hành',
                         children: (
                             <div style={{ background: '#121324', borderRadius: '14px', padding: '20px', border: '1px solid rgba(255,255,255,0.08)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
@@ -482,10 +482,10 @@ const AdminWarrantyPage = () => {
                 <Form form={decideForm} layout="vertical" onFinish={handleSaveDecide}>
                     <Form.Item name="status" label="Trạng thái quyết định *" rules={[{ required: true }]}>
                         <Select size="large">
-                            <Select.Option value="IN_REVIEW">🔄 Đang Kiểm Tra & Xác Minh Thông Tin</Select.Option>
-                            <Select.Option value="APPROVED">✅ Phê Duyệt Bảo Hành (Đổi Acc / Hoàn Tiền)</Select.Option>
-                            <Select.Option value="RESOLVED">🎉 Đã Hoàn Tất Xử Lý Bảo Hành</Select.Option>
-                            <Select.Option value="REJECTED">❌ Từ Chối Bảo Hành (Không Hợp Lệ / Vi Phạm)</Select.Option>
+                            <Select.Option value="IN_REVIEW">Đang Kiểm Tra & Xác Minh Thông Tin</Select.Option>
+                            <Select.Option value="APPROVED">Phê Duyệt Bảo Hành (Đổi Acc / Hoàn Tiền)</Select.Option>
+                            <Select.Option value="RESOLVED">Đã Hoàn Tất Xử Lý Bảo Hành</Select.Option>
+                            <Select.Option value="REJECTED">Từ Chối Bảo Hành (Không Hợp Lệ / Vi Phạm)</Select.Option>
                         </Select>
                     </Form.Item>
 

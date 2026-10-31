@@ -1,7 +1,5 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ConfigProvider, Spin, theme } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 
@@ -36,7 +34,6 @@ const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 // Admin pages
 const AdminDashboard = React.lazy(() => import('./pages/admin/DashboardPage'));
 const AdminCategoriesPage = React.lazy(() => import('./pages/admin/CategoriesPage'));
-const AdminGamesPage = React.lazy(() => import('./pages/admin/GamesPage'));
 const AdminProductsPage = React.lazy(() => import('./pages/admin/ProductsPage'));
 const AdminProductFormPage = React.lazy(() => import('./pages/admin/ProductFormPage'));
 const AdminInventoryPage = React.lazy(() => import('./pages/admin/InventoryPage'));
@@ -47,18 +44,8 @@ const AdminWarrantyPage = React.lazy(() => import('./pages/admin/WarrantyPage'))
 const AdminCouponsPage = React.lazy(() => import('./pages/admin/CouponsPage'));
 const AdminUsersPage = React.lazy(() => import('./pages/admin/UsersPage'));
 const AdminStaffPage = React.lazy(() => import('./pages/admin/StaffPage'));
-const AdminAuditLogsPage = React.lazy(() => import('./pages/admin/AuditLogsPage'));
 const AdminSettingsPage = React.lazy(() => import('./pages/admin/SettingsPage'));
 const AdminReportsPage = React.lazy(() => import('./pages/admin/ReportsPage'));
-
-const queryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            staleTime: 5 * 60 * 1000, // 5 min
-            retry: 1,
-        },
-    },
-});
 
 const antTheme = {
     algorithm: theme.defaultAlgorithm,
@@ -83,16 +70,15 @@ const PageLoader = () => (
 
 function App() {
     return (
-        <QueryClientProvider client={queryClient}>
-            <ConfigProvider locale={viVN} theme={antTheme}>
-                <BrowserRouter>
-                    <Suspense fallback={<PageLoader />}>
-                        <Routes>
+        <ConfigProvider locale={viVN} theme={antTheme}>
+            <BrowserRouter>
+                <Suspense fallback={<PageLoader />}>
+                    <Routes>
                             {/* Admin routes */}
                             <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                                 <Route index element={<AdminDashboard />} />
                                 <Route path="categories" element={<AdminCategoriesPage />} />
-                                <Route path="games" element={<AdminGamesPage />} />
+                                <Route path="games" element={<Navigate to="/admin/categories" replace />} />
                                 <Route path="products" element={<AdminProductsPage />} />
                                 <Route path="products/create" element={<AdminProductFormPage />} />
                                 <Route path="products/:id/edit" element={<AdminProductFormPage />} />
@@ -104,7 +90,6 @@ function App() {
                                 <Route path="coupons" element={<AdminCouponsPage />} />
                                 <Route path="users" element={<AdminUsersPage />} />
                                 <Route path="staff" element={<AdminStaffPage />} />
-                                <Route path="audit-logs" element={<AdminAuditLogsPage />} />
                                 <Route path="reports" element={<AdminReportsPage />} />
                                 <Route path="settings" element={<AdminSettingsPage />} />
                             </Route>
@@ -140,8 +125,6 @@ function App() {
                     </Suspense>
                 </BrowserRouter>
             </ConfigProvider>
-            <ReactQueryDevtools initialIsOpen={false} />
-        </QueryClientProvider>
     );
 }
 

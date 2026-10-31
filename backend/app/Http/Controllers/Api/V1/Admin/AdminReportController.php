@@ -50,16 +50,16 @@ class AdminReportController extends Controller
             ->orderBy('date')
             ->get();
 
-        // Revenue by Game from DB
-        $gameRevenue = DB::table('games')
-            ->leftJoin('products', 'games.id', '=', 'products.game_id')
+        // Revenue by Category from DB
+        $categoryRevenue = DB::table('categories')
+            ->leftJoin('products', 'categories.id', '=', 'products.category_id')
             ->leftJoin('order_items', 'products.id', '=', 'order_items.product_id')
             ->leftJoin('orders', function ($join) use ($paidStatuses) {
                 $join->on('order_items.order_id', '=', 'orders.id')
                     ->whereIn('orders.status', $paidStatuses);
             })
-            ->select('games.id', 'games.name', DB::raw('COALESCE(SUM(order_items.line_total), 0) as total_amount'))
-            ->groupBy('games.id', 'games.name')
+            ->select('categories.id', 'categories.name', DB::raw('COALESCE(SUM(order_items.line_total), 0) as total_amount'))
+            ->groupBy('categories.id', 'categories.name')
             ->orderByDesc('total_amount')
             ->get();
 
@@ -76,14 +76,14 @@ class AdminReportController extends Controller
                 'available_accounts' => $availableAccounts,
                 'recent_orders' => $recentOrders,
                 'daily_trend' => $daily,
-                'game_revenue' => $gameRevenue,
+                'game_revenue' => $categoryRevenue,
             ]
         ]);
     }
 
     public function products(Request $request): JsonResponse
     {
-        $topProducts = Product::with('game:id,name', 'category:id,name')
+        $topProducts = Product::with('category:id,name')
             ->orderByDesc('sold_count')
             ->limit(10)
             ->get();

@@ -5,12 +5,18 @@ import { Form, Input, Button, Divider, message, Space, Tabs } from 'antd';
 import { UserOutlined, LockOutlined, ThunderboltOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import api from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 const LoginPage = () => {
     const navigate = useNavigate();
     const { setAuth } = useAuthStore();
+    const { siteName, fetchSettings } = useSettingsStore();
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('customer');
     const [form] = Form.useForm();
+
+    React.useEffect(() => {
+        fetchSettings();
+    }, [fetchSettings]);
     const handleLogin = async (values) => {
         setLoading(true);
         try {
@@ -80,7 +86,7 @@ const LoginPage = () => {
                                 justifyContent: 'center',
                                 margin: '0 auto 16px',
                                 boxShadow: '0 0 20px rgba(99, 102, 241, 0.4)',
-                            }, children: _jsx(ThunderboltOutlined, { style: { fontSize: '26px', color: '#fff' } }) }), _jsx("h2", { style: { color: '#fff', fontSize: '22px', fontWeight: 800, fontFamily: 'Rajdhani', margin: 0 }, children: "\u0110\u0102NG NH\u1EACP GAMEHUB" }), _jsx("p", { style: { color: '#64748b', fontSize: '13px', marginTop: '6px' }, children: "Truy c\u1EADp \u0111\u1EC3 qu\u1EA3n l\u00FD \u0111\u01A1n h\u00E0ng & nh\u1EADn t\u00E0i kho\u1EA3n t\u1EE9c th\u00EC" })] }), _jsx(Tabs, { activeKey: activeTab, onChange: (key) => setActiveTab(key), centered: true, items: [
+                            }, children: _jsx(ThunderboltOutlined, { style: { fontSize: '26px', color: '#fff' } }) }), _jsx("h2", { style: { color: '#fff', fontSize: '22px', fontWeight: 800, fontFamily: 'Rajdhani', margin: 0 }, children: `ĐĂNG NHẬP ${siteName}` }), _jsx("p", { style: { color: '#64748b', fontSize: '13px', marginTop: '6px' }, children: "Truy c\u1EADp \u0111\u1EC3 qu\u1EA3n l\u00FD \u0111\u01A1n h\u00E0ng & nh\u1EADn t\u00E0i kho\u1EA3n t\u1EE9c th\u00EC" })] }), _jsx(Tabs, { activeKey: activeTab, onChange: (key) => setActiveTab(key), centered: true, items: [
                         {
                             key: 'customer',
                             label: (_jsxs("span", { style: { fontWeight: 600 }, children: [_jsx(UserOutlined, {}), " Kh\u00E1ch H\u00E0ng"] })),
@@ -105,13 +111,13 @@ const LoginPage = () => {
                                 fontSize: '13px',
                                 fontWeight: 600,
                                 height: '38px',
-                            }, children: "\uD83D\uDC64 Kh\u00E1ch H\u00E0ng: customer@gamehub.vn" }), _jsx(Button, { block: true, onClick: () => handleQuickFill('admin@gamehub.vn', 'Admin@123456', 'admin'), style: {
+                            }, children: "Kh\u00E1ch H\u00E0ng: customer@gamehub.vn" }), _jsx(Button, { block: true, onClick: () => handleQuickFill('admin@gamehub.vn', 'Admin@123456', 'admin'), style: {
                                 background: 'rgba(244, 63, 94, 0.1)',
                                 borderColor: '#f43f5e',
                                 color: '#be123c',
                                 fontSize: '13px',
                                 fontWeight: 600,
                                 height: '38px',
-                            }, children: "\uD83D\uDEE1\uFE0F Qu\u1EA3n Tr\u1ECB Vi\u00EAn: admin@gamehub.vn" })] }), activeTab === 'customer' && (_jsxs("div", { style: { textAlign: 'center', marginTop: '24px', fontSize: '13px', color: '#64748b' }, children: ["Ch\u01B0a c\u00F3 t\u00E0i kho\u1EA3n?", ' ', _jsx(Link, { to: "/register", style: { color: '#06b6d4', fontWeight: 600 }, children: "\u0110\u0103ng k\u00FD ngay" })] }))] }) }));
+                            }, children: "Qu\u1EA3n Tr\u1ECB Vi\u00EAn: admin@gamehub.vn" })] }), activeTab === 'customer' && (_jsxs("div", { style: { textAlign: 'center', marginTop: '24px', fontSize: '13px', color: '#64748b' }, children: ["Ch\u01B0a c\u00F3 t\u00E0i kho\u1EA3n?", ' ', _jsx(Link, { to: "/register", style: { color: '#06b6d4', fontWeight: 600 }, children: "\u0110\u0103ng k\u00FD ngay" })] }))] }) }));
 };
 export default LoginPage;

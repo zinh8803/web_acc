@@ -62,7 +62,6 @@ class ServiceRequestController extends Controller
             'request_code' => 'SRV-' . strtoupper(Str::random(8)),
             'order_item_id' => $item->id,
             'user_id' => $request->user()->id,
-            'game_id' => $item->product?->game_id,
             'form_data' => $validated['form_data'] ?? [],
             'game_login_enc' => isset($validated['game_login']) ? Crypt::encryptString($validated['game_login']) : null,
             'customer_note' => $validated['customer_note'] ?? null,

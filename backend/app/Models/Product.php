@@ -14,7 +14,7 @@ class Product extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'sku', 'type', 'category_id', 'game_id', 'name', 'slug',
+        'sku', 'type', 'category_id', 'name', 'slug',
         'short_description', 'description', 'thumbnail_url',
         'warranty_policy_id', 'min_price', 'status', 'is_featured',
         'service_form_schema', 'sold_count', 'view_count',
@@ -31,11 +31,6 @@ class Product extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
-    }
-
-    public function game(): BelongsTo
-    {
-        return $this->belongsTo(Game::class);
     }
 
     public function variants(): HasMany

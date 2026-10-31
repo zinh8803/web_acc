@@ -255,7 +255,7 @@ const ProductDetailPage = () => {
                         </Typography.Text>
                     ) : (
                         <Typography.Text style={{ color: '#38bdf8', fontWeight: 600 }}>
-                            ⚡ Dịch vụ uy tín • Kỹ thuật viên chuyên nghiệp • Xử lý tự động sau khi phê duyệt
+                            Dịch vụ uy tín • Kỹ thuật viên chuyên nghiệp • Xử lý tự động sau khi phê duyệt
                         </Typography.Text>
                     )}
                 </Col>

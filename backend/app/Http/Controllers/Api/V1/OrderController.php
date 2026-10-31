@@ -235,7 +235,6 @@ class OrderController extends Controller
                             'request_code' => 'SRV-' . strtoupper(Str::random(8)),
                             'order_item_id' => $orderItem->id,
                             'user_id' => $user->id,
-                            'game_id' => $product->game_id,
                             'form_data' => [
                                 'server' => $serviceData['server'] ?? null,
                                 'ingame_name' => $serviceData['ingame_name'] ?? null,

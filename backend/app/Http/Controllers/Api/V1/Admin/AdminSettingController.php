@@ -18,7 +18,10 @@ class AdminSettingController extends Controller
     {
         $settings = $request->input('settings', []);
         foreach ($settings as $key => $value) {
-            Setting::where('key', $key)->update(['value' => is_array($value) ? json_encode($value) : $value]);
+            Setting::updateOrCreate(
+                ['key' => $key],
+                ['value' => is_array($value) ? json_encode($value) : $value]
+            );
         }
         return response()->json(['success' => true, 'message' => 'Đã lưu cấu hình.']);
     }

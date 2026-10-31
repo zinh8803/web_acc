@@ -197,8 +197,6 @@ const AdminCouponsPage = () => {
             render: (_, r) => (
                 <Space>
                     <Button
-                        type="primary"
-                        ghost
                         size="small"
                         icon={<EditOutlined />}
                         onClick={() => handleOpenEditModal(r)}
@@ -226,7 +224,7 @@ const AdminCouponsPage = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
                     <h1 style={{ color: '#fff', fontSize: '24px', fontWeight: 800, fontFamily: 'Rajdhani', margin: 0 }}>
-                        QUẢN LÝ MÃ GIẢM GIÁ (COUPONS) 🏷️
+                        QUẢN LÝ MÃ GIẢM GIÁ (COUPONS)
                     </h1>
                     <div style={{ color: '#94a3b8', fontSize: '13px', marginTop: '4px' }}>
                         Quản lý mã khuyến mãi, giới hạn lượt dùng và cài đặt thời hạn bắt đầu / kết thúc

@@ -91,7 +91,7 @@ const DashboardPage = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
                     <h1 style={{ color: '#fff', fontSize: '24px', fontWeight: 800, fontFamily: 'Rajdhani', margin: 0 }}>
-                        TỔNG QUAN DOANH THU & HỆ THỐNG 📊
+                        TỔNG QUAN DOANH THU & HỆ THỐNG
                     </h1>
                     <p style={{ color: '#94a3b8', fontSize: '13px', margin: 0 }}>
                         Dữ liệu cập nhật theo thời gian thực từ cơ sở dữ liệu

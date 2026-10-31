@@ -14,7 +14,7 @@ class AdminProductController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Product::with(['category', 'game'])
+        $query = Product::with(['category'])
             ->withCount([
                 'gameAccounts as available_accounts_count' => fn ($accounts) => $accounts->where('status', 'AVAILABLE'),
                 'gameAccounts as reserved_accounts_count' => fn ($accounts) => $accounts->where('status', 'RESERVED'),
@@ -25,10 +25,6 @@ class AdminProductController extends Controller
         if ($search = $request->get('search')) {
             $query->where('name', 'like', "%{$search}%")
                   ->orWhere('sku', 'like', "%{$search}%");
-        }
-
-        if ($gameId = $request->get('game_id')) {
-            $query->where('game_id', $gameId);
         }
 
         if ($status = $request->get('status')) {
@@ -43,7 +39,7 @@ class AdminProductController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $product = Product::with(['category', 'game', 'images', 'attributeValues.attribute', 'variants'])
+        $product = Product::with(['category', 'images', 'attributeValues.attribute', 'variants'])
             ->findOrFail($id);
 
         return response()->json([
@@ -56,7 +52,6 @@ class AdminProductController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'game_id' => 'required|exists:games,id',
             'category_id' => 'required|exists:categories,id',
             'type' => 'required|in:ACCOUNT,SERVICE',
             'price' => 'required|numeric|min:0',
@@ -78,7 +73,6 @@ class AdminProductController extends Controller
             'sku' => 'PROD-' . strtoupper(Str::random(6)),
             'slug' => Str::slug($validated['name']) . '-' . strtolower(Str::random(4)),
             'name' => $validated['name'],
-            'game_id' => $validated['game_id'],
             'category_id' => $validated['category_id'],
             'type' => $validated['type'],
             'min_price' => $salePrice ?? $price,
@@ -110,7 +104,6 @@ class AdminProductController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'game_id' => 'sometimes|exists:games,id',
             'category_id' => 'sometimes|exists:categories,id',
             'price' => 'sometimes|numeric|min:0',
             'sale_price' => 'nullable|numeric',

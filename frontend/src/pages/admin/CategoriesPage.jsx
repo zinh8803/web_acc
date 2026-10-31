@@ -5,7 +5,6 @@ import api from '../../services/api';
 
 const CategoriesPage = () => {
     const [categories, setCategories] = useState([]);
-    const [games, setGames] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [open, setOpen] = useState(false);
@@ -15,11 +14,10 @@ const CategoriesPage = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [categoryResponse, gameResponse] = await Promise.all([api.get('/admin/categories'), api.get('/admin/games')]);
+            const categoryResponse = await api.get('/admin/categories');
             setCategories(Array.isArray(categoryResponse.data?.data) ? categoryResponse.data.data : []);
-            setGames(Array.isArray(gameResponse.data?.data) ? gameResponse.data.data : []);
         } catch (error) {
-            message.error(error.response?.data?.message || 'Không tải được danh mục và game.');
+            message.error(error.response?.data?.message || 'Không tải được danh mục.');
         } finally {
             setLoading(false);
         }
@@ -36,7 +34,7 @@ const CategoriesPage = () => {
 
     const openEdit = (category) => {
         setEditingCategory(category);
-        form.setFieldsValue({ name: category.name, game_id: category.game_id, type: category.type, description: category.description, sort_order: category.sort_order });
+        form.setFieldsValue({ name: category.name, type: category.type, description: category.description, sort_order: category.sort_order });
         setOpen(true);
     };
 
@@ -83,7 +81,6 @@ const CategoriesPage = () => {
         { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
         { title: 'Tên danh mục', dataIndex: 'name', key: 'name', render: (name) => <strong style={{ color: '#fff' }}>{name}</strong> },
         { title: 'Loại', dataIndex: 'type', key: 'type', render: (type) => <Tag color={type === 'SERVICE' ? 'magenta' : 'geekblue'}>{type === 'SERVICE' ? 'Dịch vụ' : 'Tài khoản'}</Tag> },
-        { title: 'Game', dataIndex: 'game', key: 'game', render: (game) => <Tag color="purple">{game?.name || 'Chung'}</Tag> },
         { title: 'Slug', dataIndex: 'slug', key: 'slug' },
         { title: 'Mô tả', dataIndex: 'description', key: 'description', ellipsis: true },
         { title: 'Thao tác', key: 'actions', render: (_, category) => <Space><Button icon={<EditOutlined />} onClick={() => openEdit(category)}>Sửa</Button><Popconfirm title="Xóa danh mục này?" description="Danh mục còn sản phẩm hoặc danh mục con sẽ không thể xóa." onConfirm={() => deleteCategory(category)} okText="Xóa" cancelText="Hủy"><Button danger icon={<DeleteOutlined />}>Xóa</Button></Popconfirm></Space> },
@@ -91,14 +88,13 @@ const CategoriesPage = () => {
 
     return <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-            <div><h1 style={{ color: '#fff', fontSize: 24, fontWeight: 800, fontFamily: 'Rajdhani', margin: 0 }}>QUẢN LÝ DANH MỤC</h1><p style={{ color: '#94a3b8', margin: 0 }}>Danh mục gắn với game được quản lý riêng.</p></div>
+            <div><h1 style={{ color: '#fff', fontSize: 24, fontWeight: 800, fontFamily: 'Rajdhani', margin: 0 }}>QUẢN LÝ DANH MỤC</h1><p style={{ color: '#94a3b8', margin: 0 }}>Danh mục sản phẩm & dịch vụ Liên Quân Mobile.</p></div>
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Thêm danh mục</Button>
         </div>
         <div style={{ background: '#121324', borderRadius: 14, padding: 20, border: '1px solid rgba(255,255,255,0.08)' }}><Table columns={columns} dataSource={categories} rowKey="id" loading={loading} /></div>
         <Modal title={editingCategory ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới'} open={open} onCancel={() => setOpen(false)} footer={null} destroyOnClose>
             <Form form={form} layout="vertical" onFinish={saveCategory}>
                 <Form.Item name="name" label="Tên danh mục" rules={[{ required: true, message: 'Vui lòng nhập tên danh mục.' }]}><Input maxLength={150} /></Form.Item>
-                <Form.Item name="game_id" label="Game" rules={[{ required: true, message: 'Vui lòng chọn game.' }]}><Select placeholder="Chọn game" options={games.map((game) => ({ value: game.id, label: game.name }))} /></Form.Item>
                 <Form.Item name="type" label="Loại" rules={[{ required: true }]}><Select options={[{ value: 'ACCOUNT', label: 'Tài khoản (Account)' }, { value: 'SERVICE', label: 'Dịch vụ (Service)' }]} /></Form.Item>
                 <Form.Item name="description" label="Mô tả"><Input.TextArea rows={3} /></Form.Item>
                 {editingCategory?.image_url && <img src={editingCategory.image_url} alt="Ảnh hiện tại" style={{ width: 96, height: 64, objectFit: 'cover', marginBottom: 12 }} />}

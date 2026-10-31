@@ -186,7 +186,6 @@ class PaymentController extends Controller
                         'warranty_policy_id' => $product->warranty_policy_id,
                         'warranty_duration_days' => $product->warrantyPolicy?->duration_days,
                         'service_data' => $requestedItem['service_data'] ?? null,
-                        'game_id' => $product->game_id,
                     ];
                     $subtotal += $lineTotal;
                 }
@@ -465,7 +464,6 @@ class PaymentController extends Controller
                                     'request_code' => 'SRV-' . strtoupper(Str::random(8)),
                                     'order_item_id' => $orderItem->id,
                                     'user_id' => $checkoutData['user_id'],
-                                    'game_id' => $itemData['game_id'] ?? null,
                                     'form_data' => [
                                         'server' => $serviceData['server'] ?? null,
                                         'ingame_name' => $serviceData['ingame_name'] ?? null,

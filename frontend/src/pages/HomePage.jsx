@@ -6,7 +6,6 @@ import { ThunderboltOutlined, SafetyCertificateOutlined, ClockCircleOutlined, Fi
 import api from '../services/api';
 const HomePage = () => {
     const navigate = useNavigate();
-    const [games, setGames] = useState([]);
     const [categories, setCategories] = useState([]);
     const [banners, setBanners] = useState([]);
     const [products, setProducts] = useState([]);
@@ -14,14 +13,11 @@ const HomePage = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [gamesRes, catsRes, prodsRes, bannersRes] = await Promise.all([
-                    api.get('/games'),
+                const [catsRes, prodsRes, bannersRes] = await Promise.all([
                     api.get('/categories'),
                     api.get('/products', { params: { limit: 8, type: 'ACCOUNT' } }),
                     api.get('/banners'),
                 ]);
-                if (gamesRes.data?.data)
-                    setGames(gamesRes.data.data);
                 if (catsRes.data?.data)
                     setCategories(catsRes.data.data);
                 if (bannersRes.data?.data && Array.isArray(bannersRes.data.data)) {
@@ -51,7 +47,7 @@ const HomePage = () => {
                     background: 'linear-gradient(135deg, #eef2ff 0%, #f8faff 55%, #ecfeff 100%)',
                     position: 'relative',
                     padding: '60px 48px',
-                }, children: _jsxs("div", { style: { maxWidth: '640px', position: 'relative', zIndex: 2 }, children: [_jsxs(Tag, { color: "cyan", style: { fontSize: '13px', padding: '4px 12px', borderRadius: '20px', marginBottom: '16px', fontWeight: 600 }, children: ["\u26A1 ", banners.length > 0 ? banners[0].title : 'BÀN GIAO TỰ ĐỘNG SAU 3 GIÂY • BẢO HÀNH TRỌN ĐỜI 100%'] }), _jsxs("h1", { style: {
+                }, children: _jsxs("div", { style: { maxWidth: '640px', position: 'relative', zIndex: 2 }, children: [_jsxs(Tag, { color: "cyan", style: { fontSize: '13px', padding: '4px 12px', borderRadius: '20px', marginBottom: '16px', fontWeight: 600 }, children: ["", banners.length > 0 ? banners[0].title : 'BÀN GIAO TỰ ĐỘNG SAU 3 GIÂY • BẢO HÀNH TRỌN ĐỜI 100%'] }), _jsxs("h1", { style: {
                                 fontSize: '44px',
                                 fontWeight: 800,
                                 lineHeight: 1.15,
@@ -99,21 +95,7 @@ const HomePage = () => {
                             borderRadius: '12px',
                             border: '1px solid rgba(255, 255, 255, 0.06)',
                             height: '100%',
-                        }, children: [_jsx("div", { style: { marginBottom: '14px' }, children: item.icon }), _jsx("h4", { style: { color: '#fff', fontSize: '16px', fontWeight: 700, marginBottom: '6px' }, children: item.title }), _jsx("p", { style: { color: '#94a3b8', fontSize: '13px', lineHeight: 1.5, margin: 0 }, children: item.desc })] }) }, idx))) }), _jsxs("div", { style: { marginBottom: '50px' }, children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }, children: [_jsxs("div", { children: [_jsx("h2", { style: { fontSize: '26px', fontWeight: 800, color: '#fff', fontFamily: 'Rajdhani', margin: 0 }, children: "TR\u00D2 CH\u01A0I PH\u1ED4 BI\u1EBEN (LI\u00CAN QU\u00C2N MOBILE) \u2694\uFE0F" }), _jsx("p", { style: { color: '#94a3b8', fontSize: '14px', margin: 0 }, children: "H\u1EC7 sinh th\u00E1i \u0110\u1EA5u Tr\u01B0\u1EDDng Danh V\u1ECDng & M\u00E1y Ch\u1EE7 Th\u1EED Nghi\u1EC7m Li\u00EAn Qu\u00E2n" })] }), _jsxs(Link, { to: "/catalog", style: { color: '#6366f1', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }, children: ["Xem t\u1EA5t c\u1EA3 ", _jsx(RightOutlined, {})] })] }), _jsx(Row, { gutter: [16, 16], children: games.map((g) => (_jsx(Col, { xs: 12, sm: 8, md: 4, children: _jsxs("div", { onClick: () => navigate(`/catalog?game=${g.slug}`), style: {
-                                    background: '#121324',
-                                    borderRadius: '12px',
-                                    padding: '16px 12px',
-                                    textAlign: 'center',
-                                    cursor: 'pointer',
-                                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                                    transition: 'all 0.2s',
-                                }, onMouseEnter: (e) => {
-                                    e.currentTarget.style.borderColor = '#6366f1';
-                                    e.currentTarget.style.transform = 'translateY(-4px)';
-                                }, onMouseLeave: (e) => {
-                                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                }, children: [_jsx("img", { src: g.logo_url, alt: g.name, style: { width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover', marginBottom: '10px' } }), _jsx("div", { style: { color: '#fff', fontSize: '14px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, children: g.name })] }) }, g.id))) })] }), _jsxs("div", { style: { marginBottom: '50px' }, children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }, children: [_jsxs("div", { children: [_jsx("h2", { style: { fontSize: '26px', fontWeight: 800, color: '#fff', fontFamily: 'Rajdhani', margin: 0 }, children: "DANH M\u1EE4C ACC & D\u1ECACH V\u1EE4 LI\u00CAN QU\u00C2N \uD83D\uDDC2\uFE0F" }), _jsx("p", { style: { color: '#94a3b8', fontSize: '14px', margin: 0 }, children: "Ph\u00E2n lo\u1EA1i nick Li\u00EAn Qu\u00E2n VIP, gi\u00E1 r\u1EBB, skin anime \u0111\u1ED9c quy\u1EC1n v\u00E0 c\u00E0y thu\u00EA si\u00EAu t\u1ED1c" })] }), _jsxs(Link, { to: "/catalog", style: { color: '#6366f1', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }, children: ["Kh\u00E1m ph\u00E1 t\u1EA5t c\u1EA3 ", _jsx(RightOutlined, {})] })] }), _jsx(Row, { gutter: [16, 16], children: categories.map((cat) => (_jsx(Col, { xs: 24, sm: 12, md: 8, lg: 6, children: _jsxs("div", { onClick: () => navigate(`/catalog?category=${cat.slug}`), style: {
+                        }, children: [_jsx("div", { style: { marginBottom: '14px' }, children: item.icon }), _jsx("h4", { style: { color: '#fff', fontSize: '16px', fontWeight: 700, marginBottom: '6px' }, children: item.title }), _jsx("p", { style: { color: '#94a3b8', fontSize: '13px', lineHeight: 1.5, margin: 0 }, children: item.desc })] }) }, idx))) }), _jsxs("div", { style: { marginBottom: '50px' }, children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }, children: [_jsxs("div", { children: [_jsx("h2", { style: { fontSize: '26px', fontWeight: 800, color: '#fff', fontFamily: 'Rajdhani', margin: 0 }, children: "DANH M\u1EE4C ACC & D\u1ECACH V\u1EE4 LI\u00CAN QU\u00C2N" }), _jsx("p", { style: { color: '#94a3b8', fontSize: '14px', margin: 0 }, children: "Ph\u00E2n lo\u1EA1i nick Li\u00EAn Qu\u00E2n VIP, gi\u00E1 r\u1EBB, skin anime \u0111\u1ED9c quy\u1EC1n v\u00E0 c\u00E0y thu\u00EA si\u00EAu t\u1ED1c" })] }), _jsxs(Link, { to: "/catalog", style: { color: '#6366f1', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }, children: ["Kh\u00E1m ph\u00E1 t\u1EA5t c\u1EA3 ", _jsx(RightOutlined, {})] })] }), _jsx(Row, { gutter: [16, 16], children: categories.map((cat) => (_jsx(Col, { xs: 24, sm: 12, md: 8, lg: 6, children: _jsxs("div", { onClick: () => navigate(`/catalog?category=${cat.slug}`), style: {
                                     background: 'linear-gradient(145deg, #ffffff 0%, #f5f7ff 100%)',
                                     borderRadius: '12px',
                                     padding: '18px 20px',
@@ -132,7 +114,7 @@ const HomePage = () => {
                                     e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
                                     e.currentTarget.style.transform = 'translateY(0)';
                                     e.currentTarget.style.boxShadow = 'none';
-                                }, children: [_jsxs("div", { children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }, children: [_jsx(Tag, { color: cat.type === 'SERVICE' ? 'magenta' : 'geekblue', style: { fontWeight: 600 }, children: cat.type === 'SERVICE' ? 'DỊCH VỤ' : 'TÀI KHOẢN' }), cat.game && (_jsx("span", { style: { fontSize: '12px', color: '#06b6d4', fontWeight: 600 }, children: cat.game.name }))] }), _jsx("h3", { style: { color: '#fff', fontSize: '15px', fontWeight: 700, marginBottom: '8px', lineHeight: 1.4 }, children: cat.name }), _jsx("p", { style: { color: '#94a3b8', fontSize: '12px', margin: 0, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }, children: cat.description || 'Khám phá ngay các tài khoản và gói dịch vụ chất lượng cao.' })] }), _jsxs("div", { style: { marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', color: '#6366f1', fontSize: '13px', fontWeight: 600 }, children: ["Xem danh m\u1EE5c ", _jsx(RightOutlined, { style: { fontSize: '10px' } })] })] }) }, cat.id))) })] }), _jsxs("div", { style: { marginBottom: '50px' }, children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }, children: [_jsxs("div", { children: [_jsx("h2", { style: { fontSize: '26px', fontWeight: 800, color: '#fff', fontFamily: 'Rajdhani', margin: 0 }, children: "NICK LI\u00CAN QU\u00C2N N\u1ED4I B\u1EACT \u0110ANG B\u00C1N \uD83D\uDD25" }), _jsx("p", { style: { color: '#94a3b8', fontSize: '14px', margin: 0 }, children: "T\u00E0i kho\u1EA3n Li\u00EAn Qu\u00E2n tuy\u1EC3n ch\u1ECDn ch\u1EA5t l\u01B0\u1EE3ng cao - Tr\u1EAFng TT 100%" })] }), _jsxs(Link, { to: "/catalog", style: { color: '#6366f1', fontWeight: 600 }, children: ["Xem to\u00E0n b\u1ED9 kho h\u00E0ng ", _jsx(RightOutlined, {})] })] }), loading ? (_jsx("div", { style: { textAlign: 'center', padding: '60px 0' }, children: _jsx(Spin, { size: "large" }) })) : (_jsx(Row, { gutter: [20, 24], children: products.map((prod) => (_jsx(Col, { xs: 24, sm: 12, md: 6, children: _jsxs(Card, { hoverable: true, onClick: () => navigate(`/products/${prod.slug}`), style: {
+                                }, children: [_jsxs("div", { children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }, children: [_jsx(Tag, { color: cat.type === 'SERVICE' ? 'magenta' : 'geekblue', style: { fontWeight: 600 }, children: cat.type === 'SERVICE' ? 'DỊCH VỤ' : 'TÀI KHOẢN' })] }), _jsx("h3", { style: { color: '#fff', fontSize: '15px', fontWeight: 700, marginBottom: '8px', lineHeight: 1.4 }, children: cat.name }), _jsx("p", { style: { color: '#94a3b8', fontSize: '12px', margin: 0, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }, children: cat.description || 'Khám phá ngay các tài khoản và gói dịch vụ chất lượng cao.' })] }), _jsxs("div", { style: { marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', color: '#6366f1', fontSize: '13px', fontWeight: 600 }, children: ["Xem danh m\u1EE5c ", _jsx(RightOutlined, { style: { fontSize: '10px' } })] })] }) }, cat.id))) })] }), _jsxs("div", { style: { marginBottom: '50px' }, children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }, children: [_jsxs("div", { children: [_jsx("h2", { style: { fontSize: '26px', fontWeight: 800, color: '#fff', fontFamily: 'Rajdhani', margin: 0 }, children: "NICK LI\u00CAN QU\u00C2N N\u1ED4I B\u1EACT \u0110ANG B\u00C1N" }), _jsx("p", { style: { color: '#94a3b8', fontSize: '14px', margin: 0 }, children: "T\u00E0i kho\u1EA3n Li\u00EAn Qu\u00E2n tuy\u1EC3n ch\u1ECDn ch\u1EA5t l\u01B0\u1EE3ng cao - Tr\u1EAFng TT 100%" })] }), _jsxs(Link, { to: "/catalog", style: { color: '#6366f1', fontWeight: 600 }, children: ["Xem to\u00E0n b\u1ED9 kho h\u00E0ng ", _jsx(RightOutlined, {})] })] }), loading ? (_jsx("div", { style: { textAlign: 'center', padding: '60px 0' }, children: _jsx(Spin, { size: "large" }) })) : (_jsx(Row, { gutter: [20, 24], children: products.map((prod) => (_jsx(Col, { xs: 24, sm: 12, md: 6, children: _jsxs(Card, { hoverable: true, onClick: () => navigate(`/products/${prod.slug}`), style: {
                                     background: '#121324',
                                     borderRadius: '12px',
                                     border: '1px solid rgba(255, 255, 255, 0.08)',

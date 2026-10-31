@@ -106,7 +106,7 @@ const AdminOrdersPage = () => {
     return (
         <div>
             <h1 style={{ color: '#fff', fontSize: '24px', fontWeight: 800, fontFamily: 'Rajdhani', marginBottom: '24px' }}>
-                QUẢN LÝ ĐƠN HÀNG & GIAO DỊCH 🧾
+                QUẢN LÝ ĐƠN HÀNG & GIAO DỊCH
             </h1>
             <div style={{ background: '#121324', borderRadius: '14px', padding: '20px', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>

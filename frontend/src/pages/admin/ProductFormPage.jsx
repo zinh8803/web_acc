@@ -8,7 +8,6 @@ const ProductFormPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [form] = Form.useForm();
-    const [games, setGames] = useState([]);
     const [categories, setCategories] = useState([]);
     const [currentImage, setCurrentImage] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -18,11 +17,7 @@ const ProductFormPage = () => {
     useEffect(() => {
         const loadFormData = async () => {
             try {
-                const [gamesResponse, categoriesResponse] = await Promise.all([
-                    api.get('/admin/games'),
-                    api.get('/admin/categories')
-                ]);
-                setGames(gamesResponse.data?.data || []);
+                const categoriesResponse = await api.get('/admin/categories');
                 setCategories(categoriesResponse.data?.data || []);
 
                 if (id) {
@@ -31,7 +26,7 @@ const ProductFormPage = () => {
                     if (product) {
                         form.setFieldsValue({
                             ...product,
-                            price: product.variants?.[0]?.price ?? product.min_price
+                            price: product.variants?.[0]?.price ?? product.min_price,
                         });
                         setCurrentImage(product.thumbnail_url);
                         setProductType(product.type || 'ACCOUNT');
@@ -39,6 +34,8 @@ const ProductFormPage = () => {
                             setVariants(product.variants);
                         }
                     }
+                } else {
+                    form.setFieldsValue({ type: 'ACCOUNT', status: 'ACTIVE' });
                 }
             } catch (error) {
                 message.error(error.response?.data?.message || 'Không tải được dữ liệu sản phẩm.');
@@ -185,15 +182,9 @@ const ProductFormPage = () => {
                     </Form.Item>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                        <Form.Item name="game_id" label="Trò chơi" rules={[{ required: true }]}>
-                            <Select options={games.map((g) => ({ value: g.id, label: g.name }))} />
-                        </Form.Item>
-                        <Form.Item name="category_id" label="Danh mục" rules={[{ required: true }]}>
+                        <Form.Item name="category_id" label="Danh mục Liên Quân" rules={[{ required: true }]}>
                             <Select options={categories.map((c) => ({ value: c.id, label: c.name }))} />
                         </Form.Item>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                         <Form.Item name="type" label="Loại sản phẩm" rules={[{ required: true }]}>
                             <Select
                                 onChange={(val) => setProductType(val)}
@@ -203,10 +194,11 @@ const ProductFormPage = () => {
                                 ]}
                             />
                         </Form.Item>
-                        <Form.Item name="price" label="Giá bán tham chiếu (VNĐ)" rules={[{ required: true }]}>
-                            <InputNumber min={0} style={{ width: '100%' }} size="large" />
-                        </Form.Item>
                     </div>
+
+                    <Form.Item name="price" label="Giá bán tham chiếu (VNĐ)" rules={[{ required: true }]}>
+                        <InputNumber min={0} style={{ width: '100%' }} size="large" />
+                    </Form.Item>
 
                     {/* BẢNG CHỈNH GIÁ CÁC GÓI DỊCH VỤ / VARIANTS */}
                     {(productType === 'SERVICE' || variants.length > 0) && (
@@ -214,7 +206,7 @@ const ProductFormPage = () => {
                             title={
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ color: '#fff', fontSize: '16px', fontWeight: 700 }}>
-                                        🎯 Bảng Giá Các Gói Dịch Vụ (Chỉnh Giá Trực Tiếp)
+                                        Bảng Giá Các Gói Dịch Vụ (Chỉnh Giá Trực Tiếp)
                                     </span>
                                     <Button
                                         type="dashed"

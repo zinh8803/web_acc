@@ -10,12 +10,10 @@ const { Option } = Select;
 const CatalogPage = () => {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
-    const [games, setGames] = useState([]);
     const [categories, setCategories] = useState([]);
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const selectedGame = searchParams.get('game') || '';
     const selectedCategory = searchParams.get('category') || '';
     const searchKeyword = searchParams.get('q') || '';
     const requestedType = searchParams.get('type') || '';
@@ -24,15 +22,11 @@ const CatalogPage = () => {
     // Kiểm tra xem có phải đang chủ động xem dịch vụ cày thuê hay đang ở Kho Nick Game
     const isServiceView = requestedType === 'service' || selectedCategory === 'dich-vu-cay-thue-lq';
 
-    // Fetch games and categories from Database
+    // Fetch categories from Database
     useEffect(() => {
         const fetchMetadata = async () => {
             try {
-                const [gRes, cRes] = await Promise.all([
-                    api.get('/games'),
-                    api.get('/categories'),
-                ]);
-                if (gRes.data?.data) setGames(gRes.data.data);
+                const cRes = await api.get('/categories');
                 if (cRes.data?.data) setCategories(cRes.data.data);
             } catch (e) {
                 console.error(e);
@@ -45,7 +39,6 @@ const CatalogPage = () => {
         setLoading(true);
         try {
             const params = {};
-            if (selectedGame) params.game = selectedGame;
             if (selectedCategory) params.category = selectedCategory;
             if (searchKeyword) params.search = searchKeyword;
             if (priceRange[0] > 0) params.min_price = priceRange[0];
@@ -70,22 +63,18 @@ const CatalogPage = () => {
 
     useEffect(() => {
         fetchProducts();
-    }, [selectedGame, selectedCategory, searchKeyword, requestedType]);
+    }, [selectedCategory, searchKeyword, requestedType]);
 
     // Trong Kho Nick Game, lọc bỏ danh mục cày thuê khỏi dropdown danh mục
-    const relevantCategories = isServiceView
+    const filteredCategories = isServiceView
         ? categories.filter((c) => c.slug === 'dich-vu-cay-thue-lq')
         : categories.filter((c) => c.slug !== 'dich-vu-cay-thue-lq');
-
-    const filteredCategories = selectedGame
-        ? relevantCategories.filter((c) => c.game?.slug === selectedGame || !c.game)
-        : relevantCategories;
 
     return (
         <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 20px 60px' }}>
             <div style={{ marginBottom: '28px' }}>
                 <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#fff', fontFamily: 'Rajdhani', marginBottom: '8px' }}>
-                    {isServiceView ? 'DỊCH VỤ CÀY THUÊ GAME LIÊN QUÂN MOBILE ⚡' : 'KHO NICK GAME LIÊN QUÂN MOBILE & ESPORTS ⚔️'}
+                    {isServiceView ? 'DỊCH VỤ CÀY THUÊ GAME LIÊN QUÂN MOBILE' : 'KHO NICK GAME LIÊN QUÂN MOBILE & ESPORTS'}
                 </h1>
                 <p style={{ color: '#94a3b8', fontSize: '15px' }}>
                     {isServiceView
@@ -105,29 +94,6 @@ const CatalogPage = () => {
                         <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <FilterOutlined style={{ color: '#6366f1' }} /> Bộ Lọc Tìm Kiếm
                         </h3>
-
-                        <div style={{ marginBottom: '24px' }}>
-                            <label style={{ display: 'block', color: '#cbd5e1', fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
-                                Chọn Trò Chơi
-                            </label>
-                            <Select
-                                value={selectedGame || undefined}
-                                placeholder="Tất cả game"
-                                style={{ width: '100%' }}
-                                allowClear
-                                onChange={(val) => {
-                                    const next = new URLSearchParams(searchParams);
-                                    if (val) next.set('game', val);
-                                    else next.delete('game');
-                                    next.delete('category'); // reset category when game changes
-                                    setSearchParams(next);
-                                }}
-                            >
-                                {games.map((g) => (
-                                    <Option key={g.slug} value={g.slug}>{g.name}</Option>
-                                ))}
-                            </Select>
-                        </div>
 
                         <div style={{ marginBottom: '24px' }}>
                             <label style={{ display: 'block', color: '#cbd5e1', fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>

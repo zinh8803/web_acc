@@ -15,7 +15,7 @@ class AdminCategoryController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => Category::with('game')->orderBy('sort_order')->get(),
+            'data' => Category::orderBy('sort_order')->get(),
         ]);
     }
 
@@ -23,7 +23,6 @@ class AdminCategoryController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'game_id' => 'required|exists:games,id',
             'parent_id' => 'nullable|exists:categories,id',
             'type' => 'nullable|in:ACCOUNT,SERVICE',
             'description' => 'nullable|string',
@@ -40,7 +39,7 @@ class AdminCategoryController extends Controller
         unset($validated['image_file']);
         $category = Category::create($validated);
 
-        return response()->json(['success' => true, 'data' => $category->load('game')], 201);
+        return response()->json(['success' => true, 'data' => $category], 201);
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -48,7 +47,6 @@ class AdminCategoryController extends Controller
         $category = Category::findOrFail($id);
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:150',
-            'game_id' => 'sometimes|required|exists:games,id',
             'type' => 'sometimes|required|in:ACCOUNT,SERVICE',
             'description' => 'nullable|string',
             'image_file' => 'nullable|image|max:5120',
@@ -64,7 +62,7 @@ class AdminCategoryController extends Controller
         }
         unset($validated['image_file']);
         $category->update($validated);
-        return response()->json(['success' => true, 'data' => $category->load('game')]);
+        return response()->json(['success' => true, 'data' => $category]);
     }
 
     public function destroy(int $id): JsonResponse

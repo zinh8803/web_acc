@@ -12,7 +12,7 @@ class Category extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'game_id', 'parent_id', 'type', 'name', 'slug', 'description',
+        'parent_id', 'type', 'name', 'slug', 'description',
         'image_url', 'level', 'path', 'sort_order', 'status',
         'seo_title', 'seo_description'
     ];
@@ -21,11 +21,6 @@ class Category extends Model
         'level' => 'integer',
         'sort_order' => 'integer',
     ];
-
-    public function game(): BelongsTo
-    {
-        return $this->belongsTo(Game::class);
-    }
 
     public function parent(): BelongsTo
     {

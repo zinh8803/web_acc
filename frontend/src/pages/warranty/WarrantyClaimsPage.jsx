@@ -188,7 +188,7 @@ const WarrantyClaimsPage = () => {
             key: 'action',
             render: (_, record) => (
                 <Link to={`/warranty-claims/${record.claim_code || record.id}`}>
-                    <Button size="small" type="primary" ghost icon={<EyeOutlined />}>
+                    <Button size="small" type="primary" icon={<EyeOutlined />}>
                         Chi tiết
                     </Button>
                 </Link>
@@ -295,19 +295,19 @@ const WarrantyClaimsPage = () => {
                     >
                         <Select placeholder="Chọn loại sự cố gặp phải..." size="large">
                             <Select.Option value="WRONG_CREDENTIALS">
-                                🔑 Sai mật khẩu hoặc tài khoản không đăng nhập được
+                                Sai mật khẩu hoặc tài khoản không đăng nhập được
                             </Select.Option>
                             <Select.Option value="RECOVERED_BY_OLD_OWNER">
-                                ⚠️ Bị chủ cũ đổi thông tin (Back nick)
+                                Bị chủ cũ đổi thông tin (Back nick)
                             </Select.Option>
                             <Select.Option value="LOSS_ACCESS">
-                                🚫 Mất quyền truy cập / Tài khoản bị khóa bất thường
+                                Mất quyền truy cập / Tài khoản bị khóa bất thường
                             </Select.Option>
                             <Select.Option value="SERVICE_NOT_DONE">
-                                ⚡ Dịch vụ cày thuê không hoàn thành đúng cam kết
+                                Dịch vụ cày thuê không hoàn thành đúng cam kết
                             </Select.Option>
                             <Select.Option value="OTHER">
-                                📝 Lý do khác (Mô tả chi tiết bên dưới)
+                                Lý do khác (Mô tả chi tiết bên dưới)
                             </Select.Option>
                         </Select>
                     </Form.Item>

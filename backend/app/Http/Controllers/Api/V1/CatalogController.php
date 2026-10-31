@@ -13,15 +13,11 @@ use Illuminate\Http\Request;
 class CatalogController extends Controller
 {
     /**
-     * List all games.
+     * List all games (Deprecated - single game Liên Quân).
      */
     public function games(): JsonResponse
     {
-        $games = Game::where('status', 'ACTIVE')
-            ->orderBy('sort_order')
-            ->get(['id', 'name', 'slug', 'logo_url', 'description']);
-
-        return $this->success($games);
+        return $this->success([]);
     }
 
     /**
@@ -30,22 +26,11 @@ class CatalogController extends Controller
     public function categories(Request $request): JsonResponse
     {
         $query = Category::where('status', 'ACTIVE')
-            ->with(['children', 'game'])
+            ->with(['children'])
             ->orderBy('sort_order');
 
         if ($request->type) {
             $query->where('type', strtoupper($request->type));
-        }
-
-        if ($request->game_id) {
-            $query->where('game_id', $request->game_id);
-        }
-
-        if ($request->game) {
-            $game = Game::where('slug', $request->game)->orWhere('id', $request->game)->first();
-            if ($game) {
-                $query->where('game_id', $game->id);
-            }
         }
 
         return $this->success($query->get());
@@ -60,9 +45,9 @@ class CatalogController extends Controller
             ->where('status', 'ACTIVE')
             ->with(['variants' => function ($q) {
                 $q->where('status', 'ACTIVE')->orderBy('sort_order');
-            }, 'game:id,name,slug', 'category:id,name,slug'])
+            }, 'category:id,name,slug'])
             ->select([
-                'id', 'sku', 'type', 'category_id', 'game_id', 'name', 'slug',
+                'id', 'sku', 'type', 'category_id', 'name', 'slug',
                 'short_description', 'thumbnail_url', 'min_price', 'status',
                 'is_featured', 'sold_count', 'view_count', 'rating_avg', 'rating_count',
             ]);
@@ -76,16 +61,6 @@ class CatalogController extends Controller
             if ($category) {
                 $categoryIds = $this->getCategoryIds($category->id);
                 $query->whereIn('category_id', $categoryIds);
-            }
-        }
-
-        // Filter by game (by ID or Slug from DB)
-        if ($request->game_id) {
-            $query->where('game_id', $request->game_id);
-        } elseif ($request->game) {
-            $game = Game::where('slug', $request->game)->orWhere('id', $request->game)->first();
-            if ($game) {
-                $query->where('game_id', $game->id);
             }
         }
 
@@ -115,7 +90,7 @@ class CatalogController extends Controller
         }
 
         // Dynamic attribute filters (e.g., attr_rank=DIAMOND, attr_hero_count_min=100)
-        foreach ($request->except(['category_id', 'game_id', 'type', 'min_price', 'max_price', 'is_featured', 'search', 'sort', 'page', 'limit']) as $key => $value) {
+        foreach ($request->except(['category_id', 'type', 'min_price', 'max_price', 'is_featured', 'search', 'sort', 'page', 'limit']) as $key => $value) {
             if (str_starts_with($key, 'attr_')) {
                 $attributeCode = str_replace('attr_', '', $key);
                 $query->whereHas('attributeValues', function ($q) use ($attributeCode, $value) {
@@ -161,7 +136,6 @@ class CatalogController extends Controller
             ->where('status', 'ACTIVE')
             ->with([
                 'category:id,name,slug,parent_id',
-                'game:id,name,slug,logo_url',
                 'variants' => fn($q) => $q->where('status', 'ACTIVE')->orderBy('sort_order'),
                 'images' => fn($q) => $q->orderBy('sort_order'),
                 'attributeValues.attribute',

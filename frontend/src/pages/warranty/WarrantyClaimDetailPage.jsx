@@ -194,7 +194,7 @@ const WarrantyClaimDetailPage = () => {
                             </Tag>
                         </div>
                         <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '6px' }}>Nội dung mô tả:</div>
-                        <div style={{ color: '#e2e8f0', whiteSpace: 'pre-wrap', lineHeight: 1.6, background: '#0a0b16', padding: '12px', borderRadius: '8px' }}>
+                        <div style={{ color: '#0f172a', whiteSpace: 'pre-wrap', lineHeight: 1.6, background: '#ffffff', padding: '14px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', fontWeight: 500 }}>
                             {claim.description}
                         </div>
                     </div>

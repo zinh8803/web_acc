@@ -228,7 +228,7 @@ const AdminServiceRequestsPage = () => {
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h1 style={{ color: '#fff', fontSize: '24px', fontWeight: 800, fontFamily: 'Rajdhani', margin: 0 }}>
-                    QUẢN LÝ DỊCH VỤ CÀY GAME & LEO RANK 🎮⚡
+                    QUẢN LÝ DỊCH VỤ CÀY GAME & LEO RANK
                 </h1>
                 <Radio.Group
                     value={filterStatus}
@@ -370,9 +370,9 @@ const AdminServiceRequestsPage = () => {
                                         <Form.Item name="status" label="Trạng thái dịch vụ *" rules={[{ required: true }]}>
                                             <Select>
                                                 <Select.Option value="PENDING">⏳ Chờ Admin Phê Duyệt</Select.Option>
-                                                <Select.Option value="IN_PROGRESS">⚡ Phê Duyệt & Đang Tiến Hành Cày</Select.Option>
-                                                <Select.Option value="DONE">✅ Đã Hoàn Thành Dịch Vụ</Select.Option>
-                                                <Select.Option value="CANCELLED">❌ Huỷ / Từ Chối Dịch Vụ</Select.Option>
+                                                <Select.Option value="IN_PROGRESS">Phê Duyệt & Đang Tiến Hành Cày</Select.Option>
+                                                <Select.Option value="DONE">Đã Hoàn Thành Dịch Vụ</Select.Option>
+                                                <Select.Option value="CANCELLED">Huỷ / Từ Chối Dịch Vụ</Select.Option>
                                             </Select>
                                         </Form.Item>
                                     </Col>

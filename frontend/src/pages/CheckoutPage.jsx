@@ -118,7 +118,7 @@ const CheckoutPage = () => {
     return (
         <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '36px 20px 60px' }}>
             <h1 style={{ color: '#fff', fontSize: '28px', fontWeight: 800, fontFamily: 'Rajdhani', marginBottom: '28px' }}>
-                XÁC NHẬN ĐƠN HÀNG & THANH TOÁN ⚡
+                XÁC NHẬN ĐƠN HÀNG & THANH TOÁN
             </h1>
             <Row gutter={[32, 32]}>
                 <Col xs={24} lg={15}>
@@ -278,7 +278,7 @@ const CheckoutPage = () => {
                                 background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
                             }}
                         >
-                            THANH TOÁN QUA VNPAY ⚡
+                            THANH TOÁN QUA VNPAY
                         </Button>
                     </div>
                 </Col>
