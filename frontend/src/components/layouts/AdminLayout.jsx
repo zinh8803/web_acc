@@ -15,6 +15,7 @@ import {
     FileTextOutlined,
     BarChartOutlined,
     SettingOutlined,
+    PictureOutlined,
     LogoutOutlined,
     HomeOutlined,
 } from '@ant-design/icons';
@@ -63,6 +64,7 @@ const AdminLayout = () => {
         { key: '/admin/users', icon: <UserOutlined />, label: <Link to="/admin/users">Khách hàng</Link> },
         { key: '/admin/staff', icon: <TeamOutlined />, label: <Link to="/admin/staff">Nhân sự & Phân quyền</Link> },
         { key: '/admin/reports', icon: <BarChartOutlined />, label: <Link to="/admin/reports">Báo cáo Doanh thu</Link> },
+        { key: '/admin/banners', icon: <PictureOutlined />, label: <Link to="/admin/banners">Quản lý Banner</Link> },
         { key: '/admin/settings', icon: <SettingOutlined />, label: <Link to="/admin/settings">Cấu hình Hệ thống</Link> },
     ];
 

@@ -44,6 +44,7 @@ const AdminWarrantyPage = React.lazy(() => import('./pages/admin/WarrantyPage'))
 const AdminCouponsPage = React.lazy(() => import('./pages/admin/CouponsPage'));
 const AdminUsersPage = React.lazy(() => import('./pages/admin/UsersPage'));
 const AdminStaffPage = React.lazy(() => import('./pages/admin/StaffPage'));
+const AdminBannersPage = React.lazy(() => import('./pages/admin/BannersPage'));
 const AdminSettingsPage = React.lazy(() => import('./pages/admin/SettingsPage'));
 const AdminReportsPage = React.lazy(() => import('./pages/admin/ReportsPage'));
 
@@ -91,6 +92,7 @@ function App() {
                                 <Route path="users" element={<AdminUsersPage />} />
                                 <Route path="staff" element={<AdminStaffPage />} />
                                 <Route path="reports" element={<AdminReportsPage />} />
+                                <Route path="banners" element={<AdminBannersPage />} />
                                 <Route path="settings" element={<AdminSettingsPage />} />
                             </Route>
 

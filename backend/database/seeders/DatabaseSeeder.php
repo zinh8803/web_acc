@@ -61,30 +61,12 @@ class DatabaseSeeder extends Seeder
             'status' => 'ACTIVE',
         ]);
 
-        $genshinCat = Category::updateOrCreate(['slug' => 'nick-genshin-ar55-vip'], [
-            'type' => 'ACCOUNT',
-            'name' => 'Nick Genshin Impact AR 55+ VIP',
-            'slug' => 'nick-genshin-ar55-vip',
-            'description' => 'Acc nhiều nhân vật 5 sao giới hạn, vũ khí trấn, C6 R5.',
-            'sort_order' => 3,
-            'status' => 'ACTIVE',
-        ]);
-
-        $valCat = Category::updateOrCreate(['slug' => 'nick-valorant-skin-vip'], [
-            'type' => 'ACCOUNT',
-            'name' => 'Nick Valorant Skin VIP',
-            'slug' => 'nick-valorant-skin-vip',
-            'description' => 'Acc Kuronami, Reaver, Prime, rank Kim Cương - Immortal.',
-            'sort_order' => 4,
-            'status' => 'ACTIVE',
-        ]);
-
         $serviceCat = Category::updateOrCreate(['slug' => 'dich-vu-cay-thue-lq'], [
             'type' => 'SERVICE',
             'name' => 'Dịch Vụ Cày Thuê Rank & Chiến Tướng',
             'slug' => 'dich-vu-cay-thue-lq',
             'description' => 'Cày thuê uy tín từ Cao Thủ lên Thách Đấu, bảo mật tài khoản tuyệt đối.',
-            'sort_order' => 5,
+            'sort_order' => 3,
             'status' => 'ACTIVE',
         ]);
 
@@ -123,40 +105,6 @@ class DatabaseSeeder extends Seeder
                 'is_featured' => true,
                 'acc_user' => 'tanthu_lq_01',
                 'acc_pass' => 'LienQuan#2026',
-            ],
-            [
-                'category_id' => $genshinCat->id,
-                'type' => 'ACCOUNT',
-                'name' => 'Acc Genshin Impact #3045: AR 58, Raiden Shogun C2 R1, Furina, Hu Tao, Yelan',
-                'slug' => 'acc-genshin-3045-raiden-furina',
-                'sku' => 'GI-3045',
-                'min_price' => 1950000,
-                'price' => 2500000,
-                'sale_price' => 1950000,
-                'thumbnail_url' => 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=600&auto=format&fit=crop&q=80',
-                'short_description' => 'Server Asia, AR 58, 18 Nhân Vật 5 Sao, 8 Vũ Khí 5 Sao, 12.000 Nguyên Thạch.',
-                'description' => 'Tài khoản Genshin Impact Asia cực mạnh la hoàn 36 sao nhàn tênh. Đổi mail HoYoverse sạch sẽ không liên kết bên thứ 3.',
-                'status' => 'ACTIVE',
-                'is_featured' => true,
-                'acc_user' => 'hoyoverse_genshin_3045',
-                'acc_pass' => 'Genshin!Safe2026',
-            ],
-            [
-                'category_id' => $valCat->id,
-                'type' => 'ACCOUNT',
-                'name' => 'Acc Valorant #4012: Vandal Kuronami + Reaver Karambit + Phantom Prime',
-                'slug' => 'acc-valorant-4012-kuronami-reaver',
-                'sku' => 'VAL-4012',
-                'min_price' => 1250000,
-                'price' => 1500000,
-                'sale_price' => 1250000,
-                'thumbnail_url' => 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80',
-                'short_description' => 'Server Việt Nam (VNG/Riot), Rank Ascendant 2, Full hiệu ứng nâng cấp.',
-                'description' => 'Tài khoản Riot VNG có mail gốc bàn giao, bảo hành tài khoản 30 ngày.',
-                'status' => 'ACTIVE',
-                'is_featured' => true,
-                'acc_user' => 'riot_val_pro4012',
-                'acc_pass' => 'Valorant@Rank99',
             ],
             [
                 'category_id' => $serviceCat->id,
