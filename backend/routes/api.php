@@ -124,11 +124,8 @@ Route::prefix('v1')->group(function () {
             ->middleware(['auth:admin-sanctum', \App\Http\Middleware\EnsureAdminRole::class]);
 
         Route::middleware(['auth:admin-sanctum', \App\Http\Middleware\EnsureAdminRole::class])->group(function () {
-            // Categories & Attributes
+            // Categories
             Route::apiResource('categories', AdminCategoryController::class);
-            Route::get('categories/{category}/attributes', [AdminCategoryController::class, 'attributes']);
-            Route::post('categories/{category}/attributes', [AdminCategoryController::class, 'attachAttribute']);
-            Route::apiResource('attributes', \App\Http\Controllers\Api\V1\Admin\AdminAttributeController::class);
 
             // Games
             Route::apiResource('games', \App\Http\Controllers\Api\V1\Admin\AdminGameController::class);
@@ -140,7 +137,6 @@ Route::prefix('v1')->group(function () {
             Route::patch('products/{product}/images/reorder', [AdminProductController::class, 'reorderImages']);
             Route::apiResource('products.variants', \App\Http\Controllers\Api\V1\Admin\AdminVariantController::class)
                 ->shallow();
-            Route::post('products/{product}/attributes', [AdminProductController::class, 'setAttributes']);
 
             // Inventory
             Route::get('game-accounts', [AdminGameAccountController::class, 'index']);
@@ -153,7 +149,6 @@ Route::prefix('v1')->group(function () {
             Route::post('game-accounts/{account}/verify', [AdminGameAccountController::class, 'verify']);
             Route::post('game-accounts/{account}/lock', [AdminGameAccountController::class, 'lock']);
             Route::get('game-accounts/{account}/credentials', [AdminGameAccountController::class, 'viewCredentials']);
-            Route::apiResource('suppliers', \App\Http\Controllers\Api\V1\Admin\AdminSupplierController::class);
 
             // Orders
             Route::get('orders', [AdminOrderController::class, 'index']);

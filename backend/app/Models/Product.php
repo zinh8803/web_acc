@@ -48,11 +48,6 @@ class Product extends Model
         return $this->hasOne(ProductImage::class)->where('is_primary', true);
     }
 
-    public function attributeValues(): HasMany
-    {
-        return $this->hasMany(ProductAttributeValue::class);
-    }
-
     public function warrantyPolicy(): BelongsTo
     {
         return $this->belongsTo(WarrantyPolicy::class);

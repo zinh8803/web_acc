@@ -39,7 +39,7 @@ class AdminProductController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $product = Product::with(['category', 'images', 'attributeValues.attribute', 'variants'])
+        $product = Product::with(['category', 'images', 'variants'])
             ->findOrFail($id);
 
         return response()->json([
