@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AdminUser;
+use App\Models\QuanTriVien;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class AdminAuthController extends Controller
@@ -18,25 +19,29 @@ class AdminAuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $admin = AdminUser::where('email', $validated['email'])
-            ->whereIn('role', ['SUPER_ADMIN', 'STAFF_SERVICE', 'STAFF_SUPPORT'])
+        $roleCol = Schema::hasColumn('nguoi_dung', 'vai_tro') ? 'vai_tro' : 'role';
+        $admin = QuanTriVien::where('email', $validated['email'])
+            ->whereIn($roleCol, ['SUPER_ADMIN', 'STAFF_SERVICE', 'STAFF_SUPPORT'])
             ->first();
 
-        if (!$admin || !Hash::check($validated['password'], $admin->password_hash)) {
+        $pwd = $admin?->mat_khau_ma_hoa ?? $admin?->password_hash;
+        if (!$admin || !Hash::check($validated['password'], $pwd)) {
             throw ValidationException::withMessages([
                 'email' => ['Thông tin đăng nhập quản trị viên không chính xác.'],
             ]);
         }
 
-        if ($admin->status !== 'ACTIVE') {
+        $status = $admin->trang_thai ?? $admin->status;
+        if ($status !== 'ACTIVE') {
             return response()->json([
                 'success' => false,
                 'message' => 'Tài khoản quản trị của bạn đã bị khóa.',
             ], 403);
         }
 
+        $lastLoginCol = Schema::hasColumn('nguoi_dung', 'dang_nhap_cuoi_luc') ? 'dang_nhap_cuoi_luc' : 'last_login_at';
         $admin->update([
-            'last_login_at' => now(),
+            $lastLoginCol => now(),
         ]);
 
         $token = $admin->createToken('admin-api-token')->plainTextToken;
@@ -49,9 +54,11 @@ class AdminAuthController extends Controller
                 'access_token' => $token,
                 'admin' => [
                     'id' => $admin->id,
-                    'full_name' => $admin->full_name,
+                    'full_name' => $admin->ho_ten ?? $admin->full_name,
+                    'ho_ten' => $admin->ho_ten ?? $admin->full_name,
                     'email' => $admin->email,
-                    'role' => $admin->role,
+                    'role' => $admin->vai_tro ?? $admin->role,
+                    'vai_tro' => $admin->vai_tro ?? $admin->role,
                 ],
             ]
         ]);
@@ -74,9 +81,11 @@ class AdminAuthController extends Controller
             'success' => true,
             'data' => [
                 'id' => $admin->id,
-                'full_name' => $admin->full_name,
+                'full_name' => $admin->ho_ten ?? $admin->full_name,
+                'ho_ten' => $admin->ho_ten ?? $admin->full_name,
                 'email' => $admin->email,
-                'role' => $admin->role,
+                'role' => $admin->vai_tro ?? $admin->role,
+                'vai_tro' => $admin->vai_tro ?? $admin->role,
             ]
         ]);
     }

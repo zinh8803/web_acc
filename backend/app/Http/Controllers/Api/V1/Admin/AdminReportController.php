@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\GameAccount;
-use App\Models\Order;
-use App\Models\Product;
-use App\Models\User;
+use App\Models\TaiKhoanGame;
+use App\Models\DonHang;
+use App\Models\SanPham;
+use App\Models\NguoiDung;
+use App\Models\YeuCauBaoHanh;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,45 +24,41 @@ class AdminReportController extends Controller
     {
         $paidStatuses = ['PAID', 'COMPLETED', 'paid', 'completed'];
 
-        $todayRevenue = Order::whereIn('status', $paidStatuses)
-            ->whereDate('created_at', today())
-            ->sum('total');
+        $todayRevenue = DonHang::whereIn('trang_thai', $paidStatuses)
+            ->whereDate('ngay_tao', today())
+            ->sum('tong_tien');
 
-        $totalRevenue = Order::whereIn('status', $paidStatuses)
-            ->sum('total');
+        $totalRevenue = DonHang::whereIn('trang_thai', $paidStatuses)
+            ->sum('tong_tien');
 
-        $totalOrders = Order::count();
-        $pendingOrders = Order::whereIn('status', ['PENDING_PAYMENT', 'pending_payment'])->count();
-        $completedOrders = Order::whereIn('status', $paidStatuses)->count();
-        $totalUsers = User::count();
-        $totalProducts = Product::count();
-        $availableAccounts = GameAccount::whereIn('status', ['AVAILABLE', 'available'])->count();
+        $totalOrders = DonHang::count();
+        $pendingOrders = DonHang::whereIn('trang_thai', ['PENDING_PAYMENT', 'pending_payment'])->count();
+        $completedOrders = DonHang::whereIn('trang_thai', $paidStatuses)->count();
+        $totalUsers = NguoiDung::count();
+        $totalProducts = SanPham::count();
+        $availableAccounts = TaiKhoanGame::whereIn('trang_thai', ['AVAILABLE', 'available'])->count();
 
         // Recent orders from DB
-        $recentOrders = Order::with('user:id,full_name,email')
+        $recentOrders = DonHang::with('user:id,ho_ten,email')
             ->orderByDesc('id')
             ->limit(10)
             ->get();
 
-        // Revenue by Category from DB (exclude soft-deleted categories)
-        $categoryRevenue = DB::table('categories')
-            ->whereNull('categories.deleted_at')
-            ->leftJoin('products', function ($join) {
-                $join->on('categories.id', '=', 'products.category_id')
-                    ->whereNull('products.deleted_at');
+        // Revenue by Category from DB
+        $categoryRevenue = DB::table('danh_muc')
+            ->leftJoin('san_pham', 'danh_muc.id', '=', 'san_pham.danh_muc_id')
+            ->leftJoin('chi_tiet_don_hang', 'san_pham.id', '=', 'chi_tiet_don_hang.san_pham_id')
+            ->leftJoin('don_hang', function ($join) use ($paidStatuses) {
+                $join->on('chi_tiet_don_hang.don_hang_id', '=', 'don_hang.id')
+                    ->whereIn('don_hang.trang_thai', $paidStatuses);
             })
-            ->leftJoin('order_items', 'products.id', '=', 'order_items.product_id')
-            ->leftJoin('orders', function ($join) use ($paidStatuses) {
-                $join->on('order_items.order_id', '=', 'orders.id')
-                    ->whereIn('orders.status', $paidStatuses);
-            })
-            ->select('categories.id', 'categories.name', DB::raw('COALESCE(SUM(order_items.line_total), 0) as total_amount'))
-            ->groupBy('categories.id', 'categories.name')
+            ->select('danh_muc.id', 'danh_muc.ten_danh_muc as name', DB::raw('COALESCE(SUM(chi_tiet_don_hang.thanh_tien), 0) as total_amount'))
+            ->groupBy('danh_muc.id', 'danh_muc.ten_danh_muc')
             ->orderByDesc('total_amount')
             ->get();
 
-        // Available years for dropdown (include DB years and a generous range around current year)
-        $dbYears = Order::selectRaw('YEAR(created_at) as year')
+        // Available years for dropdown
+        $dbYears = DonHang::selectRaw('YEAR(ngay_tao) as year')
             ->distinct()
             ->orderByDesc('year')
             ->pluck('year')
@@ -70,12 +67,12 @@ class AdminReportController extends Controller
             ->all();
 
         $currentYear = (int) now()->year;
-        $rangeYears = range($currentYear - 6, $currentYear + 3); // e.g. 2020 .. 2029
+        $rangeYears = range($currentYear - 6, $currentYear + 3);
         $availableYears = array_values(array_unique(array_merge($dbYears, $rangeYears)));
         rsort($availableYears);
 
         // ==================== REVENUE CHART BY PERIOD ====================
-        $chartType = $request->input('period', 'year'); // 'year', 'month', 'week'
+        $chartType = $request->input('period', 'year');
         $selectedYear = (int) $request->input('year', $currentYear);
         $selectedMonth = (int) $request->input('month', now()->month);
         $selectedDate = $request->input('date', now()->format('Y-m-d'));
@@ -85,15 +82,14 @@ class AdminReportController extends Controller
         $periodTitle = '';
 
         if ($chartType === 'month') {
-            // Theo ngày trong tháng (Ngày 1 -> Ngày 30/31)
             $dateObj = Carbon::createFromDate($selectedYear, $selectedMonth, 1);
             $daysInMonth = $dateObj->daysInMonth;
             $periodTitle = "Tháng {$selectedMonth}/{$selectedYear}";
 
-            $dailyOrders = Order::whereIn('status', $paidStatuses)
-                ->whereYear('created_at', $selectedYear)
-                ->whereMonth('created_at', $selectedMonth)
-                ->selectRaw('DAY(created_at) as day, sum(total) as total')
+            $dailyOrders = DonHang::whereIn('trang_thai', $paidStatuses)
+                ->whereYear('ngay_tao', $selectedYear)
+                ->whereMonth('ngay_tao', $selectedMonth)
+                ->selectRaw('DAY(ngay_tao) as day, sum(tong_tien) as total')
                 ->groupBy('day')
                 ->pluck('total', 'day')
                 ->all();
@@ -103,7 +99,6 @@ class AdminReportController extends Controller
                 $chartData[] = (float) ($dailyOrders[$d] ?? 0);
             }
         } elseif ($chartType === 'week') {
-            // Theo các ngày trong tuần (Thứ 2 -> Chủ Nhật)
             try {
                 $baseDate = Carbon::parse($selectedDate);
             } catch (\Exception $e) {
@@ -113,9 +108,9 @@ class AdminReportController extends Controller
             $endDate = $startDate->copy()->endOfWeek(Carbon::SUNDAY);
             $periodTitle = "Tuần từ " . $startDate->format('d/m/Y') . " đến " . $endDate->format('d/m/Y');
 
-            $weekOrders = Order::whereIn('status', $paidStatuses)
-                ->whereBetween('created_at', [$startDate->copy()->startOfDay(), $endDate->copy()->endOfDay()])
-                ->selectRaw('DATE(created_at) as date, sum(total) as total')
+            $weekOrders = DonHang::whereIn('trang_thai', $paidStatuses)
+                ->whereBetween('ngay_tao', [$startDate->copy()->startOfDay(), $endDate->copy()->endOfDay()])
+                ->selectRaw('DATE(ngay_tao) as date, sum(tong_tien) as total')
                 ->groupBy('date')
                 ->pluck('total', 'date')
                 ->all();
@@ -128,13 +123,12 @@ class AdminReportController extends Controller
                 $chartData[] = (float) ($weekOrders[$dateKey] ?? 0);
             }
         } else {
-            // Mặc định: Theo năm (Tháng 1 -> Tháng 12)
             $chartType = 'year';
             $periodTitle = "Năm {$selectedYear}";
 
-            $monthlyOrders = Order::whereIn('status', $paidStatuses)
-                ->whereYear('created_at', $selectedYear)
-                ->selectRaw('MONTH(created_at) as month, sum(total) as total')
+            $monthlyOrders = DonHang::whereIn('trang_thai', $paidStatuses)
+                ->whereYear('ngay_tao', $selectedYear)
+                ->selectRaw('MONTH(ngay_tao) as month, sum(tong_tien) as total')
                 ->groupBy('month')
                 ->pluck('total', 'month')
                 ->all();
@@ -175,8 +169,8 @@ class AdminReportController extends Controller
 
     public function products(Request $request): JsonResponse
     {
-        $topProducts = Product::with('category:id,name')
-            ->orderByDesc('sold_count')
+        $topProducts = SanPham::with('category:id,ten_danh_muc')
+            ->orderByDesc('so_luong_da_ban')
             ->limit(10)
             ->get();
 
@@ -188,11 +182,11 @@ class AdminReportController extends Controller
 
     public function warranty(Request $request): JsonResponse
     {
-        $totalClaims = \App\Models\WarrantyClaim::count();
-        $pendingClaims = \App\Models\WarrantyClaim::whereIn('status', ['SUBMITTED', 'IN_REVIEW', 'NEED_INFO'])->count();
-        $approvedClaims = \App\Models\WarrantyClaim::where('status', 'APPROVED')->count();
-        $rejectedClaims = \App\Models\WarrantyClaim::where('status', 'REJECTED')->count();
-        $resolvedClaims = \App\Models\WarrantyClaim::where('status', 'RESOLVED')->count();
+        $totalClaims = YeuCauBaoHanh::count();
+        $pendingClaims = YeuCauBaoHanh::whereIn('trang_thai', ['SUBMITTED', 'IN_REVIEW', 'NEED_INFO'])->count();
+        $approvedClaims = YeuCauBaoHanh::where('trang_thai', 'APPROVED')->count();
+        $rejectedClaims = YeuCauBaoHanh::where('trang_thai', 'REJECTED')->count();
+        $resolvedClaims = YeuCauBaoHanh::where('trang_thai', 'RESOLVED')->count();
 
         return response()->json([
             'success' => true,

@@ -2,7 +2,7 @@
 
 namespace App\Mail;
 
-use App\Models\ServiceRequest;
+use App\Models\YeuCauDichVu;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
@@ -11,7 +11,7 @@ class ServiceRequestSubmittedMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public ServiceRequest $service;
+    public YeuCauDichVu $service;
     public string $customerName;
     public ?string $orderCode;
     public array $formData;
@@ -19,7 +19,7 @@ class ServiceRequestSubmittedMail extends Mailable
     public string $orderUrl;
 
     public function __construct(
-        ServiceRequest $service,
+        YeuCauDichVu $service,
         string $customerName,
         ?string $orderCode,
         array $formData,

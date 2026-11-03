@@ -11,6 +11,4 @@ export const authService = {
     getMe: () => api.get('/me'),
     updateMe: (data) => api.patch('/me', data),
     changePassword: (data) => api.patch('/me/password', data),
-    getSessions: () => api.get('/me/sessions'),
-    revokeSession: (id) => api.delete(`/me/sessions/${id}`),
 };

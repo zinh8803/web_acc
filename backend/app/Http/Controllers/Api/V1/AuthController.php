@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
-use App\Models\UserSession;
+use App\Models\NguoiDung;
+use App\Models\MaGiamGia;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -22,18 +22,13 @@ class AuthController extends Controller
     public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'email' => 'required|email|max:191|unique:users,email',
-            'phone' => 'nullable|string|max:20|unique:users,phone',
+            'email' => 'required|email|max:191|unique:nguoi_dung,email',
+            'phone' => 'nullable|string|max:20|unique:nguoi_dung,so_dien_thoai',
             'full_name' => 'required|string|max:120',
             'password' => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()],
         ]);
 
         $email = strtolower($validated['email']);
-        $key = 'register-otp:' . $request->ip() . ':' . $email;
-        if (RateLimiter::tooManyAttempts($key, 3)) {
-            return $this->error('Bạn đã yêu cầu quá nhiều mã OTP. Vui lòng thử lại sau.', 429, 'TOO_MANY_ATTEMPTS');
-        }
-
         $otp = (string) random_int(100000, 999999);
         DB::table('otp_mail')->updateOrInsert(
             ['email' => $email],
@@ -57,8 +52,6 @@ class AuthController extends Controller
             DB::table('otp_mail')->where('email', $email)->delete();
             throw $exception;
         }
-
-        RateLimiter::hit($key, 600);
         return $this->success(['message' => 'Mã OTP đã được gửi đến email của bạn.']);
     }
 
@@ -84,7 +77,7 @@ class AuthController extends Controller
         }
 
         $user = DB::transaction(function () use ($record, $email) {
-            $user = User::create([
+            $user = NguoiDung::create([
                 'email' => $email,
                 'phone' => $record->phone,
                 'full_name' => $record->full_name,
@@ -98,7 +91,7 @@ class AuthController extends Controller
 
         // Tự động gửi email tặng mã giảm giá CHAOBANMOI cho khách hàng mới gia nhập hệ thống
         try {
-            $welcomeCoupon = \App\Models\Coupon::firstOrCreate(
+            $welcomeCoupon = MaGiamGia::firstOrCreate(
                 ['code' => 'CHAOBANMOI'],
                 [
                     'name' => 'Ưu đãi chào mừng khách hàng mới',
@@ -141,15 +134,15 @@ class AuthController extends Controller
             return $this->error("Quá nhiều lần đăng nhập. Vui lòng thử lại sau {$seconds} giây.", 429, 'TOO_MANY_ATTEMPTS');
         }
 
-        $user = User::where('email', $validated['email'])->first();
+        $user = NguoiDung::where('email', $validated['email'])->first();
 
-        if (!$user || !Hash::check($validated['password'], $user->password_hash)) {
+        if (!$user || !Hash::check($validated['password'], $user->mat_khau_ma_hoa ?: $user->password_hash)) {
             RateLimiter::hit($key, 900); // 15 min window
 
             if ($user) {
-                $user->increment('failed_login_count');
-                if ($user->failed_login_count >= 5) {
-                    $user->update(['locked_until' => now()->addMinutes(15)]);
+                $user->increment('so_lan_dang_nhap_sai');
+                if (($user->so_lan_dang_nhap_sai ?? $user->failed_login_count) >= 5) {
+                    $user->update(['khoa_den_thoi_gian' => now()->addMinutes(15)]);
                 }
             }
 
@@ -166,9 +159,9 @@ class AuthController extends Controller
 
         // Reset failed attempts
         $user->update([
-            'failed_login_count' => 0,
-            'last_login_at' => now(),
-            'last_login_ip' => $request->ip(),
+            'so_lan_dang_nhap_sai' => 0,
+            'dang_nhap_cuoi_luc' => now(),
+            'ip_dang_nhap_cuoi' => $request->ip(),
         ]);
 
         RateLimiter::clear($key);
@@ -209,7 +202,7 @@ class AuthController extends Controller
 
         $validated = $request->validate([
             'full_name' => 'sometimes|string|max:120',
-            'phone' => "sometimes|nullable|string|max:20|unique:users,phone,{$user->id}",
+            'phone' => "sometimes|nullable|string|max:20|unique:nguoi_dung,so_dien_thoai,{$user->id}",
             'birth_date' => 'sometimes|nullable|date',
             'avatar_url' => 'sometimes|nullable|url|max:500',
         ]);
@@ -251,7 +244,7 @@ class AuthController extends Controller
         $request->validate(['email' => 'required|email']);
 
         // Always return success to not reveal if email exists
-        $user = User::where('email', $request->email)->first();
+        $user = NguoiDung::where('email', $request->email)->first();
         if ($user) {
             // TODO: Send password reset email
         }
@@ -276,7 +269,7 @@ class AuthController extends Controller
     }
 
     // Helper: format user response
-    private function formatUser(User $user): array
+    private function formatUser(NguoiDung $user): array
     {
         return [
             'id' => $user->id,

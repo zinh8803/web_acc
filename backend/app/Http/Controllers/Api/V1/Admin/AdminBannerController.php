@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Banner;
+use App\Models\BannerQuangCao;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
@@ -12,7 +12,7 @@ class AdminBannerController extends Controller
 {
     public function index(): JsonResponse
     {
-        $banners = Banner::orderBy('sort_order', 'asc')
+        $banners = BannerQuangCao::orderBy('thu_tu_hien_thi', 'asc')
             ->orderBy('id', 'desc')
             ->get();
 
@@ -24,7 +24,7 @@ class AdminBannerController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $banner = Banner::findOrFail($id);
+        $banner = BannerQuangCao::findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -63,12 +63,12 @@ class AdminBannerController extends Controller
             ], 422);
         }
 
-        $banner = Banner::create([
-            'title' => $validated['title'] ?? null,
-            'image_url' => $imageUrl,
-            'link_url' => $validated['link_url'] ?? null,
-            'sort_order' => $validated['sort_order'] ?? 0,
-            'status' => $validated['status'],
+        $banner = BannerQuangCao::create([
+            'tieu_de' => $validated['title'] ?? null,
+            'duong_dan_anh' => $imageUrl,
+            'duong_dan_lien_ket' => $validated['link_url'] ?? null,
+            'thu_tu_hien_thi' => $validated['sort_order'] ?? 0,
+            'trang_thai' => $validated['status'],
         ]);
 
         return response()->json([
@@ -80,7 +80,7 @@ class AdminBannerController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $banner = Banner::findOrFail($id);
+        $banner = BannerQuangCao::findOrFail($id);
 
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
@@ -105,11 +105,11 @@ class AdminBannerController extends Controller
         }
 
         $banner->update([
-            'title' => array_key_exists('title', $validated) ? $validated['title'] : $banner->title,
-            'image_url' => $imageUrl,
-            'link_url' => array_key_exists('link_url', $validated) ? $validated['link_url'] : $banner->link_url,
-            'sort_order' => $validated['sort_order'] ?? $banner->sort_order,
-            'status' => $validated['status'] ?? $banner->status,
+            'tieu_de' => array_key_exists('title', $validated) ? $validated['title'] : $banner->tieu_de,
+            'duong_dan_anh' => $imageUrl,
+            'duong_dan_lien_ket' => array_key_exists('link_url', $validated) ? $validated['link_url'] : $banner->duong_dan_lien_ket,
+            'thu_tu_hien_thi' => $validated['sort_order'] ?? $banner->thu_tu_hien_thi,
+            'trang_thai' => $validated['status'] ?? $banner->trang_thai,
         ]);
 
         return response()->json([
@@ -121,7 +121,7 @@ class AdminBannerController extends Controller
 
     public function destroy(int $id): JsonResponse
     {
-        $banner = Banner::findOrFail($id);
+        $banner = BannerQuangCao::findOrFail($id);
         $banner->delete();
 
         return response()->json([

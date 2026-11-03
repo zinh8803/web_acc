@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Coupon;
-use App\Models\CouponUsage;
-use App\Models\Order;
+use App\Models\MaGiamGia;
+use App\Models\LichSuDungMaGiamGia;
+use App\Models\DonHang;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,7 +13,7 @@ class AdminCouponController extends Controller
 {
     public function index(): JsonResponse
     {
-        $coupons = Coupon::orderByDesc('id')->get()->map(function ($coupon) {
+        $coupons = MaGiamGia::orderByDesc('id')->get()->map(function ($coupon) {
             return [
                 'id' => $coupon->id,
                 'code' => $coupon->code,
@@ -39,7 +39,7 @@ class AdminCouponController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'code' => 'required|string|max:40|unique:coupons,code',
+            'code' => 'required|string|max:40|unique:ma_giam_gia,ma_khuyen_mai',
             'name' => 'nullable|string|max:150',
             'description' => 'nullable|string|max:500',
             'discount_type' => 'required|in:PERCENT,FIXED',
@@ -53,14 +53,25 @@ class AdminCouponController extends Controller
             'status' => 'nullable|in:ACTIVE,DISABLED',
         ]);
 
-        $validated['code'] = strtoupper(trim($validated['code']));
-        if (empty($validated['name'])) {
-            $validated['name'] = $validated['code'];
-        }
-        $validated['usage_per_user'] = $validated['usage_per_user'] ?? 1;
-        $validated['status'] = $validated['status'] ?? 'ACTIVE';
+        $code = strtoupper(trim($validated['code']));
+        $name = !empty($validated['name']) ? $validated['name'] : $code;
+        $usagePerUser = $validated['usage_per_user'] ?? 1;
+        $status = $validated['status'] ?? 'ACTIVE';
 
-        $coupon = Coupon::create($validated);
+        $coupon = MaGiamGia::create([
+            'ma_khuyen_mai' => $code,
+            'ten_ma_giam_gia' => $name,
+            'mo_ta' => $validated['description'] ?? null,
+            'loai_giam_gia' => $validated['discount_type'],
+            'gia_tri_giam' => $validated['discount_value'],
+            'don_hang_toi_thieu' => $validated['min_order_amount'] ?? 0,
+            'giam_toi_da' => $validated['max_discount_amount'] ?? null,
+            'gioi_han_su_dung' => $validated['usage_limit'] ?? null,
+            'gioi_han_moi_nguoi_dung' => $usagePerUser,
+            'ngay_bat_dau' => $validated['starts_at'] ?? null,
+            'ngay_ket_thuc' => $validated['ends_at'] ?? null,
+            'trang_thai' => $status,
+        ]);
 
         return response()->json([
             'success' => true,
@@ -69,15 +80,15 @@ class AdminCouponController extends Controller
         ], 201);
     }
 
-    public function show(Coupon $coupon): JsonResponse
+    public function show(MaGiamGia $coupon): JsonResponse
     {
         return response()->json(['success' => true, 'data' => $coupon]);
     }
 
-    public function update(Request $request, Coupon $coupon): JsonResponse
+    public function update(Request $request, MaGiamGia $coupon): JsonResponse
     {
         $validated = $request->validate([
-            'code' => 'required|string|max:40|unique:coupons,code,' . $coupon->id,
+            'code' => 'required|string|max:40|unique:ma_giam_gia,ma_khuyen_mai,' . $coupon->id,
             'name' => 'nullable|string|max:150',
             'description' => 'nullable|string|max:500',
             'discount_type' => 'required|in:PERCENT,FIXED',
@@ -91,12 +102,23 @@ class AdminCouponController extends Controller
             'status' => 'nullable|in:ACTIVE,DISABLED',
         ]);
 
-        $validated['code'] = strtoupper(trim($validated['code']));
-        if (empty($validated['name'])) {
-            $validated['name'] = $validated['code'];
-        }
+        $code = strtoupper(trim($validated['code']));
+        $name = !empty($validated['name']) ? $validated['name'] : $code;
 
-        $coupon->update($validated);
+        $coupon->update([
+            'ma_khuyen_mai' => $code,
+            'ten_ma_giam_gia' => $name,
+            'mo_ta' => $validated['description'] ?? $coupon->mo_ta,
+            'loai_giam_gia' => $validated['discount_type'] ?? $coupon->loai_giam_gia,
+            'gia_tri_giam' => $validated['discount_value'] ?? $coupon->gia_tri_giam,
+            'don_hang_toi_thieu' => array_key_exists('min_order_amount', $validated) ? $validated['min_order_amount'] : $coupon->don_hang_toi_thieu,
+            'giam_toi_da' => array_key_exists('max_discount_amount', $validated) ? $validated['max_discount_amount'] : $coupon->giam_toi_da,
+            'gioi_han_su_dung' => array_key_exists('usage_limit', $validated) ? $validated['usage_limit'] : $coupon->gioi_han_su_dung,
+            'gioi_han_moi_nguoi_dung' => $validated['usage_per_user'] ?? $coupon->gioi_han_moi_nguoi_dung,
+            'ngay_bat_dau' => array_key_exists('starts_at', $validated) ? $validated['starts_at'] : $coupon->ngay_bat_dau,
+            'ngay_ket_thuc' => array_key_exists('ends_at', $validated) ? $validated['ends_at'] : $coupon->ngay_ket_thuc,
+            'trang_thai' => $validated['status'] ?? $coupon->trang_thai,
+        ]);
 
         return response()->json([
             'success' => true,
@@ -105,15 +127,15 @@ class AdminCouponController extends Controller
         ]);
     }
 
-    public function destroy(Coupon $coupon): JsonResponse
+    public function destroy(MaGiamGia $coupon): JsonResponse
     {
         // Kiểm tra xem đã có đơn hàng sử dụng mã này chưa
-        $usedInOrders = Order::where('coupon_id', $coupon->id)->exists();
-        $usedInCouponUsages = CouponUsage::where('coupon_id', $coupon->id)->exists();
+        $usedInOrders = DonHang::where('ma_giam_gia_id', $coupon->id)->exists();
+        $usedInCouponUsages = LichSuDungMaGiamGia::where('ma_giam_gia_id', $coupon->id)->exists();
 
         if ($usedInOrders || $usedInCouponUsages) {
             // Không xóa vật lý để giữ toàn vẹn lịch sử đơn hàng, chuyển trạng thái DISABLED
-            $coupon->update(['status' => 'DISABLED']);
+            $coupon->update(['trang_thai' => 'DISABLED']);
             return response()->json([
                 'success' => true,
                 'message' => 'Mã giảm giá đã có đơn hàng sử dụng nên đã được chuyển sang trạng thái Vô hiệu hóa (DISABLED).',

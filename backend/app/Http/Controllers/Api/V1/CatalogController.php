@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Category;
-use App\Models\Game;
-use App\Models\Product;
-use App\Models\GameAccount;
+use App\Models\DanhMuc;
+use App\Models\SanPham;
+use App\Models\TaiKhoanGame;
+use App\Models\BannerQuangCao;
+use App\Models\CaiDat;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -25,12 +26,12 @@ class CatalogController extends Controller
      */
     public function categories(Request $request): JsonResponse
     {
-        $query = Category::where('status', 'ACTIVE')
+        $query = DanhMuc::where('trang_thai', 'ACTIVE')
             ->with(['children'])
-            ->orderBy('sort_order');
+            ->orderBy('thu_tu_hien_thi');
 
         if ($request->type) {
-            $query->where('type', strtoupper($request->type));
+            $query->where('loai_danh_muc', strtoupper($request->type));
         }
 
         return $this->success($query->get());
@@ -41,75 +42,79 @@ class CatalogController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Product::query()
-            ->where('status', 'ACTIVE')
-            ->with(['variants' => function ($q) {
-                $q->where('status', 'ACTIVE')->orderBy('sort_order');
-            }, 'category:id,name,slug'])
+        $query = SanPham::query()
+            ->where('trang_thai', 'ACTIVE')
+            ->with([
+                'variants' => function ($q) {
+                    $q->where('trang_thai', 'ACTIVE')->orderBy('thu_tu_hien_thi');
+                },
+                'category:id,ten_danh_muc,duong_dan_tinh',
+            ])
             ->select([
-                'id', 'sku', 'type', 'category_id', 'name', 'slug',
-                'short_description', 'thumbnail_url', 'min_price', 'status',
-                'is_featured', 'sold_count', 'view_count', 'rating_avg', 'rating_count',
+                'id',
+                'ma_san_pham',
+                'loai_san_pham',
+                'danh_muc_id',
+                'ten_san_pham',
+                'duong_dan_tinh',
+                'mo_ta_ngan',
+                'anh_dai_dien',
+                'gia_thap_nhat',
+                'trang_thai',
+                'noi_bat',
+                'so_luong_da_ban',
+                'luot_xem',
+                'diem_danh_gia_tb',
+                'so_luot_danh_gia',
+                'ngay_tao',
             ]);
 
         // Filter by category (by ID or Slug from DB)
         if ($request->category_id) {
-            $categoryIds = $this->getCategoryIds($request->category_id);
-            $query->whereIn('category_id', $categoryIds);
+            $categoryIds = $this->getCategoryIds((int) $request->category_id);
+            $query->whereIn('danh_muc_id', $categoryIds);
         } elseif ($request->category) {
-            $category = Category::where('slug', $request->category)->orWhere('id', $request->category)->first();
+            $category = DanhMuc::where('duong_dan_tinh', $request->category)
+                ->orWhere('id', $request->category)
+                ->first();
             if ($category) {
                 $categoryIds = $this->getCategoryIds($category->id);
-                $query->whereIn('category_id', $categoryIds);
+                $query->whereIn('danh_muc_id', $categoryIds);
             }
         }
 
         if ($request->type) {
-            $query->where('type', strtoupper($request->type));
+            $query->where('loai_san_pham', strtoupper($request->type));
         }
 
         if ($request->min_price) {
-            $query->where('min_price', '>=', $request->min_price);
+            $query->where('gia_thap_nhat', '>=', $request->min_price);
         }
 
         if ($request->max_price) {
-            $query->where('min_price', '<=', $request->max_price);
+            $query->where('gia_thap_nhat', '<=', $request->max_price);
         }
 
         if ($request->is_featured) {
-            $query->where('is_featured', true);
+            $query->where('noi_bat', true);
         }
 
         if ($request->search) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('sku', 'like', "%{$search}%")
-                  ->orWhere('short_description', 'like', "%{$search}%");
+                $q->where('ten_san_pham', 'like', "%{$search}%")
+                  ->orWhere('ma_san_pham', 'like', "%{$search}%")
+                  ->orWhere('mo_ta_ngan', 'like', "%{$search}%");
             });
-        }
-
-        // Dynamic attribute filters (e.g., attr_rank=DIAMOND, attr_hero_count_min=100)
-        foreach ($request->except(['category_id', 'type', 'min_price', 'max_price', 'is_featured', 'search', 'sort', 'page', 'limit']) as $key => $value) {
-            if (str_starts_with($key, 'attr_')) {
-                $attributeCode = str_replace('attr_', '', $key);
-                $query->whereHas('attributeValues', function ($q) use ($attributeCode, $value) {
-                    $q->whereHas('attribute', fn($a) => $a->where('code', $attributeCode))
-                        ->where(function ($av) use ($value) {
-                            $av->where('value_text', $value)
-                                ->orWhereHas('option', fn($o) => $o->where('value', $value));
-                        });
-                });
-            }
         }
 
         // Sorting
         match ($request->sort) {
-            'price_asc' => $query->orderBy('min_price', 'asc'),
-            'price_desc' => $query->orderBy('min_price', 'desc'),
-            'sold' => $query->orderBy('sold_count', 'desc'),
-            'rating' => $query->orderBy('rating_avg', 'desc'),
-            default => $query->orderBy('created_at', 'desc'), // newest
+            'price_asc' => $query->orderBy('gia_thap_nhat', 'asc'),
+            'price_desc' => $query->orderBy('gia_thap_nhat', 'desc'),
+            'sold' => $query->orderBy('so_luong_da_ban', 'desc'),
+            'rating' => $query->orderBy('diem_danh_gia_tb', 'desc'),
+            default => $query->orderBy('ngay_tao', 'desc'), // newest
         };
 
         $limit = $request->limit ?? 24;
@@ -132,25 +137,23 @@ class CatalogController extends Controller
      */
     public function show(string $slug): JsonResponse
     {
-        $product = Product::where('slug', $slug)
-            ->where('status', 'ACTIVE')
+        $product = SanPham::where('duong_dan_tinh', $slug)
+            ->where('trang_thai', 'ACTIVE')
             ->with([
-                'category:id,name,slug,parent_id',
-                'variants' => fn($q) => $q->where('status', 'ACTIVE')->orderBy('sort_order'),
-                'images' => fn($q) => $q->orderBy('sort_order'),
-                'attributeValues.attribute',
-                'attributeValues.option',
+                'category:id,ten_danh_muc,duong_dan_tinh,danh_muc_cha_id',
+                'variants' => fn($q) => $q->where('trang_thai', 'ACTIVE')->orderBy('thu_tu_hien_thi'),
+                'images' => fn($q) => $q->orderBy('thu_tu_hien_thi'),
                 'warrantyPolicy',
             ])
             ->firstOrFail();
 
         // Increment view count
-        $product->increment('view_count');
+        $product->increment('luot_xem');
 
         // Get available inventory count for ACCOUNT type
         $availableCount = 0;
-        if ($product->type === 'ACCOUNT') {
-            $availableCount = $product->gameAccounts()->where('status', 'AVAILABLE')->count();
+        if ($product->loai_san_pham === 'ACCOUNT') {
+            $availableCount = $product->gameAccounts()->where('trang_thai', 'AVAILABLE')->count();
         }
 
         $data = $product->toArray();
@@ -162,23 +165,23 @@ class CatalogController extends Controller
     /** Return public data for individually selectable accounts, without credentials. */
     public function accounts(Request $request, string $slug): JsonResponse
     {
-        $product = Product::where('slug', $slug)
-            ->where('type', 'ACCOUNT')
-            ->where('status', 'ACTIVE')
+        $product = SanPham::where('duong_dan_tinh', $slug)
+            ->where('loai_san_pham', 'ACCOUNT')
+            ->where('trang_thai', 'ACTIVE')
             ->firstOrFail();
 
-        $accounts = GameAccount::query()
-            ->with(['variant:id,price,sale_price,status'])
-            ->where('product_id', $product->id)
-            ->where('status', 'AVAILABLE')
-            ->whereHas('variant', fn ($query) => $query->where('status', 'ACTIVE'))
+        $accounts = TaiKhoanGame::query()
+            ->with(['variant:id,gia_ban,gia_khuyen_mai,trang_thai'])
+            ->where('san_pham_id', $product->id)
+            ->where('trang_thai', 'AVAILABLE')
+            ->whereHas('variant', fn ($query) => $query->where('trang_thai', 'ACTIVE'))
             ->orderBy('id')
             ->paginate(min(max((int) $request->get('per_page', 24), 1), 100));
 
-        $accounts->getCollection()->transform(fn (GameAccount $account) => [
+        $accounts->getCollection()->transform(fn (TaiKhoanGame $account) => [
             'id' => $account->id,
-            'product_id' => $account->product_id,
-            'variant_id' => $account->variant_id,
+            'product_id' => $account->san_pham_id,
+            'variant_id' => $account->bien_the_san_pham_id,
             'image_url' => $account->image_url ?: $product->thumbnail_url,
             'public_details' => $account->public_details ?? [],
             'price' => $account->variant?->sale_price ?? $account->variant?->price ?? $product->min_price,
@@ -196,7 +199,7 @@ class CatalogController extends Controller
     private function getCategoryIds(int $categoryId): array
     {
         $ids = [$categoryId];
-        $children = Category::where('parent_id', $categoryId)->pluck('id')->toArray();
+        $children = DanhMuc::where('danh_muc_cha_id', $categoryId)->pluck('id')->toArray();
         foreach ($children as $childId) {
             $ids = array_merge($ids, $this->getCategoryIds($childId));
         }
@@ -205,8 +208,8 @@ class CatalogController extends Controller
 
     public function banners(): JsonResponse
     {
-        $banners = \App\Models\Banner::where('status', 'ACTIVE')
-            ->orderBy('sort_order')
+        $banners = BannerQuangCao::where('trang_thai', 'ACTIVE')
+            ->orderBy('thu_tu_hien_thi')
             ->get();
 
         return $this->success($banners);
@@ -214,13 +217,20 @@ class CatalogController extends Controller
 
     public function publicSettings(): JsonResponse
     {
-        $settings = \App\Models\Setting::all();
+        $settings = CaiDat::all();
         $formatted = [];
         foreach ($settings as $setting) {
-            $val = $setting->value;
-            $formatted[$setting->key] = is_string($val) && (str_starts_with($val, '{') || str_starts_with($val, '['))
-                ? json_decode($val, true)
-                : $val;
+            $val = $setting->gia_tri_cai_dat ?? $setting->value;
+            while (is_string($val) && (str_starts_with($val, '{') || str_starts_with($val, '[') || str_starts_with($val, '"'))) {
+                $decoded = json_decode($val, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $val = $decoded;
+                } else {
+                    break;
+                }
+            }
+            $key = $setting->khoa_cai_dat ?? $setting->key;
+            $formatted[$key] = $val;
         }
 
         return $this->success($formatted);

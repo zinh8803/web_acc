@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Cart;
-use App\Models\Coupon;
-use App\Models\CouponUsage;
-use App\Models\GameAccount;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\ProductVariant;
+use App\Models\GioHang;
+use App\Models\MaGiamGia;
+use App\Models\LichSuDungMaGiamGia;
+use App\Models\TaiKhoanGame;
+use App\Models\DonHang;
+use App\Models\ChiTietDonHang;
+use App\Models\BienTheSanPham;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -41,8 +41,8 @@ class PaymentController extends Controller
      */
     public function initiate(Request $request, string $orderCode): JsonResponse
     {
-        $order = Order::where('order_code', $orderCode)
-            ->where('user_id', $request->user()->id)
+        $order = DonHang::where('ma_don_hang', $orderCode)
+            ->where('nguoi_dung_id', $request->user()->id)
             ->with(['items'])
             ->firstOrFail();
 
@@ -96,8 +96,8 @@ class PaymentController extends Controller
     {
         $validated = $request->validate([
             'items' => 'required|array|min:1',
-            'items.*.variant_id' => 'required|integer|exists:product_variants,id',
-            'items.*.game_account_id' => 'nullable|integer|exists:game_accounts,id',
+            'items.*.variant_id' => 'required|integer|exists:bien_the_san_pham,id',
+            'items.*.game_account_id' => 'nullable|integer|exists:tai_khoan_game,id',
             'items.*.quantity' => 'required|integer|min:1|max:10',
             'items.*.service_data' => 'nullable|array',
             'coupon_code' => 'nullable|string|max:40',
@@ -123,7 +123,7 @@ class PaymentController extends Controller
                 $reservedAccountIds = [];
 
                 foreach ($validated['items'] as $requestedItem) {
-                    $variant = ProductVariant::with('product')->lockForUpdate()->findOrFail($requestedItem['variant_id']);
+                    $variant = BienTheSanPham::with('product')->lockForUpdate()->findOrFail($requestedItem['variant_id']);
                     $product = $variant->product;
                     if (!$product || $product->status !== 'ACTIVE' || $variant->status !== 'ACTIVE') {
                         throw ValidationException::withMessages(['items' => ['Một sản phẩm trong giỏ không còn khả dụng.']]);
@@ -139,10 +139,10 @@ class PaymentController extends Controller
                             if ($quantity !== 1) {
                                 throw ValidationException::withMessages(['items' => ['Mỗi tài khoản được bán riêng lẻ, số lượng phải bằng 1.']]);
                             }
-                            $acc = GameAccount::whereKey($requestedItem['game_account_id'])
-                                ->where('variant_id', $variant->id)
-                                ->where('product_id', $product->id)
-                                ->where('status', 'AVAILABLE')
+                            $acc = TaiKhoanGame::whereKey($requestedItem['game_account_id'])
+                                ->where('bien_the_id', $variant->id)
+                                ->where('san_pham_id', $product->id)
+                                ->where('trang_thai', 'AVAILABLE')
                                 ->lockForUpdate()
                                 ->first();
                             if (!$acc) {
@@ -150,8 +150,8 @@ class PaymentController extends Controller
                             }
                             $accountIds = [$acc->id];
                         } else {
-                            $accounts = GameAccount::where('variant_id', $variant->id)
-                                ->where('status', 'AVAILABLE')
+                            $accounts = TaiKhoanGame::where('bien_the_id', $variant->id)
+                                ->where('trang_thai', 'AVAILABLE')
                                 ->lockForUpdate()
                                 ->limit($quantity)
                                 ->get();
@@ -162,12 +162,12 @@ class PaymentController extends Controller
                         }
 
                         // Tạm giữ chỗ trong 20 phút để khách thanh toán
-                        GameAccount::whereIn('id', $accountIds)->update([
+                        TaiKhoanGame::whereIn('id', $accountIds)->update([
                             'status' => 'RESERVED',
                             'reserved_until' => now()->addMinutes(20),
                         ]);
                         $variant->update([
-                            'stock_quantity' => GameAccount::where('variant_id', $variant->id)->where('status', 'AVAILABLE')->count(),
+                            'stock_quantity' => TaiKhoanGame::where('bien_the_id', $variant->id)->where('trang_thai', 'AVAILABLE')->count(),
                         ]);
                         $reservedAccountIds = array_merge($reservedAccountIds, $accountIds);
                     }
@@ -193,8 +193,8 @@ class PaymentController extends Controller
                 $coupon = null;
                 $discount = 0;
                 if (!empty($validated['coupon_code'])) {
-                    $coupon = Coupon::where('code', strtoupper($validated['coupon_code']))
-                        ->where('status', 'ACTIVE')
+                    $coupon = MaGiamGia::where('ma_khuyen_mai', strtoupper($validated['coupon_code']))
+                        ->where('trang_thai', 'ACTIVE')
                         ->lockForUpdate()
                         ->first();
                     if (!$coupon) {
@@ -210,13 +210,13 @@ class PaymentController extends Controller
                         throw ValidationException::withMessages(['coupon_code' => ['Mã giảm giá đã hết lượt sử dụng trên hệ thống.']]);
                     }
 
-                    $userUsageCount = CouponUsage::where('coupon_id', $coupon->id)
-                        ->where('user_id', $user->id)
-                        ->where('status', 'USED')
+                    $userUsageCount = LichSuDungMaGiamGia::where('ma_giam_gia_id', $coupon->id)
+                        ->where('nguoi_dung_id', $user->id)
+                        ->where('trang_thai', 'USED')
                         ->count();
-                    $orderUsageCount = Order::where('coupon_id', $coupon->id)
-                        ->where('user_id', $user->id)
-                        ->whereIn('status', ['PAID', 'COMPLETED', 'PROCESSING', 'DELIVERED'])
+                    $orderUsageCount = DonHang::where('ma_giam_gia_id', $coupon->id)
+                        ->where('nguoi_dung_id', $user->id)
+                        ->whereIn('trang_thai', ['PAID', 'COMPLETED', 'PROCESSING', 'DELIVERED'])
                         ->count();
                     $actualUsed = max($userUsageCount, $orderUsageCount);
 
@@ -290,8 +290,8 @@ class PaymentController extends Controller
 
     public function createVnPayPayment(Request $request, string $orderCode): JsonResponse
     {
-        $order = Order::where('order_code', $orderCode)
-            ->where('user_id', $request->user()->id)
+        $order = DonHang::where('ma_don_hang', $orderCode)
+            ->where('nguoi_dung_id', $request->user()->id)
             ->firstOrFail();
         if ($order->payment_method_code !== 'vnpay' || $order->status !== 'PENDING_PAYMENT') {
             return response()->json(['success' => false, 'message' => 'Đơn hàng không thể thanh toán qua VNPay.'], 422);
@@ -311,8 +311,8 @@ class PaymentController extends Controller
         if (!$txnRef || !str_starts_with($txnRef, 'SP')) {
             do {
                 $txnRef = 'SP' . random_int(100000, 999999);
-            } while (Order::where('payment_reference', $txnRef)->exists());
-            $order->update(['payment_reference' => $txnRef]);
+            } while (DonHang::where('ma_giao_dich_thanh_toan', $txnRef)->exists());
+            $order->update(['ma_giao_dich_thanh_toan' => $txnRef]);
         }
 
         $inputData = [
@@ -376,81 +376,83 @@ class PaymentController extends Controller
                     $couponId = $checkoutData['coupon_id'] ?? null;
                     $discount = $checkoutData['discount'] ?? 0;
                     if ($couponId) {
-                        $coupon = Coupon::find($couponId);
-                        $usedCount = CouponUsage::where('coupon_id', $couponId)->where('user_id', $checkoutData['user_id'])->where('status', 'USED')->count();
-                        $orderUsedCount = Order::where('coupon_id', $couponId)->where('user_id', $checkoutData['user_id'])->whereIn('status', ['PAID', 'COMPLETED', 'PROCESSING'])->count();
+                        $coupon = MaGiamGia::find($couponId);
+                        $usedCount = LichSuDungMaGiamGia::where('ma_giam_gia_id', $couponId)->where('nguoi_dung_id', $checkoutData['user_id'])->where('trang_thai', 'USED')->count();
+                        $orderUsedCount = DonHang::where('ma_giam_gia_id', $couponId)->where('nguoi_dung_id', $checkoutData['user_id'])->whereIn('trang_thai', ['PAID', 'COMPLETED', 'PROCESSING'])->count();
                         if (!$coupon || max($usedCount, $orderUsedCount) >= $coupon->usage_per_user) {
                             $couponId = null;
                             $discount = 0;
                         }
                     }
 
-                    $order = Order::create([
-                        'order_code' => 'ORD-' . strtoupper(Str::random(12)),
-                        'user_id' => $checkoutData['user_id'],
-                        'status' => 'COMPLETED',
-                        'subtotal' => $checkoutData['subtotal'],
-                        'discount_total' => $discount,
-                        'total' => max(0, $checkoutData['subtotal'] - $discount),
-                        'coupon_id' => $couponId,
-                        'coupon_code' => $couponId ? ($checkoutData['coupon_code'] ?? null) : null,
-                        'payment_method_code' => 'vnpay',
-                        'payment_reference' => $transactionNo,
-                        'customer_note' => $checkoutData['customer_notes'],
-                        'expires_at' => now()->addMinutes(30),
-                        'paid_at' => now(),
-                        'completed_at' => now(),
-                        'ip_address' => $checkoutData['ip'] ?? null,
+                    $order = DonHang::create([
+                        'ma_don_hang' => 'ORD-' . strtoupper(Str::random(12)),
+                        'nguoi_dung_id' => $checkoutData['user_id'],
+                        'trang_thai' => 'COMPLETED',
+                        'tam_tinh' => $checkoutData['subtotal'],
+                        'tong_giam_gia' => $discount,
+                        'tong_tien' => max(0, $checkoutData['subtotal'] - $discount),
+                        'ma_giam_gia_id' => $couponId,
+                        'ma_giam_gia_luu_lai' => $couponId ? ($checkoutData['coupon_code'] ?? null) : null,
+                        'phuong_thuc_thanh_toan' => 'vnpay',
+                        'ma_giao_dich_thanh_toan' => $transactionNo,
+                        'ghi_chu_khach_hang' => $checkoutData['customer_notes'],
+                        'het_han_thanh_toan_luc' => now()->addMinutes(30),
+                        'thanh_toan_luc' => now(),
+                        'hoan_thanh_luc' => now(),
+                        'dia_chi_ip' => $checkoutData['ip'] ?? null,
                     ]);
 
                     foreach ($checkoutData['items'] as $itemData) {
                         if ($itemData['item_type'] === 'ACCOUNT') {
                             foreach ($itemData['account_ids'] as $accId) {
-                                $orderItem = OrderItem::create([
-                                    'order_id' => $order->id,
-                                    'product_id' => $itemData['product_id'],
-                                    'variant_id' => $itemData['variant_id'],
-                                    'game_account_id' => $accId,
-                                    'item_type' => 'ACCOUNT',
-                                    'product_name' => $itemData['product_name'],
-                                    'variant_name' => $itemData['variant_name'],
-                                    'thumbnail_url' => $itemData['thumbnail_url'],
-                                    'unit_price' => $itemData['unit_price'],
-                                    'quantity' => 1,
-                                    'line_total' => $itemData['unit_price'],
-                                    'warranty_policy_id' => $itemData['warranty_policy_id'],
-                                    'warranty_expires_at' => !empty($itemData['warranty_duration_days'])
+                                $orderItem = ChiTietDonHang::create([
+                                    'don_hang_id' => $order->id,
+                                    'san_pham_id' => $itemData['product_id'],
+                                    'bien_the_id' => $itemData['variant_id'],
+                                    'tai_khoan_game_id' => $accId,
+                                    'loai_muc' => 'ACCOUNT',
+                                    'ten_san_pham_luu_lai' => $itemData['product_name'],
+                                    'ten_bien_the_luu_lai' => $itemData['variant_name'],
+                                    'anh_san_pham_luu_lai' => $itemData['thumbnail_url'],
+                                    'don_gia' => $itemData['unit_price'],
+                                    'so_luong' => 1,
+                                    'thanh_tien' => $itemData['unit_price'],
+                                    'chinh_sach_bao_hanh_id' => $itemData['warranty_policy_id'],
+                                    'het_han_bao_hanh_luc' => !empty($itemData['warranty_duration_days'])
                                         ? now()->addDays($itemData['warranty_duration_days'])
                                         : null,
-                                    'fulfillment_status' => 'DELIVERED',
-                                    'delivered_at' => now(),
+                                    'trang_thai_giao_hang' => 'DELIVERED',
+                                    'giao_hang_luc' => now(),
+                                    'ngay_tao' => now(),
                                 ]);
 
-                                GameAccount::whereKey($accId)->update([
-                                    'status' => 'SOLD',
-                                    'sold_at' => now(),
-                                    'sold_order_item_id' => $orderItem->id,
-                                    'reserved_by_order_id' => null,
-                                    'reserved_until' => null,
+                                TaiKhoanGame::whereKey($accId)->update([
+                                    'trang_thai' => 'SOLD',
+                                    'ban_luc' => now(),
+                                    'chi_tiet_don_hang_id' => $orderItem->id,
+                                    'giu_cho_boi_don_hang_id' => null,
+                                    'giu_cho_den_khi' => null,
                                 ]);
                             }
-                            \App\Models\ProductVariant::whereKey($itemData['variant_id'])->update([
-                                'stock_quantity' => GameAccount::where('variant_id', $itemData['variant_id'])->where('status', 'AVAILABLE')->count(),
+                            \App\Models\BienTheSanPham::whereKey($itemData['variant_id'])->update([
+                                'so_luong_kho' => TaiKhoanGame::where('bien_the_id', $itemData['variant_id'])->where('trang_thai', 'AVAILABLE')->count(),
                             ]);
                         } else {
-                            $orderItem = OrderItem::create([
-                                'order_id' => $order->id,
-                                'product_id' => $itemData['product_id'],
-                                'variant_id' => $itemData['variant_id'],
-                                'item_type' => 'SERVICE',
-                                'product_name' => $itemData['product_name'],
-                                'variant_name' => $itemData['variant_name'],
-                                'thumbnail_url' => $itemData['thumbnail_url'],
-                                'unit_price' => $itemData['unit_price'],
-                                'quantity' => $itemData['quantity'],
-                                'line_total' => $itemData['line_total'],
-                                'warranty_policy_id' => $itemData['warranty_policy_id'],
-                                'fulfillment_status' => 'PENDING',
+                            $orderItem = ChiTietDonHang::create([
+                                'don_hang_id' => $order->id,
+                                'san_pham_id' => $itemData['product_id'],
+                                'bien_the_id' => $itemData['variant_id'],
+                                'loai_muc' => 'SERVICE',
+                                'ten_san_pham_luu_lai' => $itemData['product_name'],
+                                'ten_bien_the_luu_lai' => $itemData['variant_name'],
+                                'anh_san_pham_luu_lai' => $itemData['thumbnail_url'],
+                                'don_gia' => $itemData['unit_price'],
+                                'so_luong' => $itemData['quantity'],
+                                'thanh_tien' => $itemData['line_total'],
+                                'chinh_sach_bao_hanh_id' => $itemData['warranty_policy_id'],
+                                'trang_thai_giao_hang' => 'PENDING',
+                                'ngay_tao' => now(),
                             ]);
 
                             $serviceData = $itemData['service_data'] ?? null;
@@ -460,11 +462,11 @@ class PaymentController extends Controller
                                 if (!empty($serviceData['game_password'])) $loginInfo['password'] = $serviceData['game_password'];
                                 if (!empty($serviceData['two_factor'])) $loginInfo['two_factor'] = $serviceData['two_factor'];
 
-                                \App\Models\ServiceRequest::create([
-                                    'request_code' => 'SRV-' . strtoupper(Str::random(8)),
-                                    'order_item_id' => $orderItem->id,
-                                    'user_id' => $checkoutData['user_id'],
-                                    'form_data' => [
+                                \App\Models\YeuCauDichVu::create([
+                                    'ma_yeu_cau' => 'SRV-' . strtoupper(Str::random(8)),
+                                    'chi_tiet_don_hang_id' => $orderItem->id,
+                                    'nguoi_dung_id' => $checkoutData['user_id'],
+                                    'du_lieu_bieu_mau' => [
                                         'server' => $serviceData['server'] ?? null,
                                         'ingame_name' => $serviceData['ingame_name'] ?? null,
                                         'current_rank' => $serviceData['current_rank'] ?? null,
@@ -472,25 +474,28 @@ class PaymentController extends Controller
                                         'target_hero' => $serviceData['target_hero'] ?? null,
                                         'variant_name' => $itemData['variant_name'] ?? null,
                                     ],
-                                    'game_login_enc' => !empty($loginInfo) ? \Illuminate\Support\Facades\Crypt::encryptString(json_encode($loginInfo)) : null,
-                                    'customer_note' => $serviceData['notes'] ?? $checkoutData['customer_notes'] ?? null,
-                                    'status' => 'PENDING',
+                                    'thong_tin_dang_nhap_ma_hoa' => !empty($loginInfo) ? \Illuminate\Support\Facades\Crypt::encryptString(json_encode($loginInfo)) : null,
+                                    'ghi_chu_khach_hang' => $serviceData['notes'] ?? $checkoutData['customer_notes'] ?? null,
+                                    'trang_thai' => 'PENDING',
+                                    'ngay_tao' => now(),
                                 ]);
                             }
                         }
                     }
 
                     if (!empty($couponId)) {
-                        CouponUsage::create([
-                            'coupon_id' => $couponId,
-                            'user_id' => $checkoutData['user_id'],
-                            'order_id' => $order->id,
-                            'discount_amount' => $discount,
+                        LichSuDungMaGiamGia::create([
+                            'ma_giam_gia_id' => $couponId,
+                            'nguoi_dung_id' => $checkoutData['user_id'],
+                            'don_hang_id' => $order->id,
+                            'so_tien_giam' => $discount,
+                            'trang_thai' => 'USED',
+                            'thoi_gian_dung' => now(),
                         ]);
-                        Coupon::whereKey($couponId)->increment('used_count');
+                        MaGiamGia::whereKey($couponId)->increment('so_lan_da_dung');
                     }
 
-                    Cart::where('user_id', $checkoutData['user_id'])->first()?->items()->delete();
+                    GioHang::where('nguoi_dung_id', $checkoutData['user_id'])->first()?->items()->delete();
 
                     return $order;
                 });
@@ -507,16 +512,16 @@ class PaymentController extends Controller
             } else {
                 // Thanh toán thất bại hoặc người dùng huỷ => KHÔNG TẠO ORDER!
                 if (!empty($checkoutData['reserved_account_ids'])) {
-                    GameAccount::whereIn('id', $checkoutData['reserved_account_ids'])
-                        ->where('status', 'RESERVED')
+                    TaiKhoanGame::whereIn('id', $checkoutData['reserved_account_ids'])
+                        ->where('trang_thai', 'RESERVED')
                         ->update([
                             'status' => 'AVAILABLE',
                             'reserved_until' => null,
                         ]);
                     foreach ($checkoutData['items'] as $itemData) {
                         if ($itemData['item_type'] === 'ACCOUNT') {
-                            \App\Models\ProductVariant::whereKey($itemData['variant_id'])->update([
-                                'stock_quantity' => GameAccount::where('variant_id', $itemData['variant_id'])->where('status', 'AVAILABLE')->count(),
+                            \App\Models\BienTheSanPham::whereKey($itemData['variant_id'])->update([
+                                'stock_quantity' => TaiKhoanGame::where('bien_the_id', $itemData['variant_id'])->where('trang_thai', 'AVAILABLE')->count(),
                             ]);
                         }
                     }
@@ -532,7 +537,7 @@ class PaymentController extends Controller
         }
 
         // Trường hợp 2: Đơn hàng đã tồn tại trước đó (tương thích ngược)
-        $order = Order::where('payment_reference', $txnRef)->first();
+        $order = DonHang::where('ma_giao_dich_thanh_toan', $txnRef)->first();
         $orderCode = $order?->order_code ?? '';
         $validPayment = $order
             && $order->payment_method_code === 'vnpay'
@@ -542,11 +547,11 @@ class PaymentController extends Controller
 
         if ($validPayment && $order->status === 'PENDING_PAYMENT') {
             $this->settleOrder($order);
-            $order->update(['payment_reference' => $transactionNo]);
+            $order->update(['ma_giao_dich_thanh_toan' => $transactionNo]);
         }
         $result = $validPayment && $order->refresh()->isPaid() ? 'success' : 'fail';
         if ($order && $result === 'fail' && $order->status === 'PENDING_PAYMENT') {
-            $order->update(['payment_reference' => null]);
+            $order->update(['ma_giao_dich_thanh_toan' => null]);
         }
 
         $returnData = $request->all();
@@ -557,8 +562,8 @@ class PaymentController extends Controller
 
     public function initiateZaloPayPayment(Request $request, string $orderCode): JsonResponse
     {
-        $order = Order::where('order_code', $orderCode)
-            ->where('user_id', $request->user()->id)
+        $order = DonHang::where('ma_don_hang', $orderCode)
+            ->where('nguoi_dung_id', $request->user()->id)
             ->firstOrFail();
         if ($order->payment_method_code !== 'zalopay' || $order->status !== 'PENDING_PAYMENT') {
             return response()->json(['success' => false, 'message' => 'Đơn hàng không thể thanh toán qua ZaloPay.'], 422);
@@ -596,7 +601,7 @@ class PaymentController extends Controller
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $transID = random_int(0, 1000000);
         $appTransId = now('Asia/Ho_Chi_Minh')->format('ymd') . '_' . $transID;
-        while (Order::where('payment_reference', $appTransId)->exists()) {
+        while (DonHang::where('ma_giao_dich_thanh_toan', $appTransId)->exists()) {
             $transID = random_int(0, 1000000);
             $appTransId = now('Asia/Ho_Chi_Minh')->format('ymd') . '_' . $transID;
         }
@@ -618,9 +623,9 @@ class PaymentController extends Controller
             . '|' . $zaloOrder['app_time'] . '|' . $zaloOrder['embed_data'] . '|' . $zaloOrder['item'];
         $zaloOrder['mac'] = hash_hmac('sha256', $macData, $config['key1']);
 
-        $order = Order::find($validated['order_id'] ?? 0);
+        $order = DonHang::find($validated['order_id'] ?? 0);
         if ($order) {
-            $order->update(['payment_reference' => $appTransId]);
+            $order->update(['ma_giao_dich_thanh_toan' => $appTransId]);
         }
         $zaloUrl = rtrim($config['endpoint'], '/') . '/v2/create';
 
@@ -632,7 +637,7 @@ class PaymentController extends Controller
             }
         } catch (\Throwable $exception) {
             if ($order) {
-                Order::whereKey($order->id)->where('payment_reference', $appTransId)->update(['payment_reference' => null]);
+                DonHang::whereKey($order->id)->where('ma_giao_dich_thanh_toan', $appTransId)->update(['ma_giao_dich_thanh_toan' => null]);
             }
             Log::error('ZaloPay API call failed', ['url' => $zaloUrl, 'error' => $exception->getMessage()]);
             return ['success' => false, 'message' => 'Không thể kết nối ZaloPay: ' . $exception->getMessage(), '_http_status' => 502];
@@ -648,7 +653,7 @@ class PaymentController extends Controller
         }
 
         if ($order) {
-            Order::whereKey($order->id)->where('payment_reference', $appTransId)->update(['payment_reference' => null]);
+            DonHang::whereKey($order->id)->where('ma_giao_dich_thanh_toan', $appTransId)->update(['ma_giao_dich_thanh_toan' => null]);
         }
         Log::error('ZaloPay order creation failed', [
             'url' => $zaloUrl,
@@ -678,8 +683,8 @@ class PaymentController extends Controller
         if (!is_array($data)) {
             return response()->json(['return_code' => 2, 'return_message' => 'Dữ liệu callback không hợp lệ.'], 422);
         }
-        $order = Order::where('payment_reference', $data['app_trans_id'] ?? '')
-            ->where('payment_method_code', 'zalopay')
+        $order = DonHang::where('ma_giao_dich_thanh_toan', $data['app_trans_id'] ?? '')
+            ->where('phuong_thuc_thanh_toan', 'zalopay')
             ->first();
         if (!$order
             || (int) ($data['app_id'] ?? 0) !== (int) config('zalopay.appid')
@@ -718,8 +723,8 @@ class PaymentController extends Controller
             ]));
         }
 
-        $order = Order::where('payment_reference', (string) $params['apptransid'])
-            ->where('payment_method_code', 'zalopay')
+        $order = DonHang::where('ma_giao_dich_thanh_toan', (string) $params['apptransid'])
+            ->where('phuong_thuc_thanh_toan', 'zalopay')
             ->first();
         if (!$order) {
             return redirect($frontendUrl . '?' . http_build_query([
@@ -731,15 +736,15 @@ class PaymentController extends Controller
         return redirect($frontendUrl . '?' . http_build_query($params));
     }
 
-    private function settleOrder(Order $order): void
+    private function settleOrder(DonHang $order): void
     {
         DB::transaction(function () use ($order) {
-            $order = Order::whereKey($order->id)->lockForUpdate()->with('items')->firstOrFail();
+            $order = DonHang::whereKey($order->id)->lockForUpdate()->with('items')->firstOrFail();
             if ($order->status !== 'PENDING_PAYMENT') return;
             $hasService = false;
             foreach ($order->items as $item) {
                 if ($item->game_account_id) {
-                    GameAccount::whereKey($item->game_account_id)->where('status', 'RESERVED')->update([
+                    TaiKhoanGame::whereKey($item->game_account_id)->where('trang_thai', 'RESERVED')->update([
                         'status' => 'SOLD', 'sold_at' => now(), 'reserved_by_order_id' => null,
                         'reserved_until' => null, 'sold_order_item_id' => $item->id,
                     ]);
@@ -761,8 +766,8 @@ class PaymentController extends Controller
      */
     public function checkStatus(Request $request, string $orderCode): JsonResponse
     {
-        $order = Order::where('order_code', $orderCode)
-            ->where('user_id', $request->user()->id)
+        $order = DonHang::where('ma_don_hang', $orderCode)
+            ->where('nguoi_dung_id', $request->user()->id)
             ->firstOrFail();
 
         return response()->json([
@@ -780,8 +785,8 @@ class PaymentController extends Controller
      */
     public function mockPay(Request $request, string $orderCode): JsonResponse
     {
-        $order = Order::where('order_code', $orderCode)
-            ->where('user_id', $request->user()->id)
+        $order = DonHang::where('ma_don_hang', $orderCode)
+            ->where('nguoi_dung_id', $request->user()->id)
             ->with(['items.product'])
             ->firstOrFail();
 
@@ -804,3 +809,4 @@ class PaymentController extends Controller
         ]);
     }
 }
+

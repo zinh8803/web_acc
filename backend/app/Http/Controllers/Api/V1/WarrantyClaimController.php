@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\OrderItem;
-use App\Models\WarrantyClaim;
-use App\Models\WarrantyPolicy;
+use App\Models\ChiTietDonHang;
+use App\Models\YeuCauBaoHanh;
+use App\Models\ChinhSachBaoHanh;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -14,7 +14,7 @@ class WarrantyClaimController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $claims = WarrantyClaim::where('user_id', $request->user()->id)
+        $claims = YeuCauBaoHanh::where('nguoi_dung_id', $request->user()->id)
             ->with(['orderItem.order', 'orderItem.product', 'policy', 'assignedStaff'])
             ->orderByDesc('id')
             ->paginate($request->integer('per_page', 15));
@@ -27,10 +27,10 @@ class WarrantyClaimController extends Controller
 
     public function show(Request $request, string $claimCode): JsonResponse
     {
-        $claim = WarrantyClaim::where(function ($q) use ($claimCode) {
-                $q->where('claim_code', $claimCode)->orWhere('id', $claimCode);
+        $claim = YeuCauBaoHanh::where(function ($q) use ($claimCode) {
+                $q->where('ma_yeu_cau_bao_hanh', $claimCode)->orWhere('id', $claimCode);
             })
-            ->where('user_id', $request->user()->id)
+            ->where('nguoi_dung_id', $request->user()->id)
             ->with(['orderItem.order', 'orderItem.product', 'orderItem.gameAccount', 'policy', 'assignedStaff'])
             ->firstOrFail();
 
@@ -43,13 +43,13 @@ class WarrantyClaimController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'order_item_id' => 'required|exists:order_items,id',
+            'order_item_id' => 'required|exists:chi_tiet_don_hang,id',
             'claim_type' => 'nullable|string',
             'reason' => 'nullable|string',
             'description' => 'required|string|max:2000',
         ]);
 
-        $item = OrderItem::with(['order', 'product.warrantyPolicy', 'warrantyPolicy'])->findOrFail($validated['order_item_id']);
+        $item = ChiTietDonHang::with(['order', 'product.warrantyPolicy', 'warrantyPolicy'])->findOrFail($validated['order_item_id']);
 
         if ($item->order->user_id !== $request->user()->id) {
             return response()->json(['success' => false, 'message' => 'Bạn không có quyền khiếu nại sản phẩm này.'], 403);
@@ -60,28 +60,28 @@ class WarrantyClaimController extends Controller
         }
 
         // Kiểm tra xem đã có khiếu nại đang xử lý cho sản phẩm này chưa
-        $existingPendingClaim = WarrantyClaim::where('order_item_id', $item->id)
-            ->whereIn('status', ['SUBMITTED', 'IN_REVIEW', 'NEED_INFO'])
+        $existingPendingClaim = YeuCauBaoHanh::where('chi_tiet_don_hang_id', $item->id)
+            ->whereIn('trang_thai', ['SUBMITTED', 'IN_REVIEW', 'NEED_INFO'])
             ->first();
         if ($existingPendingClaim) {
             return response()->json([
                 'success' => false,
-                'message' => 'Sản phẩm này đang có một yêu cầu bảo hành đang được xử lý (Mã: ' . $existingPendingClaim->claim_code . ').'
+                'message' => 'Sản phẩm này đang có một yêu cầu bảo hành đang được xử lý (Mã: ' . ($existingPendingClaim->ma_yeu_cau_bao_hanh ?: $existingPendingClaim->claim_code) . ').'
             ], 422);
         }
 
         // Kiểm tra thời hạn bảo hành
-        if ($item->warranty_expires_at && now()->gt($item->warranty_expires_at)) {
+        if ($item->het_han_bao_hanh_luc && now()->gt($item->het_han_bao_hanh_luc)) {
             return response()->json(['success' => false, 'message' => 'Sản phẩm đã hết thời hạn bảo hành.'], 422);
         }
 
         // Lấy Policy
         $policy = $item->warrantyPolicy ?: $item->product?->warrantyPolicy;
         if (!$policy) {
-            $defaultCode = $item->item_type === 'SERVICE' ? 'WAR-SRV-COMPLETION' : 'WAR-ACC-LIFETIME';
-            $policy = WarrantyPolicy::where('code', $defaultCode)->first();
+            $defaultCode = $item->loai_muc === 'SERVICE' ? 'WAR-SRV-COMPLETION' : 'WAR-ACC-LIFETIME';
+            $policy = ChinhSachBaoHanh::where('ma_chinh_sach', $defaultCode)->first();
             if (!$policy) {
-                $policy = WarrantyPolicy::first();
+                $policy = ChinhSachBaoHanh::first();
             }
         }
 
@@ -103,19 +103,19 @@ class WarrantyClaimController extends Controller
             $claimType = 'OTHER';
         }
 
-        $slaHours = $policy?->claim_sla_hours ?? 24;
+        $slaHours = $policy?->thoi_gian_xu_ly_gio ?? $policy?->claim_sla_hours ?? 24;
 
-        $claim = WarrantyClaim::create([
-            'claim_code' => 'WAR-' . strtoupper(Str::random(8)),
-            'order_item_id' => $item->id,
-            'user_id' => $request->user()->id,
-            'game_account_id' => $item->game_account_id,
-            'policy_id' => $policy->id,
-            'claim_type' => $claimType,
-            'description' => $validated['description'],
-            'status' => 'SUBMITTED',
-            'due_at' => now()->addHours($slaHours),
-            'submitted_at' => now(),
+        $claim = YeuCauBaoHanh::create([
+            'ma_yeu_cau_bao_hanh' => 'WAR-' . strtoupper(Str::random(8)),
+            'chi_tiet_don_hang_id' => $item->id,
+            'nguoi_dung_id' => $request->user()->id,
+            'tai_khoan_game_id' => $item->tai_khoan_game_id,
+            'chinh_sach_bao_hanh_id' => $policy?->id,
+            'loai_yeu_cau' => $claimType,
+            'mo_ta_su_co' => $validated['description'],
+            'trang_thai' => 'SUBMITTED',
+            'han_xu_ly' => now()->addHours($slaHours),
+            'ngay_gui_yeu_cau' => now(),
         ]);
 
         return response()->json([

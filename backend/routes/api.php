@@ -34,7 +34,6 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('v1')->group(function () {
-
     // ==================== PUBLIC AUTH ====================
     Route::prefix('auth')->group(function () {
         Route::post('register', [AuthController::class, 'register']);
@@ -70,10 +69,9 @@ Route::prefix('v1')->group(function () {
 
         // Profile
         Route::get('me', [AuthController::class, 'me']);
+        Route::get('auth/me', [AuthController::class, 'me']); // alias
         Route::patch('me', [AuthController::class, 'updateMe']);
         Route::patch('me/password', [AuthController::class, 'changePassword']);
-        Route::get('me/sessions', [AuthController::class, 'sessions']);
-        Route::delete('me/sessions/{id}', [AuthController::class, 'revokeSession']);
 
         // Cart (acc only)
         Route::get('cart', [CartController::class, 'show']);
@@ -109,6 +107,9 @@ Route::prefix('v1')->group(function () {
         Route::post('warranty-claims', [WarrantyClaimController::class, 'store']);
         Route::get('warranty-claims', [WarrantyClaimController::class, 'index']);
         Route::get('warranty-claims/{code}', [WarrantyClaimController::class, 'show']);
+        Route::post('warranties/claims', [WarrantyClaimController::class, 'store']); // alias
+        Route::get('warranties/claims', [WarrantyClaimController::class, 'index']); // alias
+        Route::get('warranties/claims/{code}', [WarrantyClaimController::class, 'show']); // alias
 
         // Reviews
         Route::post('reviews', [ReviewController::class, 'store']);
@@ -183,7 +184,8 @@ Route::prefix('v1')->group(function () {
             // Audit Logs
             Route::get('audit-logs', [AdminAuditLogController::class, 'index']);
 
-            // Reports
+            // Reports & Dashboard
+            Route::get('dashboard', [AdminReportController::class, 'dashboard']);
             Route::get('reports/revenue', [AdminReportController::class, 'revenue']);
             Route::get('reports/products', [AdminReportController::class, 'products']);
             Route::get('reports/warranty', [AdminReportController::class, 'warranty']);

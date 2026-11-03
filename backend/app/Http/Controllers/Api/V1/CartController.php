@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Cart;
-use App\Models\CartItem;
-use App\Models\Coupon;
-use App\Models\CouponUsage;
-use App\Models\GameAccount;
-use App\Models\ProductVariant;
+use App\Models\GioHang;
+use App\Models\ChiTietGioHang;
+use App\Models\MaGiamGia;
+use App\Models\LichSuDungMaGiamGia;
+use App\Models\TaiKhoanGame;
+use App\Models\BienTheSanPham;
+use App\Models\DonHang;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,8 +20,8 @@ class CartController extends Controller
      */
     public function show(Request $request): JsonResponse
     {
-        $cart = Cart::firstOrCreate(['user_id' => $request->user()->id]);
-        $cart->load(['items.variant.product.primaryImage', 'items.variant.product.game', 'items.gameAccount']);
+        $cart = GioHang::firstOrCreate(['nguoi_dung_id' => $request->user()->id]);
+        $cart->load(['items.variant.product.primaryImage', 'items.gameAccount']);
 
         return $this->success($cart);
     }
@@ -31,19 +32,19 @@ class CartController extends Controller
     public function addItem(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'variant_id' => 'required|integer|exists:product_variants,id',
-            'game_account_id' => 'nullable|integer|exists:game_accounts,id',
+            'variant_id' => 'required|integer|exists:bien_the_san_pham,id',
+            'game_account_id' => 'nullable|integer|exists:tai_khoan_game,id',
             'quantity' => 'sometimes|integer|min:1|max:10',
         ]);
 
-        $variant = ProductVariant::with('product')->findOrFail($request->variant_id);
+        $variant = BienTheSanPham::with('product')->findOrFail($request->variant_id);
 
         if ($variant->product->status !== 'ACTIVE' || $variant->status !== 'ACTIVE') {
             return $this->error('Sản phẩm hoặc gói dịch vụ này hiện không khả dụng.', 422, 'UNAVAILABLE');
         }
 
         if ($variant->product->type === 'ACCOUNT') {
-            $availableStock = GameAccount::where('variant_id', $variant->id)->where('status', 'AVAILABLE')->count();
+            $availableStock = TaiKhoanGame::where('bien_the_id', $variant->id)->where('trang_thai', 'AVAILABLE')->count();
             if ($availableStock <= 0) {
                 return $this->error('Sản phẩm tài khoản này đã hết hàng.', 422, 'OUT_OF_STOCK');
             }
@@ -51,30 +52,30 @@ class CartController extends Controller
 
         $account = null;
         if (!empty($validated['game_account_id'])) {
-            $account = GameAccount::whereKey($validated['game_account_id'])
-                ->where('product_id', $variant->product_id)
-                ->where('variant_id', $variant->id)
-                ->where('status', 'AVAILABLE')
+            $account = TaiKhoanGame::whereKey($validated['game_account_id'])
+                ->where('san_pham_id', $variant->san_pham_id)
+                ->where('bien_the_id', $variant->id)
+                ->where('trang_thai', 'AVAILABLE')
                 ->first();
             if (!$account) {
                 return $this->error('Tài khoản này vừa được người khác chọn hoặc đã hết hàng.', 409, 'ACCOUNT_UNAVAILABLE');
             }
         }
 
-        $cart = Cart::firstOrCreate(['user_id' => $request->user()->id]);
+        $cart = GioHang::firstOrCreate(['nguoi_dung_id' => $request->user()->id]);
 
         $item = $account
-            ? CartItem::firstOrCreate(
-                ['cart_id' => $cart->id, 'game_account_id' => $account->id],
-                ['variant_id' => $variant->id, 'quantity' => 1]
+            ? ChiTietGioHang::firstOrCreate(
+                ['gio_hang_id' => $cart->id, 'tai_khoan_game_id' => $account->id],
+                ['bien_the_id' => $variant->id, 'so_luong' => 1]
             )
-            : CartItem::firstOrCreate(
-                ['cart_id' => $cart->id, 'variant_id' => $variant->id, 'game_account_id' => null],
-                ['quantity' => $validated['quantity'] ?? 1]
+            : ChiTietGioHang::firstOrCreate(
+                ['gio_hang_id' => $cart->id, 'bien_the_id' => $variant->id, 'tai_khoan_game_id' => null],
+                ['so_luong' => $validated['quantity'] ?? 1]
             );
 
         if (!$account && !$item->wasRecentlyCreated) {
-            $item->increment('quantity', $validated['quantity'] ?? 1);
+            $item->increment('so_luong', $validated['quantity'] ?? 1);
         }
 
         $item->load(['variant.product.primaryImage', 'gameAccount']);
@@ -83,22 +84,22 @@ class CartController extends Controller
     }
 
     /** Update an item quantity in the authenticated user's cart. */
-    public function updateItem(Request $request, CartItem $item): JsonResponse
+    public function updateItem(Request $request, ChiTietGioHang $item): JsonResponse
     {
         $validated = $request->validate([
             'quantity' => 'required|integer|min:1|max:10',
         ]);
 
-        $cart = Cart::where('user_id', $request->user()->id)->firstOrFail();
-        if ($item->cart_id !== $cart->id) {
+        $cart = GioHang::where('nguoi_dung_id', $request->user()->id)->firstOrFail();
+        if ($item->gio_hang_id !== $cart->id) {
             return $this->error('Không tìm thấy sản phẩm trong giỏ hàng.', 404);
         }
 
-        if ($item->game_account_id && $validated['quantity'] !== 1) {
+        if ($item->tai_khoan_game_id && $validated['quantity'] !== 1) {
             return $this->error('Mỗi tài khoản game là một sản phẩm riêng, số lượng luôn là 1.', 422);
         }
 
-        $item->update(['quantity' => $validated['quantity']]);
+        $item->update(['so_luong' => $validated['quantity']]);
         $item->load('variant.product.primaryImage');
 
         return $this->success($item);
@@ -107,11 +108,11 @@ class CartController extends Controller
     /**
      * Remove item from cart.
      */
-    public function removeItem(Request $request, CartItem $item): JsonResponse
+    public function removeItem(Request $request, ChiTietGioHang $item): JsonResponse
     {
-        $cart = Cart::where('user_id', $request->user()->id)->firstOrFail();
+        $cart = GioHang::where('nguoi_dung_id', $request->user()->id)->firstOrFail();
 
-        if ($item->cart_id !== $cart->id) {
+        if ($item->gio_hang_id !== $cart->id) {
             return $this->error('Không tìm thấy sản phẩm trong giỏ hàng.', 404);
         }
 
@@ -131,8 +132,8 @@ class CartController extends Controller
         ]);
 
         $user = $request->user();
-        $coupon = Coupon::where('code', strtoupper($request->code))
-            ->where('status', 'ACTIVE')
+        $coupon = MaGiamGia::where('ma_khuyen_mai', strtoupper($request->code))
+            ->where('trang_thai', 'ACTIVE')
             ->first();
 
         if (!$coupon) {
@@ -140,41 +141,41 @@ class CartController extends Controller
         }
 
         // Check time validity
-        if ($coupon->starts_at && now()->lt($coupon->starts_at)) {
-            return $this->error('Mã giảm giá chưa đến ngày áp dụng (bắt đầu từ: ' . $coupon->starts_at->format('d/m/Y H:i') . ').', 422, 'COUPON_NOT_STARTED');
+        if ($coupon->bat_dau_luc && now()->lt($coupon->bat_dau_luc)) {
+            return $this->error('Mã giảm giá chưa đến ngày áp dụng.', 422, 'COUPON_NOT_STARTED');
         }
 
-        if ($coupon->ends_at && now()->gt($coupon->ends_at)) {
-            return $this->error('Mã giảm giá đã hết hạn sử dụng (hạn chót: ' . $coupon->ends_at->format('d/m/Y H:i') . ').', 422, 'COUPON_EXPIRED');
+        if ($coupon->ket_thuc_luc && now()->gt($coupon->ket_thuc_luc)) {
+            return $this->error('Mã giảm giá đã hết hạn sử dụng.', 422, 'COUPON_EXPIRED');
         }
 
         // Check usage limit
-        if ($coupon->usage_limit && $coupon->used_count >= $coupon->usage_limit) {
+        if ($coupon->gioi_han_tong_luot_dung && $coupon->so_luot_da_dung >= $coupon->gioi_han_tong_luot_dung) {
             return $this->error('Mã giảm giá đã hết lượt sử dụng.', 422, 'COUPON_USED_UP');
         }
 
         // Check per-user limit strictly (both coupon_usages and paid orders)
-        $userUsageCount = \App\Models\CouponUsage::where('coupon_id', $coupon->id)
-            ->where('user_id', $user->id)
-            ->where('status', 'USED')
+        $userUsageCount = LichSuDungMaGiamGia::where('ma_giam_gia_id', $coupon->id)
+            ->where('nguoi_dung_id', $user->id)
+            ->where('trang_thai', 'USED')
             ->count();
 
-        $orderUsageCount = \App\Models\Order::where('coupon_id', $coupon->id)
-            ->where('user_id', $user->id)
-            ->whereIn('status', ['PAID', 'COMPLETED', 'PROCESSING', 'DELIVERED'])
+        $orderUsageCount = DonHang::where('ma_giam_gia_id', $coupon->id)
+            ->where('nguoi_dung_id', $user->id)
+            ->whereIn('trang_thai', ['PAID', 'COMPLETED', 'PROCESSING', 'DELIVERED'])
             ->count();
 
         $actualUsedByUser = max($userUsageCount, $orderUsageCount);
 
-        if ($actualUsedByUser >= $coupon->usage_per_user) {
-            return $this->error('Bạn đã sử dụng mã giảm giá này rồi. Mỗi khách hàng chỉ được sử dụng ' . $coupon->usage_per_user . ' lần.', 422, 'COUPON_LIMIT_REACHED');
+        if ($actualUsedByUser >= $coupon->gioi_han_moi_nguoi) {
+            return $this->error('Bạn đã sử dụng mã giảm giá này rồi. Mỗi khách hàng chỉ được sử dụng ' . $coupon->gioi_han_moi_nguoi . ' lần.', 422, 'COUPON_LIMIT_REACHED');
         }
 
         // Check minimum order amount
         $orderTotal = (float) ($request->order_total ?? $request->subtotal ?? 0);
-        if ($orderTotal < $coupon->min_order_amount) {
+        if ($orderTotal < $coupon->gia_tri_don_toi_thieu) {
             return $this->error(
-                "Đơn hàng tối thiểu " . number_format($coupon->min_order_amount) . "đ để dùng mã này.",
+                "Đơn hàng tối thiểu " . number_format($coupon->gia_tri_don_toi_thieu) . "đ để dùng mã này.",
                 422,
                 'COUPON_MIN_ORDER'
             );
@@ -182,13 +183,13 @@ class CartController extends Controller
 
         // Calculate discount
         $discountAmount = 0;
-        if ($coupon->discount_type === 'PERCENT') {
-            $discountAmount = $orderTotal * ($coupon->discount_value / 100);
-            if ($coupon->max_discount_amount) {
-                $discountAmount = min($discountAmount, $coupon->max_discount_amount);
+        if ($coupon->loai_giam_gia === 'PERCENT') {
+            $discountAmount = $orderTotal * ($coupon->gia_tri_giam / 100);
+            if ($coupon->giam_toi_da) {
+                $discountAmount = min($discountAmount, $coupon->giam_toi_da);
             }
         } else {
-            $discountAmount = min($coupon->discount_value, $orderTotal);
+            $discountAmount = min($coupon->gia_tri_giam, $orderTotal);
         }
 
         return $this->success([

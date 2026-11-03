@@ -2,8 +2,8 @@
 
 namespace App\Mail;
 
-use App\Models\Coupon;
-use App\Models\User;
+use App\Models\MaGiamGia;
+use App\Models\NguoiDung;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
@@ -12,11 +12,11 @@ class WelcomeCouponMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public User $user;
-    public Coupon $coupon;
+    public NguoiDung $user;
+    public MaGiamGia $coupon;
     public string $storeUrl;
 
-    public function __construct(User $user, Coupon $coupon)
+    public function __construct(NguoiDung $user, MaGiamGia $coupon)
     {
         $this->user = $user;
         $this->coupon = $coupon;

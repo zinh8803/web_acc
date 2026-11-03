@@ -68,18 +68,13 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', User::class),
+            'model' => env('AUTH_MODEL', App\Models\NguoiDung::class),
         ],
 
         'admins' => [
             'driver' => 'eloquent',
-            'model' => App\Models\AdminUser::class,
+            'model' => App\Models\QuanTriVien::class,
         ],
-
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
     ],
 
     /*

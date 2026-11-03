@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Mail\OrderSuccessMail;
 use App\Mail\ServiceRequestSubmittedMail;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\ServiceRequest;
+use App\Models\DonHang;
+use App\Models\ChiTietDonHang;
+use App\Models\YeuCauDichVu;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -17,11 +17,11 @@ class OrderMailService
      * Send email to customer upon successful payment / order fulfillment.
      * Contains account credentials (if purchased accounts) and/or service confirmation (if registered boosting).
      */
-    public static function sendOrderSuccessMail(Order|int|string $order): bool
+    public static function sendOrderSuccessMail(DonHang|int|string $order): bool
     {
         try {
-            if (!$order instanceof Order) {
-                $order = Order::where('id', $order)->orWhere('order_code', $order)->first();
+            if (!$order instanceof DonHang) {
+                $order = DonHang::where('id', $order)->orWhere('ma_don_hang', $order)->first();
             }
 
             if (!$order) {
@@ -113,7 +113,7 @@ class OrderMailService
     /**
      * Send email when customer submits service request information.
      */
-    public static function sendServiceRequestMail(ServiceRequest $service): bool
+    public static function sendServiceRequestMail(YeuCauDichVu $service): bool
     {
         try {
             $service->loadMissing(['user', 'orderItem.order']);

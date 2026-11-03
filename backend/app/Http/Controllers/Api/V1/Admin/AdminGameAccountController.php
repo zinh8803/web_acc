@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditLog;
-use App\Models\GameAccount;
-use App\Models\Product;
+use App\Models\NhatKyHoatDong;
+use App\Models\TaiKhoanGame;
+use App\Models\SanPham;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Crypt;
@@ -17,23 +17,23 @@ class AdminGameAccountController extends Controller
     public function index(Request $request): JsonResponse
     {
         $filters = $request->validate([
-            'product_id' => 'nullable|integer|exists:products,id',
+            'product_id' => 'nullable|integer|exists:san_pham,id',
             'status' => 'nullable|in:AVAILABLE,RESERVED,SOLD,LOCKED,RECOVERED,RETIRED',
             'search' => 'nullable|string|max:120',
             'per_page' => 'nullable|integer|min:1|max:100',
         ]);
-        $query = GameAccount::with('product')->orderByDesc('id');
+        $query = TaiKhoanGame::with('product')->orderByDesc('id');
 
         if (!empty($filters['product_id'])) {
-            $query->where('product_id', $filters['product_id']);
+            $query->where('san_pham_id', $filters['product_id']);
         }
 
         if (!empty($filters['status'])) {
-            $query->where('status', $filters['status']);
+            $query->where('trang_thai', $filters['status']);
         }
 
         if (!empty($filters['search'])) {
-            $query->whereHas('product', fn ($products) => $products->where('name', 'like', '%' . $filters['search'] . '%'));
+            $query->whereHas('product', fn ($products) => $products->where('ten_san_pham', 'like', '%' . $filters['search'] . '%'));
         }
 
         $accounts = $query->paginate($filters['per_page'] ?? 20);
@@ -47,19 +47,19 @@ class AdminGameAccountController extends Controller
 
     public function show(Request $request, int $id): JsonResponse
     {
-        $account = GameAccount::with('product')->findOrFail($id);
+        $account = TaiKhoanGame::with('product')->findOrFail($id);
         $credentials = $account->decryptCredentials();
 
         // Audit log that an admin viewed credentials
-        AuditLog::create([
-            'actor_type' => 'ADMIN',
-            'actor_id' => $request->user()->id,
-            'action' => 'view_credentials',
-            'entity_type' => 'game_accounts',
-            'entity_id' => $account->id,
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'created_at' => now(),
+        NhatKyHoatDong::create([
+            'loai_tac_nhan' => 'ADMIN',
+            'tac_nhan_id' => $request->user()->id,
+            'hanh_dong' => 'view_credentials',
+            'loai_doi_tuong' => 'tai_khoan_game',
+            'doi_tuong_id' => $account->id,
+            'dia_chi_ip' => $request->ip(),
+            'thiet_bi_trinh_duyet' => $request->userAgent(),
+            'ngay_tao' => now(),
         ]);
 
         return response()->json([
@@ -76,7 +76,7 @@ class AdminGameAccountController extends Controller
             $request->merge(['public_details' => json_decode($request->input('public_details'), true)]);
         }
         $validated = $request->validate([
-            'product_id' => 'required|exists:products,id',
+            'product_id' => 'required|exists:san_pham,id',
             'username' => 'required|string',
             'password' => 'required|string',
             'sec_email' => 'nullable|string',
@@ -89,7 +89,7 @@ class AdminGameAccountController extends Controller
             'public_details.*.value' => 'required_with:public_details|string|max:255',
         ]);
 
-        $product = Product::with('variants')->findOrFail($validated['product_id']);
+        $product = SanPham::with('variants')->findOrFail($validated['product_id']);
         $variant = $product->variants->first();
         if (!$variant) {
             return response()->json(['success' => false, 'message' => 'Sản phẩm chưa có phiên bản để nhập kho.'], 422);
@@ -100,7 +100,7 @@ class AdminGameAccountController extends Controller
             : null;
 
         $account = DB::transaction(function () use ($validated, $product, $variant, $imageUrl) {
-            $account = GameAccount::createWithEncryption(
+            $account = TaiKhoanGame::createWithEncryption(
                 productId: $product->id,
                 variantId: $variant->id,
                 username: $validated['username'],
@@ -113,11 +113,11 @@ class AdminGameAccountController extends Controller
                 ]
             );
             $account->update([
-                'image_url' => $imageUrl,
-                'public_details' => $validated['public_details'] ?? null,
+                'anh_minh_hoa' => $imageUrl,
+                'thong_tin_cong_khai' => $validated['public_details'] ?? null,
             ]);
             $variant->update([
-                'stock_quantity' => GameAccount::where('variant_id', $variant->id)->where('status', 'AVAILABLE')->count(),
+                'so_luong_kho' => TaiKhoanGame::where('bien_the_id', $variant->id)->where('trang_thai', 'AVAILABLE')->count(),
             ]);
             return $account;
         });
@@ -131,8 +131,8 @@ class AdminGameAccountController extends Controller
 
     public function updateListing(Request $request, int $id): JsonResponse
     {
-        $account = GameAccount::findOrFail($id);
-        if ($account->status === 'SOLD') {
+        $account = TaiKhoanGame::findOrFail($id);
+        if ($account->trang_thai === 'SOLD') {
             return response()->json(['success' => false, 'message' => 'Tài khoản đã bán, không thể thay đổi thông tin.'], 422);
         }
 
@@ -146,9 +146,9 @@ class AdminGameAccountController extends Controller
             'public_details.*.value' => 'required_with:public_details|string|max:255',
         ]);
 
-        $account->public_details = $validated['public_details'] ?? [];
+        $account->thong_tin_cong_khai = $validated['public_details'] ?? [];
         if ($request->hasFile('image_file')) {
-            $account->image_url = Storage::disk('public')->url($request->file('image_file')->store('game-accounts', 'public'));
+            $account->anh_minh_hoa = Storage::disk('public')->url($request->file('image_file')->store('game-accounts', 'public'));
         }
         $account->save();
 
@@ -157,8 +157,8 @@ class AdminGameAccountController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $account = GameAccount::findOrFail($id);
-        if ($account->status === 'SOLD') {
+        $account = TaiKhoanGame::findOrFail($id);
+        if ($account->trang_thai === 'SOLD') {
             return response()->json(['success' => false, 'message' => 'Tài khoản đã bán, không thể thay đổi thông tin.'], 422);
         }
         if (is_string($request->input('public_details'))) {
@@ -177,7 +177,6 @@ class AdminGameAccountController extends Controller
             'public_details.*.value' => 'required_with:public_details|string|max:255',
         ]);
 
-        $account = GameAccount::findOrFail($id);
         $credentials = $account->decryptCredentials();
         $extra = is_array($credentials['extra'] ?? null) ? $credentials['extra'] : [];
         foreach (['sec_email', 'sec_phone', 'additional_info', 'cost_price'] as $key) {
@@ -187,20 +186,20 @@ class AdminGameAccountController extends Controller
         }
 
         if (array_key_exists('username', $validated)) {
-            $account->account_username_enc = Crypt::encryptString($validated['username']);
+            $account->ten_dang_nhap_ma_hoa = Crypt::encryptString($validated['username']);
         }
         if (array_key_exists('password', $validated)) {
-            $account->account_password_enc = Crypt::encryptString($validated['password']);
+            $account->mat_khau_ma_hoa = Crypt::encryptString($validated['password']);
         }
-        $account->extra_info_enc = $extra ? Crypt::encryptString(json_encode($extra, JSON_UNESCAPED_UNICODE)) : null;
+        $account->thong_tin_phu_ma_hoa = $extra ? Crypt::encryptString(json_encode($extra, JSON_UNESCAPED_UNICODE)) : null;
         if (array_key_exists('cost_price', $validated)) {
-            $account->cost_price = $validated['cost_price'];
+            $account->gia_nhap = $validated['cost_price'];
         }
         if (array_key_exists('public_details', $validated)) {
-            $account->public_details = $validated['public_details'] ?? [];
+            $account->thong_tin_cong_khai = $validated['public_details'] ?? [];
         }
         if ($request->hasFile('image_file')) {
-            $account->image_url = Storage::disk('public')->url($request->file('image_file')->store('game-accounts', 'public'));
+            $account->anh_minh_hoa = Storage::disk('public')->url($request->file('image_file')->store('game-accounts', 'public'));
         }
         $account->save();
 
@@ -209,19 +208,97 @@ class AdminGameAccountController extends Controller
 
     public function updateStatus(Request $request, int $id): JsonResponse
     {
-        $account = GameAccount::findOrFail($id);
+        $account = TaiKhoanGame::findOrFail($id);
 
         $validated = $request->validate([
-            'status' => 'required|in:available,reserved,sold,defective,warranty_held',
+            'status' => 'required|in:AVAILABLE,RESERVED,SOLD,LOCKED,RECOVERED,RETIRED,available,reserved,sold',
             'notes' => 'nullable|string',
         ]);
 
-        $account->update($validated);
+        $status = strtoupper($validated['status']);
+        $account->update([
+            'trang_thai' => $status,
+            'ghi_chu_noi_bo' => $validated['notes'] ?? $account->ghi_chu_noi_bo,
+        ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Đã cập nhật trạng thái kho.',
             'data' => $account,
+        ]);
+    }
+
+    public function viewCredentials(Request $request, int $id): JsonResponse
+    {
+        return $this->show($request, $id);
+    }
+
+    public function verify(Request $request, int $id): JsonResponse
+    {
+        $account = TaiKhoanGame::findOrFail($id);
+        $account->update([
+            'xac_minh_luc' => now(),
+            'nguoi_xac_minh_id' => $request->user()?->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã xác minh tài khoản thành công.',
+            'data' => $account,
+        ]);
+    }
+
+    public function lock(Request $request, int $id): JsonResponse
+    {
+        $account = TaiKhoanGame::findOrFail($id);
+        $account->update(['trang_thai' => 'LOCKED']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã khóa tài khoản thành công.',
+            'data' => $account,
+        ]);
+    }
+
+    public function import(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'product_id' => 'required|exists:san_pham,id',
+            'accounts' => 'required|array|min:1',
+            'accounts.*.username' => 'required|string',
+            'accounts.*.password' => 'required|string',
+            'accounts.*.cost_price' => 'nullable|numeric|min:0',
+            'accounts.*.additional_info' => 'nullable|string',
+        ]);
+
+        $product = SanPham::with('variants')->findOrFail($validated['product_id']);
+        $variant = $product->variants->first();
+        if (!$variant) {
+            return response()->json(['success' => false, 'message' => 'Sản phẩm chưa có phiên bản.'], 422);
+        }
+
+        $imported = 0;
+        foreach ($validated['accounts'] as $acc) {
+            TaiKhoanGame::createWithEncryption(
+                productId: $product->id,
+                variantId: $variant->id,
+                username: $acc['username'],
+                password: $acc['password'],
+                extra: [
+                    'cost_price' => $acc['cost_price'] ?? null,
+                    'additional_info' => $acc['additional_info'] ?? null,
+                ]
+            );
+            $imported++;
+        }
+
+        $variant->update([
+            'so_luong_kho' => TaiKhoanGame::where('bien_the_id', $variant->id)->where('trang_thai', 'AVAILABLE')->count(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Đã nhập thành công {$imported} tài khoản.",
         ]);
     }
 }

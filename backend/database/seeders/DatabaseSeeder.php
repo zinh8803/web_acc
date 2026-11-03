@@ -2,16 +2,15 @@
 
 namespace Database\Seeders;
 
-use App\Models\AdminUser;
-use App\Models\Banner;
-use App\Models\Category;
-use App\Models\Coupon;
-use App\Models\Game;
-use App\Models\GameAccount;
-use App\Models\Product;
-use App\Models\ProductVariant;
-use App\Models\Setting;
-use App\Models\User;
+use App\Models\QuanTriVien;
+use App\Models\BannerQuangCao;
+use App\Models\DanhMuc;
+use App\Models\MaGiamGia;
+use App\Models\TaiKhoanGame;
+use App\Models\SanPham;
+use App\Models\BienTheSanPham;
+use App\Models\CaiDat;
+use App\Models\NguoiDung;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -20,57 +19,57 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Admin User (role is stored directly on the account)
-        $admin = AdminUser::firstOrCreate(
+        // 1. Admin User
+        $admin = QuanTriVien::firstOrCreate(
             ['email' => 'admin@gamehub.vn'],
             [
-                'password_hash' => Hash::make('Admin@123456'),
-                'full_name' => 'Hệ Thống Quản Trị Viên',
-                'role' => 'SUPER_ADMIN',
-                'status' => 'ACTIVE',
+                'mat_khau_ma_hoa' => Hash::make('Admin@123456'),
+                'ho_ten' => 'Hệ Thống Quản Trị Viên',
+                'vai_tro' => 'SUPER_ADMIN',
+                'trang_thai' => 'ACTIVE',
             ]
         );
 
         // 2. Customer User
-        $customer = User::firstOrCreate(
+        $customer = NguoiDung::firstOrCreate(
             ['email' => 'customer@gamehub.vn'],
             [
-                'password_hash' => Hash::make('Customer@123456'),
-                'full_name' => 'Nguyễn Văn Khách',
-                'phone' => '0912345678',
-                'status' => 'ACTIVE',
+                'mat_khau_ma_hoa' => Hash::make('Customer@123456'),
+                'ho_ten' => 'Nguyễn Văn Khách',
+                'so_dien_thoai' => '0912345678',
+                'trang_thai' => 'ACTIVE',
             ]
         );
 
-        // 5. Categories
-        $lqCatVip = Category::updateOrCreate(['slug' => 'nick-lien-quan-vip'], [
-            'type' => 'ACCOUNT',
-            'name' => 'Nick Liên Quân VIP Rank Thách Đấu',
-            'slug' => 'nick-lien-quan-vip',
-            'description' => 'Acc full tướng, hàng trăm skin SSS Tuyệt Sắc, ngọc 90 chuẩn.',
-            'sort_order' => 1,
-            'status' => 'ACTIVE',
+        // 3. Categories
+        $lqCatVip = DanhMuc::updateOrCreate(['duong_dan_tinh' => 'nick-lien-quan-vip'], [
+            'loai_danh_muc' => 'ACCOUNT',
+            'ten_danh_muc' => 'Nick Liên Quân VIP Rank Thách Đấu',
+            'duong_dan_tinh' => 'nick-lien-quan-vip',
+            'mo_ta' => 'Acc full tướng, hàng trăm skin SSS Tuyệt Sắc, ngọc 90 chuẩn.',
+            'thu_tu_hien_thi' => 1,
+            'trang_thai' => 'ACTIVE',
         ]);
 
-        $lqCatGiaRe = Category::updateOrCreate(['slug' => 'nick-lien-quan-gia-re'], [
-            'type' => 'ACCOUNT',
-            'name' => 'Nick Liên Quân Giá Rẻ Tân Thủ',
-            'slug' => 'nick-lien-quan-gia-re',
-            'description' => 'Acc trắng thông tin 100%, 30-50 tướng, thích hợp leo rank.',
-            'sort_order' => 2,
-            'status' => 'ACTIVE',
+        $lqCatGiaRe = DanhMuc::updateOrCreate(['duong_dan_tinh' => 'nick-lien-quan-gia-re'], [
+            'loai_danh_muc' => 'ACCOUNT',
+            'ten_danh_muc' => 'Nick Liên Quân Giá Rẻ Tân Thủ',
+            'duong_dan_tinh' => 'nick-lien-quan-gia-re',
+            'mo_ta' => 'Acc trắng thông tin 100%, 30-50 tướng, thích hợp leo rank.',
+            'thu_tu_hien_thi' => 2,
+            'trang_thai' => 'ACTIVE',
         ]);
 
-        $serviceCat = Category::updateOrCreate(['slug' => 'dich-vu-cay-thue-lq'], [
-            'type' => 'SERVICE',
-            'name' => 'Dịch Vụ Cày Thuê Rank & Chiến Tướng',
-            'slug' => 'dich-vu-cay-thue-lq',
-            'description' => 'Cày thuê uy tín từ Cao Thủ lên Thách Đấu, bảo mật tài khoản tuyệt đối.',
-            'sort_order' => 3,
-            'status' => 'ACTIVE',
+        $serviceCat = DanhMuc::updateOrCreate(['duong_dan_tinh' => 'dich-vu-cay-thue-lq'], [
+            'loai_danh_muc' => 'SERVICE',
+            'ten_danh_muc' => 'Dịch Vụ Cày Thuê Rank & Chiến Tướng',
+            'duong_dan_tinh' => 'dich-vu-cay-thue-lq',
+            'mo_ta' => 'Cày thuê uy tín từ Cao Thủ lên Thách Đấu, bảo mật tài khoản tuyệt đối.',
+            'thu_tu_hien_thi' => 3,
+            'trang_thai' => 'ACTIVE',
         ]);
 
-        // 6. Products & Variants & Accounts
+        // 4. Products & Variants & Accounts
         $productsSeed = [
             [
                 'category_id' => $lqCatVip->id,
@@ -163,104 +162,104 @@ class DatabaseSeeder extends Seeder
             $price = $p['price'];
             $salePrice = $p['sale_price'];
 
-            $product = Product::updateOrCreate(['slug' => $p['slug']], [
-                'sku' => $p['sku'],
-                'type' => $p['type'],
-                'category_id' => $p['category_id'],
-                'name' => $p['name'],
-                'slug' => $p['slug'],
-                'min_price' => $p['min_price'],
-                'short_description' => $p['short_description'],
-                'description' => $p['description'],
-                'thumbnail_url' => $p['thumbnail_url'],
-                'status' => $p['status'],
-                'is_featured' => $p['is_featured'],
+            $product = SanPham::updateOrCreate(['duong_dan_tinh' => $p['slug']], [
+                'ma_san_pham' => $p['sku'],
+                'loai_san_pham' => $p['type'],
+                'danh_muc_id' => $p['category_id'],
+                'ten_san_pham' => $p['name'],
+                'duong_dan_tinh' => $p['slug'],
+                'gia_thap_nhat' => $p['min_price'],
+                'mo_ta_ngan' => $p['short_description'],
+                'noi_dung_chi_tiet' => $p['description'],
+                'anh_dai_dien' => $p['thumbnail_url'],
+                'trang_thai' => $p['status'],
+                'noi_bat' => $p['is_featured'],
             ]);
 
             if (!empty($p['variants_data'])) {
                 foreach ($p['variants_data'] as $vData) {
-                    ProductVariant::updateOrCreate(['sku' => $vData['sku']], [
-                        'product_id' => $product->id,
-                        'name' => $vData['name'],
-                        'price' => $vData['price'],
-                        'sale_price' => $vData['sale_price'],
-                        'compare_at_price' => $vData['price'],
-                        'stock_quantity' => 999,
-                        'estimated_hours' => $vData['estimated_hours'] ?? null,
-                        'status' => 'ACTIVE',
-                        'sort_order' => $vData['sort_order'] ?? 1,
+                    BienTheSanPham::updateOrCreate(['ma_bien_the' => $vData['sku']], [
+                        'san_pham_id' => $product->id,
+                        'ten_bien_the' => $vData['name'],
+                        'gia_goc' => $vData['price'],
+                        'gia_khuyen_mai' => $vData['sale_price'],
+                        'gia_so_sanh' => $vData['price'],
+                        'so_luong_kho' => 999,
+                        'thoi_gian_du_kien_gio' => $vData['estimated_hours'] ?? null,
+                        'trang_thai' => 'ACTIVE',
+                        'thu_tu_hien_thi' => $vData['sort_order'] ?? 1,
                     ]);
                 }
             } else {
-                $variant = ProductVariant::updateOrCreate(['sku' => $p['sku'] . '-V1'], [
-                    'product_id' => $product->id,
-                    'name' => 'Mặc định',
-                    'price' => $price,
-                    'sale_price' => $salePrice,
-                    'compare_at_price' => $price,
-                    'stock_quantity' => 1,
-                    'status' => 'ACTIVE',
+                $variant = BienTheSanPham::updateOrCreate(['ma_bien_the' => $p['sku'] . '-V1'], [
+                    'san_pham_id' => $product->id,
+                    'ten_bien_the' => 'Mặc định',
+                    'gia_goc' => $price,
+                    'gia_khuyen_mai' => $salePrice,
+                    'gia_so_sanh' => $price,
+                    'so_luong_kho' => 1,
+                    'trang_thai' => 'ACTIVE',
                 ]);
 
-                if ($product->type === 'ACCOUNT' && $accUser && $accPass) {
-                    if (!GameAccount::where('product_id', $product->id)->exists()) {
-                        GameAccount::createWithEncryption(
-                        productId: $product->id,
-                        variantId: $variant->id,
-                        username: $accUser,
-                        password: $accPass,
-                        extra: [
-                            'sec_email' => $accUser . '@gmail.com',
-                            'sec_phone' => '0988776655',
-                            'additional_info' => 'Mã PIN cấp 2: 123456. Vui lòng đổi mật khẩu ngay sau khi đăng nhập!',
-                            'cost_price' => 50000,
-                        ]
+                if ($product->loai_san_pham === 'ACCOUNT' && $accUser && $accPass) {
+                    if (!TaiKhoanGame::where('san_pham_id', $product->id)->exists()) {
+                        TaiKhoanGame::createWithEncryption(
+                            productId: $product->id,
+                            variantId: $variant->id,
+                            username: $accUser,
+                            password: $accPass,
+                            extra: [
+                                'sec_email' => $accUser . '@gmail.com',
+                                'sec_phone' => '0988776655',
+                                'additional_info' => 'Mã PIN cấp 2: 123456. Vui lòng đổi mật khẩu ngay sau khi đăng nhập!',
+                                'cost_price' => 50000,
+                            ]
                         );
                     }
                 }
             }
         }
 
-        // 7. Coupons
-        Coupon::updateOrCreate(['code' => 'CHAOBANMOI'], [
-            'name' => 'Chào bạn mới giảm 10%',
-            'description' => 'Giảm 10% cho khách hàng mới gia nhập hệ thống',
-            'discount_type' => 'PERCENT',
-            'discount_value' => 10,
-            'min_order_amount' => 100000,
-            'max_discount_amount' => 200000,
-            'usage_limit' => 1000,
-            'status' => 'ACTIVE',
+        // 5. Coupons
+        MaGiamGia::updateOrCreate(['ma_giam_gia' => 'CHAOBANMOI'], [
+            'ten_ma_giam' => 'Chào bạn mới giảm 10%',
+            'mo_ta' => 'Giảm 10% cho khách hàng mới gia nhập hệ thống',
+            'loai_giam_gia' => 'PERCENT',
+            'gia_tri_giam' => 10,
+            'gia_tri_don_toi_thieu' => 100000,
+            'giam_toi_da' => 200000,
+            'gioi_han_tong_luot_dung' => 1000,
+            'trang_thai' => 'ACTIVE',
         ]);
 
-        Coupon::updateOrCreate(['code' => 'GAMEVIP'], [
-            'name' => 'VIP giảm 50K',
-            'description' => 'Giảm ngay 50.000đ cho đơn hàng từ 300.000đ',
-            'discount_type' => 'FIXED',
-            'discount_value' => 50000,
-            'min_order_amount' => 300000,
-            'usage_limit' => 500,
-            'status' => 'ACTIVE',
+        MaGiamGia::updateOrCreate(['ma_giam_gia' => 'GAMEVIP'], [
+            'ten_ma_giam' => 'VIP giảm 50K',
+            'mo_ta' => 'Giảm ngay 50.000đ cho đơn hàng từ 300.000đ',
+            'loai_giam_gia' => 'FIXED',
+            'gia_tri_giam' => 50000,
+            'gia_tri_don_toi_thieu' => 300000,
+            'gioi_han_tong_luot_dung' => 500,
+            'trang_thai' => 'ACTIVE',
         ]);
 
-        // 8. Banners
-        Banner::updateOrCreate(['title' => 'Mừng Đại Lễ - Xả Kho Acc Game VIP Giảm Đến 50%'], [
-            'image_url' => 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&auto=format&fit=crop&q=80',
-            'link_url' => '/catalog',
-            'sort_order' => 1,
-            'status' => 'ACTIVE',
+        // 6. Banners
+        BannerQuangCao::updateOrCreate(['tieu_de' => 'Mừng Đại Lễ - Xả Kho Acc Game VIP Giảm Đến 50%'], [
+            'hinh_anh_url' => 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&auto=format&fit=crop&q=80',
+            'duong_dan_lien_ket' => '/catalog',
+            'thu_tu_hien_thi' => 1,
+            'trang_thai' => 'ACTIVE',
         ]);
 
-        Banner::updateOrCreate(['title' => 'Bảo Hành Trọn Đời - Đổi Trả Miễn Phí Trong 7 Ngày'], [
-            'image_url' => 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1600&auto=format&fit=crop&q=80',
-            'link_url' => '/warranty',
-            'sort_order' => 2,
-            'status' => 'ACTIVE',
+        BannerQuangCao::updateOrCreate(['tieu_de' => 'Bảo Hành Trọn Đời - Đổi Trả Miễn Phí Trong 7 Ngày'], [
+            'hinh_anh_url' => 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1600&auto=format&fit=crop&q=80',
+            'duong_dan_lien_ket' => '/warranty',
+            'thu_tu_hien_thi' => 2,
+            'trang_thai' => 'ACTIVE',
         ]);
 
-        // 9. Settings
-        Setting::updateOrCreate(['key' => 'general_settings'], [
-            'value' => [
+        // 7. Settings
+        CaiDat::updateOrCreate(['khoa_cai_dat' => 'general_settings'], [
+            'gia_tri_cai_dat' => [
                 'site_name' => 'GAMEHUB2003',
                 'hotline' => '0987.654.321',
                 'zalo' => '0987654321',

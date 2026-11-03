@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Order;
+use App\Models\DonHang;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -11,14 +11,17 @@ class AdminOrderController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Order::with(['user:id,email,full_name,phone'])->orderByDesc('id');
+        $query = DonHang::with(['user:id,email,ho_ten,so_dien_thoai'])->orderByDesc('id');
 
         if ($search = $request->get('search')) {
-            $query->where('order_code', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('ma_don_hang', 'like', "%{$search}%")
+                  ->orWhere('id', $search);
+            });
         }
 
         if ($status = $request->get('status')) {
-            $query->where('status', strtoupper($status));
+            $query->where('trang_thai', strtoupper($status));
         }
 
         return response()->json([
@@ -29,8 +32,8 @@ class AdminOrderController extends Controller
 
     public function show(string $code): JsonResponse
     {
-        $order = Order::with(['user', 'items.product', 'items.gameAccount', 'items.serviceRequest.staff', 'coupon'])
-            ->where('order_code', $code)
+        $order = DonHang::with(['user', 'items.product', 'items.gameAccount', 'items.serviceRequest.staff', 'coupon'])
+            ->where('ma_don_hang', $code)
             ->orWhere('id', $code)
             ->firstOrFail();
 
@@ -56,7 +59,7 @@ class AdminOrderController extends Controller
 
     public function updateStatus(Request $request, string $code): JsonResponse
     {
-        $order = Order::where('order_code', $code)->orWhere('id', $code)->firstOrFail();
+        $order = DonHang::where('ma_don_hang', $code)->orWhere('id', $code)->firstOrFail();
 
         $validated = $request->validate([
             'status' => 'required|string',
@@ -66,9 +69,9 @@ class AdminOrderController extends Controller
         $newStatus = strtoupper($validated['status']);
         $wasPaid = $order->isPaid();
 
-        $updateData = ['status' => $newStatus];
-        if (!$order->paid_at && in_array($newStatus, ['PAID', 'PROCESSING', 'COMPLETED'], true)) {
-            $updateData['paid_at'] = now();
+        $updateData = ['trang_thai' => $newStatus];
+        if (!$order->thanh_toan_luc && in_array($newStatus, ['PAID', 'PROCESSING', 'COMPLETED'], true)) {
+            $updateData['thanh_toan_luc'] = now();
         }
         $order->update($updateData);
 

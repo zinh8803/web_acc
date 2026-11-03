@@ -2,7 +2,7 @@
 
 namespace App\Mail;
 
-use App\Models\Order;
+use App\Models\DonHang;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
@@ -11,14 +11,14 @@ class OrderSuccessMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public Order $order;
+    public DonHang $order;
     public string $customerName;
     public array $accounts;
     public array $services;
     public string $orderUrl;
 
     public function __construct(
-        Order $order,
+        DonHang $order,
         string $customerName,
         array $accounts,
         array $services,

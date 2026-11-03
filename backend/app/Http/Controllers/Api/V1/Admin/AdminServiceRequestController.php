@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AdminUser;
-use App\Models\ServiceRequest;
+use App\Models\QuanTriVien;
+use App\Models\YeuCauDichVu;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -12,11 +12,11 @@ class AdminServiceRequestController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = ServiceRequest::with(['user', 'orderItem.order', 'orderItem.product', 'staff'])
+        $query = YeuCauDichVu::with(['user', 'orderItem.order', 'orderItem.product', 'staff'])
             ->orderByDesc('id');
 
         if ($request->filled('status')) {
-            $query->where('status', $request->query('status'));
+            $query->where('trang_thai', $request->query('status'));
         }
 
         $services = $query->paginate($request->integer('per_page', 15));
@@ -25,7 +25,7 @@ class AdminServiceRequestController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $service = ServiceRequest::with(['user', 'orderItem.order', 'orderItem.product', 'staff'])->findOrFail($id);
+        $service = YeuCauDichVu::with(['user', 'orderItem.order', 'orderItem.product', 'staff'])->findOrFail($id);
         $data = $service->toArray();
         $data['credentials'] = $service->decryptGameLogin();
 
@@ -34,7 +34,7 @@ class AdminServiceRequestController extends Controller
 
     public function credentials(int $id): JsonResponse
     {
-        $service = ServiceRequest::findOrFail($id);
+        $service = YeuCauDichVu::findOrFail($id);
         $credentials = $service->decryptGameLogin();
 
         return response()->json([
@@ -45,22 +45,22 @@ class AdminServiceRequestController extends Controller
 
     public function assign(Request $request, int $id): JsonResponse
     {
-        $service = ServiceRequest::findOrFail($id);
+        $service = YeuCauDichVu::findOrFail($id);
         $validated = $request->validate([
-            'assigned_to' => 'nullable|integer|exists:admin_users,id',
+            'assigned_to' => 'nullable|integer|exists:quan_tri_vien,id',
             'due_at' => 'nullable|date',
         ]);
 
         $updateData = [];
         if (array_key_exists('assigned_to', $validated)) {
-            $updateData['assigned_to'] = $validated['assigned_to'];
-            if ($service->status === 'PENDING') {
-                $updateData['status'] = 'IN_PROGRESS';
-                $updateData['started_at'] = now();
+            $updateData['nhan_vien_phu_trach_id'] = $validated['assigned_to'];
+            if ($service->trang_thai === 'PENDING') {
+                $updateData['trang_thai'] = 'IN_PROGRESS';
+                $updateData['bat_dau_luc'] = now();
             }
         }
         if (array_key_exists('due_at', $validated)) {
-            $updateData['due_at'] = $validated['due_at'];
+            $updateData['han_hoan_thanh'] = $validated['due_at'];
         }
 
         $service->update($updateData);
@@ -69,7 +69,7 @@ class AdminServiceRequestController extends Controller
 
     public function updateStatus(Request $request, int $id): JsonResponse
     {
-        $service = ServiceRequest::findOrFail($id);
+        $service = YeuCauDichVu::findOrFail($id);
         $validated = $request->validate([
             'status' => 'required|in:PENDING,ASSIGNED,IN_PROGRESS,NEED_INFO,DONE,CANCELLED,REFUNDED',
             'priority' => 'sometimes|integer|min:1|max:5',
@@ -78,21 +78,27 @@ class AdminServiceRequestController extends Controller
             'assigned_to' => 'sometimes|nullable|integer',
         ]);
 
-        if ($validated['status'] === 'IN_PROGRESS' && !$service->started_at) {
-            $validated['started_at'] = now();
+        $updateData = ['trang_thai' => $validated['status']];
+        if (isset($validated['priority'])) $updateData['do_uu_tien'] = $validated['priority'];
+        if (array_key_exists('due_at', $validated)) $updateData['han_hoan_thanh'] = $validated['due_at'];
+        if (array_key_exists('cancel_reason', $validated)) $updateData['ly_do_huy'] = $validated['cancel_reason'];
+        if (array_key_exists('assigned_to', $validated)) $updateData['nhan_vien_phu_trach_id'] = $validated['assigned_to'];
+
+        if ($validated['status'] === 'IN_PROGRESS' && !$service->bat_dau_luc) {
+            $updateData['bat_dau_luc'] = now();
         }
         if ($validated['status'] === 'DONE') {
-            if (!$service->completed_at) {
-                $validated['completed_at'] = now();
+            if (!$service->hoan_thanh_luc) {
+                $updateData['hoan_thanh_luc'] = now();
             }
-            $validated['auto_confirm_at'] = now()->addDays(3);
-            $service->orderItem()->update(['fulfillment_status' => 'COMPLETED']);
+            $updateData['tu_dong_xac_nhan_luc'] = now()->addDays(3);
+            $service->orderItem()->update(['trang_thai_giao_hang' => 'COMPLETED']);
         }
         if ($validated['status'] === 'CANCELLED') {
-            $service->orderItem()->update(['fulfillment_status' => 'CANCELLED']);
+            $service->orderItem()->update(['trang_thai_giao_hang' => 'CANCELLED']);
         }
 
-        $service->update($validated);
+        $service->update($updateData);
         return response()->json(['success' => true, 'data' => $service->fresh(['user', 'orderItem.product', 'staff'])]);
     }
 }
