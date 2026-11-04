@@ -293,7 +293,7 @@ const UserLayout = () => {
                                 background: 'rgba(255, 255, 255, 0.05)',
                                 border: '1px solid rgba(255, 255, 255, 0.1)',
                             }}>
-                                <Avatar style={{ backgroundColor: '#6366f1' }} icon={<UserOutlined />} src={user.avatar_url} />
+                                <Avatar style={{ backgroundColor: '#6366f1' }} icon={<UserOutlined />} />
                                 <div style={{ textAlign: 'left', lineHeight: 1.2 }}>
                                     <div style={{ color: '#fff', fontSize: '13px', fontWeight: 600 }}>{user.full_name || user.email}</div>
                                     <div style={{ color: '#10b981', fontSize: '11px' }}>Thành viên</div>

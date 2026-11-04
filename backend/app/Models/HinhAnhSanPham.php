@@ -32,9 +32,8 @@ class HinhAnhSanPham extends Model
         return $this->belongsTo(SanPham::class, 'san_pham_id');
     }
 
-    public function product(): BelongsTo
+    public function bienThe(): BelongsTo
     {
-        return $this->sanPham();
+        return $this->belongsTo(BienTheSanPham::class, 'bien_the_id');
     }
 }
-

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MaGiamGia extends Model
 {
@@ -28,26 +29,6 @@ class MaGiamGia extends Model
         'ngay_ket_thuc',
         'trang_thai',
         'nguoi_tao_id',
-        // Aliases allowed in fill
-        'ma_giam_gia',
-        'ten_ma_giam',
-        'code',
-        'name',
-        'discount_type',
-        'discount_value',
-        'max_discount_amount',
-        'min_order_amount',
-        'usage_limit',
-        'usage_per_user',
-        'starts_at',
-        'ends_at',
-        'status',
-        'gia_tri_don_toi_thieu',
-        'gioi_han_tong_luot_dung',
-        'gioi_han_moi_nguoi',
-        'so_luot_da_dung',
-        'bat_dau_luc',
-        'ket_thuc_luc',
     ];
 
     protected $casts = [
@@ -61,230 +42,69 @@ class MaGiamGia extends Model
         'ngay_ket_thuc' => 'datetime',
     ];
 
-    protected $appends = [
-        'code',
-        'name',
-        'discount_type',
-        'discount_value',
-        'max_discount_amount',
-        'min_order_amount',
-        'usage_limit',
-        'usage_per_user',
-        'used_count',
-        'starts_at',
-        'ends_at',
-        'status',
-    ];
-
-    // Accessors & Mutators for code / ma_khuyen_mai / ma_giam_gia
-    public function getCodeAttribute(): ?string
+    public function lichSuDungs(): HasMany
     {
-        return $this->attributes['ma_khuyen_mai'] ?? null;
+        return $this->hasMany(LichSuDungMaGiamGia::class, 'ma_giam_gia_id');
     }
 
-    public function setCodeAttribute($value): void
+    /**
+     * Kiểm tra mã giảm giá có hợp lệ cho đơn hàng hay không
+     */
+    public function kiemTraHopLe(?int $nguoiDungId, float $tamTinh, ?string $loaiSanPham = null): array
     {
-        $this->attributes['ma_khuyen_mai'] = $value;
+        if ($this->trang_thai !== 'ACTIVE') {
+            return ['hop_le' => false, 'thong_bao' => 'Mã giảm giá hiện không khả dụng'];
+        }
+
+        $now = now();
+        if ($this->ngay_bat_dau && $now->lt($this->ngay_bat_dau)) {
+            return ['hop_le' => false, 'thong_bao' => 'Mã giảm giá chưa đến thời gian áp dụng'];
+        }
+
+        if ($this->ngay_ket_thuc && $now->gt($this->ngay_ket_thuc)) {
+            return ['hop_le' => false, 'thong_bao' => 'Mã giảm giá đã hết hạn'];
+        }
+
+        if ($this->don_hang_toi_thieu && $tamTinh < (float)$this->don_hang_toi_thieu) {
+            return [
+                'hop_le' => false,
+                'thong_bao' => 'Đơn hàng tối thiểu phải từ ' . number_format($this->don_hang_toi_thieu, 0, ',', '.') . ' đ để dùng mã này'
+            ];
+        }
+
+        if ($this->gioi_han_su_dung && $this->so_lan_da_dung >= $this->gioi_han_su_dung) {
+            return ['hop_le' => false, 'thong_bao' => 'Mã giảm giá đã hết lượt sử dụng'];
+        }
+
+        if ($nguoiDungId && $this->gioi_han_moi_nguoi_dung) {
+            $daDung = $this->lichSuDungs()->where('nguoi_dung_id', $nguoiDungId)->count();
+            if ($daDung >= $this->gioi_han_moi_nguoi_dung) {
+                return ['hop_le' => false, 'thong_bao' => 'Bạn đã dùng hết số lần cho phép của mã giảm giá này'];
+            }
+        }
+
+        if ($this->ap_dung_loai_san_pham && $loaiSanPham && $this->ap_dung_loai_san_pham !== $loaiSanPham) {
+            return ['hop_le' => false, 'thong_bao' => 'Mã giảm giá không áp dụng cho loại sản phẩm này'];
+        }
+
+        return ['hop_le' => true, 'thong_bao' => 'Áp dụng mã giảm giá thành công'];
     }
 
-    public function getMaGiamGiaAttribute(): ?string
+    /**
+     * Tính số tiền được giảm
+     */
+    public function tinhSoTienGiam(float $tamTinh): float
     {
-        return $this->attributes['ma_khuyen_mai'] ?? null;
-    }
+        $soTienGiam = 0;
+        if ($this->loai_giam_gia === 'PERCENT') {
+            $soTienGiam = ($tamTinh * (float)$this->gia_tri_giam) / 100;
+            if ($this->giam_toi_da && $soTienGiam > (float)$this->giam_toi_da) {
+                $soTienGiam = (float)$this->giam_toi_da;
+            }
+        } else {
+            $soTienGiam = (float)$this->gia_tri_giam;
+        }
 
-    public function setMaGiamGiaAttribute($value): void
-    {
-        $this->attributes['ma_khuyen_mai'] = $value;
-    }
-
-    // Name / ten_ma_giam_gia / ten_ma_giam
-    public function getNameAttribute(): ?string
-    {
-        return $this->attributes['ten_ma_giam_gia'] ?? null;
-    }
-
-    public function setNameAttribute($value): void
-    {
-        $this->attributes['ten_ma_giam_gia'] = $value;
-    }
-
-    public function getTenMaGiamAttribute(): ?string
-    {
-        return $this->attributes['ten_ma_giam_gia'] ?? null;
-    }
-
-    public function setTenMaGiamAttribute($value): void
-    {
-        $this->attributes['ten_ma_giam_gia'] = $value;
-    }
-
-    // discount_type
-    public function getDiscountTypeAttribute(): ?string
-    {
-        return $this->attributes['loai_giam_gia'] ?? null;
-    }
-
-    public function setDiscountTypeAttribute($value): void
-    {
-        $this->attributes['loai_giam_gia'] = $value;
-    }
-
-    // discount_value
-    public function getDiscountValueAttribute(): mixed
-    {
-        return $this->attributes['gia_tri_giam'] ?? null;
-    }
-
-    public function setDiscountValueAttribute($value): void
-    {
-        $this->attributes['gia_tri_giam'] = $value;
-    }
-
-    // max_discount_amount
-    public function getMaxDiscountAmountAttribute(): mixed
-    {
-        return $this->attributes['giam_toi_da'] ?? null;
-    }
-
-    public function setMaxDiscountAmountAttribute($value): void
-    {
-        $this->attributes['giam_toi_da'] = $value;
-    }
-
-    // min_order_amount / don_hang_toi_thieu / gia_tri_don_toi_thieu
-    public function getMinOrderAmountAttribute(): mixed
-    {
-        return $this->attributes['don_hang_toi_thieu'] ?? null;
-    }
-
-    public function setMinOrderAmountAttribute($value): void
-    {
-        $this->attributes['don_hang_toi_thieu'] = $value;
-    }
-
-    public function getGiaTriDonToiThieuAttribute(): mixed
-    {
-        return $this->attributes['don_hang_toi_thieu'] ?? null;
-    }
-
-    public function setGiaTriDonToiThieuAttribute($value): void
-    {
-        $this->attributes['don_hang_toi_thieu'] = $value;
-    }
-
-    // usage_limit / gioi_han_su_dung / gioi_han_tong_luot_dung
-    public function getUsageLimitAttribute(): mixed
-    {
-        return $this->attributes['gioi_han_su_dung'] ?? null;
-    }
-
-    public function setUsageLimitAttribute($value): void
-    {
-        $this->attributes['gioi_han_su_dung'] = $value;
-    }
-
-    public function getGioiHanTongLuotDungAttribute(): mixed
-    {
-        return $this->attributes['gioi_han_su_dung'] ?? null;
-    }
-
-    public function setGioiHanTongLuotDungAttribute($value): void
-    {
-        $this->attributes['gioi_han_su_dung'] = $value;
-    }
-
-    // usage_per_user / gioi_han_moi_nguoi_dung / gioi_han_moi_nguoi
-    public function getUsagePerUserAttribute(): mixed
-    {
-        return $this->attributes['gioi_han_moi_nguoi_dung'] ?? null;
-    }
-
-    public function setUsagePerUserAttribute($value): void
-    {
-        $this->attributes['gioi_han_moi_nguoi_dung'] = $value;
-    }
-
-    public function getGioiHanMoiNguoiAttribute(): mixed
-    {
-        return $this->attributes['gioi_han_moi_nguoi_dung'] ?? null;
-    }
-
-    public function setGioiHanMoiNguoiAttribute($value): void
-    {
-        $this->attributes['gioi_han_moi_nguoi_dung'] = $value;
-    }
-
-    // used_count / so_lan_da_dung / so_luot_da_dung
-    public function getUsedCountAttribute(): mixed
-    {
-        return $this->attributes['so_lan_da_dung'] ?? 0;
-    }
-
-    public function setUsedCountAttribute($value): void
-    {
-        $this->attributes['so_lan_da_dung'] = $value;
-    }
-
-    public function getSoLuotDaDungAttribute(): mixed
-    {
-        return $this->attributes['so_lan_da_dung'] ?? 0;
-    }
-
-    public function setSoLuotDaDungAttribute($value): void
-    {
-        $this->attributes['so_lan_da_dung'] = $value;
-    }
-
-    // starts_at / ngay_bat_dau / bat_dau_luc
-    public function getStartsAtAttribute(): mixed
-    {
-        return $this->ngay_bat_dau;
-    }
-
-    public function setStartsAtAttribute($value): void
-    {
-        $this->attributes['ngay_bat_dau'] = $value;
-    }
-
-    public function getBatDauLucAttribute(): mixed
-    {
-        return $this->ngay_bat_dau;
-    }
-
-    public function setBatDauLucAttribute($value): void
-    {
-        $this->attributes['ngay_bat_dau'] = $value;
-    }
-
-    // ends_at / ngay_ket_thuc / ket_thuc_luc
-    public function getEndsAtAttribute(): mixed
-    {
-        return $this->ngay_ket_thuc;
-    }
-
-    public function setEndsAtAttribute($value): void
-    {
-        $this->attributes['ngay_ket_thuc'] = $value;
-    }
-
-    public function getKetThucLucAttribute(): mixed
-    {
-        return $this->ngay_ket_thuc;
-    }
-
-    public function setKetThucLucAttribute($value): void
-    {
-        $this->attributes['ngay_ket_thuc'] = $value;
-    }
-
-    // status / trang_thai
-    public function getStatusAttribute(): ?string
-    {
-        return $this->attributes['trang_thai'] ?? null;
-    }
-
-    public function setStatusAttribute($value): void
-    {
-        $this->attributes['trang_thai'] = $value;
+        return min($soTienGiam, $tamTinh);
     }
 }

@@ -43,71 +43,9 @@ class DonHang extends Model
         'tong_tien' => 'integer',
     ];
 
-    protected $appends = [
-        'order_code',
-        'status',
-        'total',
-        'subtotal',
-        'discount_total',
-        'payment_method_code',
-        'payment_reference',
-        'paid_at',
-        'user_id',
-    ];
-
-    public function getOrderCodeAttribute(): ?string
-    {
-        return $this->attributes['ma_don_hang'] ?? null;
-    }
-
-    public function getStatusAttribute(): ?string
-    {
-        return $this->attributes['trang_thai'] ?? null;
-    }
-
-    public function getTotalAttribute(): mixed
-    {
-        return $this->attributes['tong_tien'] ?? 0;
-    }
-
-    public function getSubtotalAttribute(): mixed
-    {
-        return $this->attributes['tam_tinh'] ?? 0;
-    }
-
-    public function getDiscountTotalAttribute(): mixed
-    {
-        return $this->attributes['tong_giam_gia'] ?? 0;
-    }
-
-    public function getPaymentMethodCodeAttribute(): ?string
-    {
-        return $this->attributes['phuong_thuc_thanh_toan'] ?? null;
-    }
-
-    public function getPaymentReferenceAttribute(): ?string
-    {
-        return $this->attributes['ma_giao_dich_thanh_toan'] ?? null;
-    }
-
-    public function getPaidAtAttribute(): mixed
-    {
-        return $this->attributes['thanh_toan_luc'] ?? null;
-    }
-
-    public function getUserIdAttribute(): ?int
-    {
-        return $this->attributes['nguoi_dung_id'] ?? null;
-    }
-
     public function nguoiDung(): BelongsTo
     {
         return $this->belongsTo(NguoiDung::class, 'nguoi_dung_id');
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->nguoiDung();
     }
 
     public function chiTiets(): HasMany
@@ -115,19 +53,9 @@ class DonHang extends Model
         return $this->hasMany(ChiTietDonHang::class, 'don_hang_id');
     }
 
-    public function items(): HasMany
-    {
-        return $this->chiTiets();
-    }
-
     public function maGiamGia(): BelongsTo
     {
         return $this->belongsTo(MaGiamGia::class, 'ma_giam_gia_id');
-    }
-
-    public function coupon(): BelongsTo
-    {
-        return $this->maGiamGia();
     }
 
     // Helper trạng thái

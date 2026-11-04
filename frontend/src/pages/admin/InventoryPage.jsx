@@ -231,7 +231,7 @@ const InventoryPage = () => {
                 <Button type="primary" htmlType="submit" block style={{ marginTop: 16 }}>Lưu thay đổi</Button>
             </Form>
         </Modal>
-        <Modal title="Thông tin tài khoản đã giải mã (đã ghi audit log)" open={!!viewData} onCancel={() => setViewData(null)} footer={<Button type="primary" onClick={() => setViewData(null)}>Đóng</Button>}>
+        <Modal title="Thông tin tài khoản đã giải mã" open={!!viewData} onCancel={() => setViewData(null)} footer={<Button type="primary" onClick={() => setViewData(null)}>Đóng</Button>}>
             {viewData && <Descriptions column={1} bordered style={{ marginTop: 16 }}>
                 <Descriptions.Item label="Sản phẩm">{viewData.product?.name}</Descriptions.Item>
                 <Descriptions.Item label="Tên đăng nhập">{viewData.credentials?.username}</Descriptions.Item>

@@ -41,53 +41,9 @@ class BienTheSanPham extends Model
         'ngay_ket_thuc_km' => 'datetime',
     ];
 
-    protected $appends = [
-        'name',
-        'sku',
-        'price',
-        'sale_price',
-        'stock_quantity',
-        'status',
-    ];
-
-    public function getNameAttribute(): ?string
-    {
-        return $this->attributes['ten_bien_the'] ?? null;
-    }
-
-    public function getSkuAttribute(): ?string
-    {
-        return $this->attributes['ma_bien_the'] ?? null;
-    }
-
-    public function getPriceAttribute(): mixed
-    {
-        return $this->attributes['gia_goc'] ?? 0;
-    }
-
-    public function getSalePriceAttribute(): mixed
-    {
-        return $this->attributes['gia_khuyen_mai'] ?? null;
-    }
-
-    public function getStockQuantityAttribute(): int
-    {
-        return (int)($this->attributes['so_luong_ton_kho'] ?? 0);
-    }
-
-    public function getStatusAttribute(): ?string
-    {
-        return $this->attributes['trang_thai'] ?? null;
-    }
-
     public function sanPham(): BelongsTo
     {
         return $this->belongsTo(SanPham::class, 'san_pham_id');
-    }
-
-    public function product(): BelongsTo
-    {
-        return $this->sanPham();
     }
 
     public function taiKhoanGames(): HasMany
@@ -95,8 +51,8 @@ class BienTheSanPham extends Model
         return $this->hasMany(TaiKhoanGame::class, 'bien_the_id');
     }
 
-    public function gameAccounts(): HasMany
+    public function chiTietDonHangs(): HasMany
     {
-        return $this->taiKhoanGames();
+        return $this->hasMany(ChiTietDonHang::class, 'bien_the_id');
     }
 }

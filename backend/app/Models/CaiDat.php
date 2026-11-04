@@ -19,22 +19,14 @@ class CaiDat extends Model
         'gia_tri_cai_dat' => 'json',
     ];
 
-    protected $appends = ['key', 'value'];
-
-    public function getKeyAttribute(): ?string
+    public static function lay(string $khoa, mixed $macDinh = null): mixed
     {
-        return $this->attributes['khoa_cai_dat'] ?? null;
-    }
-
-    public function getValueAttribute(): mixed
-    {
-        return $this->attributes['gia_tri_cai_dat'] ?? null;
+        $caiDat = static::find($khoa);
+        return $caiDat ? $caiDat->gia_tri_cai_dat : $macDinh;
     }
 
     public static function get(string $key, mixed $default = null): mixed
     {
-        $setting = static::find($key);
-        return $setting ? $setting->gia_tri_cai_dat : $default;
+        return static::lay($key, $default);
     }
 }
-

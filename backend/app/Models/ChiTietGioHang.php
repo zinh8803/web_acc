@@ -29,29 +29,13 @@ class ChiTietGioHang extends Model
         return $this->belongsTo(GioHang::class, 'gio_hang_id');
     }
 
-    public function cart(): BelongsTo
-    {
-        return $this->gioHang();
-    }
-
     public function bienThe(): BelongsTo
     {
         return $this->belongsTo(BienTheSanPham::class, 'bien_the_id');
-    }
-
-    public function variant(): BelongsTo
-    {
-        return $this->bienThe();
     }
 
     public function taiKhoanGame(): BelongsTo
     {
         return $this->belongsTo(TaiKhoanGame::class, 'tai_khoan_game_id');
     }
-
-    public function gameAccount(): BelongsTo
-    {
-        return $this->taiKhoanGame();
-    }
 }
-

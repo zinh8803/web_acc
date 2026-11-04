@@ -43,41 +43,9 @@ class YeuCauDichVu extends Model
         'khach_xac_nhan_luc' => 'datetime',
     ];
 
-    protected $appends = [
-        'request_code',
-        'status',
-        'form_data',
-        'customer_note',
-    ];
-
-    public function getRequestCodeAttribute(): ?string
-    {
-        return $this->attributes['ma_yeu_cau'] ?? null;
-    }
-
-    public function getStatusAttribute(): ?string
-    {
-        return $this->attributes['trang_thai'] ?? null;
-    }
-
-    public function getFormDataAttribute(): mixed
-    {
-        return $this->du_lieu_bieu_mau ?? [];
-    }
-
-    public function getCustomerNoteAttribute(): ?string
-    {
-        return $this->attributes['ghi_chu_khach_hang'] ?? null;
-    }
-
     public function nguoiDung(): BelongsTo
     {
         return $this->belongsTo(NguoiDung::class, 'nguoi_dung_id');
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->nguoiDung();
     }
 
     public function chiTietDonHang(): BelongsTo
@@ -85,19 +53,9 @@ class YeuCauDichVu extends Model
         return $this->belongsTo(ChiTietDonHang::class, 'chi_tiet_don_hang_id');
     }
 
-    public function orderItem(): BelongsTo
-    {
-        return $this->chiTietDonHang();
-    }
-
     public function nhanVienPhuTrach(): BelongsTo
     {
         return $this->belongsTo(QuanTriVien::class, 'nhan_vien_phu_trach_id');
-    }
-
-    public function staff(): BelongsTo
-    {
-        return $this->nhanVienPhuTrach();
     }
 
     public function giaiMaThongTinDangNhap(): ?array
@@ -111,15 +69,9 @@ class YeuCauDichVu extends Model
             if (is_array($data)) {
                 return $data;
             }
-            return ['login_info' => $decrypted];
+            return ['thong_tin_dang_nhap' => $decrypted];
         } catch (\Throwable $e) {
             return null;
         }
     }
-
-    public function decryptGameLogin(): ?array
-    {
-        return $this->giaiMaThongTinDangNhap();
-    }
 }
-

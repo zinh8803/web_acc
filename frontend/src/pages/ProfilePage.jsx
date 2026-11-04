@@ -1,9 +1,39 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import React from 'react';
 import { Descriptions, Tag, Avatar } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../stores/authStore';
+
 const ProfilePage = () => {
     const { user } = useAuthStore();
-    return (_jsx("div", { style: { maxWidth: '800px', margin: '40px auto', padding: '0 20px' }, children: _jsxs("div", { style: { background: '#121324', borderRadius: '16px', padding: '36px', border: '1px solid rgba(255,255,255,0.08)' }, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '28px' }, children: [_jsx(Avatar, { size: 72, icon: _jsx(UserOutlined, {}), style: { backgroundColor: '#6366f1' }, src: user?.avatar_url }), _jsxs("div", { children: [_jsx("h2", { style: { color: '#fff', fontSize: '22px', fontWeight: 700, margin: 0 }, children: user?.full_name || 'Khách Hàng' }), _jsx("div", { style: { color: '#94a3b8', fontSize: '14px', marginTop: '4px' }, children: user?.email }), _jsxs("div", { style: { marginTop: '8px' }, children: [_jsx(Tag, { color: "cyan", children: "Th\u00E0nh vi\u00EAn Verified" }), _jsx(Tag, { color: "green", children: "B\u1EA3o m\u1EADt 2FA" })] })] })] }), _jsxs(Descriptions, { title: _jsx("span", { style: { color: '#fff' }, children: "Th\u00F4ng tin chi ti\u1EBFt" }), bordered: true, column: 1, style: { background: 'transparent' }, children: [_jsx(Descriptions.Item, { label: "H\u1ECD v\u00E0 t\u00EAn", children: user?.full_name || '---' }), _jsx(Descriptions.Item, { label: "Email", children: user?.email || '---' }), _jsx(Descriptions.Item, { label: "S\u1ED1 \u0111i\u1EC7n tho\u1EA1i", children: user?.phone || 'Chưa cập nhật' }), _jsx(Descriptions.Item, { label: "Tr\u1EA1ng th\u00E1i t\u00E0i kho\u1EA3n", children: _jsx(Tag, { color: "success", children: "\u0110ang ho\u1EA1t \u0111\u1ED9ng" }) })] })] }) }));
+
+    return (
+        <div style={{ maxWidth: '800px', margin: '40px auto', padding: '0 20px' }}>
+            <div style={{ background: '#121324', borderRadius: '16px', padding: '36px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '28px' }}>
+                    <Avatar size={72} icon={<UserOutlined />} style={{ backgroundColor: '#6366f1' }} />
+                    <div>
+                        <h2 style={{ color: '#fff', fontSize: '22px', fontWeight: 700, margin: 0 }}>
+                            {user?.ho_ten || user?.full_name || 'Khách Hàng'}
+                        </h2>
+                        <div style={{ color: '#94a3b8', fontSize: '14px', marginTop: '4px' }}>
+                            {user?.email}
+                        </div>
+                        <div style={{ marginTop: '8px' }}>
+                            <Tag color="cyan">Thành viên Verified</Tag>
+                        </div>
+                    </div>
+                </div>
+                <Descriptions title={<span style={{ color: '#fff' }}>Thông tin chi tiết</span>} bordered column={1} style={{ background: 'transparent' }}>
+                    <Descriptions.Item label="Họ và tên">{user?.ho_ten || user?.full_name || '---'}</Descriptions.Item>
+                    <Descriptions.Item label="Email">{user?.email || '---'}</Descriptions.Item>
+                    <Descriptions.Item label="Số điện thoại">{user?.so_dien_thoai || user?.phone || 'Chưa cập nhật'}</Descriptions.Item>
+                    <Descriptions.Item label="Trạng thái tài khoản">
+                        <Tag color="success">Đang hoạt động</Tag>
+                    </Descriptions.Item>
+                </Descriptions>
+            </div>
+        </div>
+    );
 };
+
 export default ProfilePage;

@@ -30,29 +30,13 @@ class LichSuDungMaGiamGia extends Model
         return $this->belongsTo(MaGiamGia::class, 'ma_giam_gia_id');
     }
 
-    public function coupon(): BelongsTo
-    {
-        return $this->maGiamGia();
-    }
-
     public function nguoiDung(): BelongsTo
     {
         return $this->belongsTo(NguoiDung::class, 'nguoi_dung_id');
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->nguoiDung();
     }
 
     public function donHang(): BelongsTo
     {
         return $this->belongsTo(DonHang::class, 'don_hang_id');
     }
-
-    public function order(): BelongsTo
-    {
-        return $this->donHang();
-    }
 }
-

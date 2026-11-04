@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ChinhSachBaoHanh extends Model
 {
@@ -35,5 +36,14 @@ class ChinhSachBaoHanh extends Model
         'so_lan_yeu_cau_toi_da' => 'integer',
         'thoi_gian_xu_ly_gio' => 'integer',
     ];
-}
 
+    public function sanPhams(): HasMany
+    {
+        return $this->hasMany(SanPham::class, 'chinh_sach_bao_hanh_id');
+    }
+
+    public function chiTietDonHangs(): HasMany
+    {
+        return $this->hasMany(ChiTietDonHang::class, 'chinh_sach_bao_hanh_id');
+    }
+}

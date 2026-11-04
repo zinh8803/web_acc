@@ -13,7 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class AdminReportController extends Controller
+class QuanTriBaoCaoController extends Controller
 {
     public function dashboard(Request $request): JsonResponse
     {
@@ -38,13 +38,20 @@ class AdminReportController extends Controller
         $totalProducts = SanPham::count();
         $availableAccounts = TaiKhoanGame::whereIn('trang_thai', ['AVAILABLE', 'available'])->count();
 
-        // Recent orders from DB
-        $recentOrders = DonHang::with('user:id,ho_ten,email')
+        $recentOrders = DonHang::with('nguoiDung:id,ho_ten,email')
             ->orderByDesc('id')
             ->limit(10)
-            ->get();
+            ->get()
+            ->map(function ($order) {
+                $arr = $order->toArray();
+                $arr['order_code'] = $order->ma_don_hang;
+                $arr['total'] = $order->tong_tien;
+                $arr['status'] = $order->trang_thai;
+                $arr['created_at'] = $order->ngay_tao;
+                $arr['user'] = $order->nguoiDung;
+                return $arr;
+            });
 
-        // Revenue by Category from DB
         $categoryRevenue = DB::table('danh_muc')
             ->leftJoin('san_pham', 'danh_muc.id', '=', 'san_pham.danh_muc_id')
             ->leftJoin('chi_tiet_don_hang', 'san_pham.id', '=', 'chi_tiet_don_hang.san_pham_id')
@@ -57,7 +64,6 @@ class AdminReportController extends Controller
             ->orderByDesc('total_amount')
             ->get();
 
-        // Available years for dropdown
         $dbYears = DonHang::selectRaw('YEAR(ngay_tao) as year')
             ->distinct()
             ->orderByDesc('year')
@@ -71,7 +77,6 @@ class AdminReportController extends Controller
         $availableYears = array_values(array_unique(array_merge($dbYears, $rangeYears)));
         rsort($availableYears);
 
-        // ==================== REVENUE CHART BY PERIOD ====================
         $chartType = $request->input('period', 'year');
         $selectedYear = (int) $request->input('year', $currentYear);
         $selectedMonth = (int) $request->input('month', now()->month);
@@ -140,8 +145,36 @@ class AdminReportController extends Controller
         }
 
         return response()->json([
+            'thanh_cong' => true,
             'success' => true,
+            'du_lieu' => [
+                'revenue' => (float) $totalRevenue,
+                'orders_count' => $totalOrders,
+                'today_revenue' => (float) $todayRevenue,
+                'total_revenue' => (float) $totalRevenue,
+                'total_orders' => $totalOrders,
+                'pending_orders' => $pendingOrders,
+                'completed_orders' => $completedOrders,
+                'total_users' => $totalUsers,
+                'total_products' => $totalProducts,
+                'available_accounts' => $availableAccounts,
+                'recent_orders' => $recentOrders,
+                'game_revenue' => $categoryRevenue,
+                'available_years' => $availableYears,
+                'revenue_chart' => [
+                    'period' => $chartType,
+                    'year' => $selectedYear,
+                    'month' => $selectedMonth,
+                    'date' => $selectedDate,
+                    'period_title' => $periodTitle,
+                    'labels' => $chartLabels,
+                    'data' => $chartData,
+                    'total' => (float) array_sum($chartData),
+                ],
+            ],
             'data' => [
+                'revenue' => (float) $totalRevenue,
+                'orders_count' => $totalOrders,
                 'today_revenue' => (float) $todayRevenue,
                 'total_revenue' => (float) $totalRevenue,
                 'total_orders' => $totalOrders,
@@ -169,13 +202,15 @@ class AdminReportController extends Controller
 
     public function products(Request $request): JsonResponse
     {
-        $topProducts = SanPham::with('category:id,ten_danh_muc')
+        $topProducts = SanPham::with('danhMuc:id,ten_danh_muc')
             ->orderByDesc('so_luong_da_ban')
             ->limit(10)
             ->get();
 
         return response()->json([
+            'thanh_cong' => true,
             'success' => true,
+            'du_lieu' => $topProducts,
             'data' => $topProducts,
         ]);
     }
@@ -188,15 +223,20 @@ class AdminReportController extends Controller
         $rejectedClaims = YeuCauBaoHanh::where('trang_thai', 'REJECTED')->count();
         $resolvedClaims = YeuCauBaoHanh::where('trang_thai', 'RESOLVED')->count();
 
+        $res = [
+            'total_claims' => $totalClaims,
+            'pending_claims' => $pendingClaims,
+            'approved_claims' => $approvedClaims,
+            'rejected_claims' => $rejectedClaims,
+            'resolved_claims' => $resolvedClaims,
+        ];
+
         return response()->json([
+            'thanh_cong' => true,
             'success' => true,
-            'data' => [
-                'total_claims' => $totalClaims,
-                'pending_claims' => $pendingClaims,
-                'approved_claims' => $approvedClaims,
-                'rejected_claims' => $rejectedClaims,
-                'resolved_claims' => $resolvedClaims,
-            ]
+            'du_lieu' => $res,
+            'data' => $res
         ]);
     }
 }
+

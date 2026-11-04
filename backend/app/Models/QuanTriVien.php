@@ -21,13 +21,11 @@ class QuanTriVien extends Authenticatable
         'ho_ten',
         'vai_tro',
         'trang_thai',
-        'ma_bi_mat_2fa',
         'dang_nhap_cuoi_luc',
     ];
 
     protected $hidden = [
         'mat_khau_ma_hoa',
-        'ma_bi_mat_2fa',
     ];
 
     public function getAuthPassword()
@@ -40,4 +38,3 @@ class QuanTriVien extends Authenticatable
         return $this->vai_tro === 'SUPER_ADMIN';
     }
 }
-

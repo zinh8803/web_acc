@@ -42,71 +42,9 @@ class ChiTietDonHang extends Model
         'giao_hang_luc' => 'datetime',
     ];
 
-    protected $appends = [
-        'item_type',
-        'product_name',
-        'variant_name',
-        'thumbnail_url',
-        'unit_price',
-        'quantity',
-        'line_total',
-        'game_account_id',
-        'order_id',
-    ];
-
-    public function getItemTypeAttribute(): ?string
-    {
-        return $this->attributes['loai_muc'] ?? null;
-    }
-
-    public function getProductNameAttribute(): ?string
-    {
-        return $this->attributes['ten_san_pham_luu_lai'] ?? null;
-    }
-
-    public function getVariantNameAttribute(): ?string
-    {
-        return $this->attributes['ten_bien_the_luu_lai'] ?? null;
-    }
-
-    public function getThumbnailUrlAttribute(): ?string
-    {
-        return $this->attributes['anh_san_pham_luu_lai'] ?? null;
-    }
-
-    public function getUnitPriceAttribute(): mixed
-    {
-        return $this->attributes['don_gia'] ?? 0;
-    }
-
-    public function getQuantityAttribute(): mixed
-    {
-        return $this->attributes['so_luong'] ?? 1;
-    }
-
-    public function getLineTotalAttribute(): mixed
-    {
-        return $this->attributes['thanh_tien'] ?? 0;
-    }
-
-    public function getGameAccountIdAttribute(): ?int
-    {
-        return $this->attributes['tai_khoan_game_id'] ?? null;
-    }
-
-    public function getOrderIdAttribute(): ?int
-    {
-        return $this->attributes['don_hang_id'] ?? null;
-    }
-
     public function donHang(): BelongsTo
     {
         return $this->belongsTo(DonHang::class, 'don_hang_id');
-    }
-
-    public function order(): BelongsTo
-    {
-        return $this->donHang();
     }
 
     public function sanPham(): BelongsTo
@@ -114,19 +52,9 @@ class ChiTietDonHang extends Model
         return $this->belongsTo(SanPham::class, 'san_pham_id');
     }
 
-    public function product(): BelongsTo
-    {
-        return $this->sanPham();
-    }
-
     public function bienThe(): BelongsTo
     {
         return $this->belongsTo(BienTheSanPham::class, 'bien_the_id');
-    }
-
-    public function variant(): BelongsTo
-    {
-        return $this->bienThe();
     }
 
     public function taiKhoanGame(): BelongsTo
@@ -134,19 +62,9 @@ class ChiTietDonHang extends Model
         return $this->belongsTo(TaiKhoanGame::class, 'tai_khoan_game_id');
     }
 
-    public function gameAccount(): BelongsTo
-    {
-        return $this->taiKhoanGame();
-    }
-
     public function yeuCauDichVu(): HasOne
     {
         return $this->hasOne(YeuCauDichVu::class, 'chi_tiet_don_hang_id');
-    }
-
-    public function serviceRequest(): HasOne
-    {
-        return $this->yeuCauDichVu();
     }
 
     public function chinhSachBaoHanh(): BelongsTo
@@ -154,19 +72,8 @@ class ChiTietDonHang extends Model
         return $this->belongsTo(ChinhSachBaoHanh::class, 'chinh_sach_bao_hanh_id');
     }
 
-    public function warrantyPolicy(): BelongsTo
-    {
-        return $this->chinhSachBaoHanh();
-    }
-
     public function yeuCauBaoHanhs(): HasMany
     {
         return $this->hasMany(YeuCauBaoHanh::class, 'chi_tiet_don_hang_id');
     }
-
-    public function warrantyClaims(): HasMany
-    {
-        return $this->yeuCauBaoHanhs();
-    }
 }
-

@@ -20,19 +20,8 @@ class GioHang extends Model
         return $this->belongsTo(NguoiDung::class, 'nguoi_dung_id');
     }
 
-    public function user(): BelongsTo
-    {
-        return $this->nguoiDung();
-    }
-
     public function chiTiets(): HasMany
     {
         return $this->hasMany(ChiTietGioHang::class, 'gio_hang_id');
     }
-
-    public function items(): HasMany
-    {
-        return $this->chiTiets();
-    }
 }
-

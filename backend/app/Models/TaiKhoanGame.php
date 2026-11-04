@@ -49,45 +49,9 @@ class TaiKhoanGame extends Model
         'thong_tin_cong_khai' => 'array',
     ];
 
-    protected $appends = [
-        'image_url',
-        'public_details',
-        'status',
-        'cost_price',
-    ];
-
-    public function getImageUrlAttribute(): ?string
-    {
-        return $this->attributes['anh_minh_hoa'] ?? null;
-    }
-
-    public function getPublicDetailsAttribute(): ?array
-    {
-        $val = $this->attributes['thong_tin_cong_khai'] ?? null;
-        if (is_string($val)) {
-            return json_decode($val, true) ?: [];
-        }
-        return is_array($val) ? $val : [];
-    }
-
-    public function getStatusAttribute(): ?string
-    {
-        return $this->attributes['trang_thai'] ?? null;
-    }
-
-    public function getCostPriceAttribute(): mixed
-    {
-        return $this->attributes['gia_nhap'] ?? null;
-    }
-
     public function sanPham(): BelongsTo
     {
         return $this->belongsTo(SanPham::class, 'san_pham_id');
-    }
-
-    public function product(): BelongsTo
-    {
-        return $this->sanPham();
     }
 
     public function bienThe(): BelongsTo
@@ -95,9 +59,14 @@ class TaiKhoanGame extends Model
         return $this->belongsTo(BienTheSanPham::class, 'bien_the_id');
     }
 
-    public function variant(): BelongsTo
+    public function chiTietDonHangDaBan(): BelongsTo
     {
-        return $this->bienThe();
+        return $this->belongsTo(ChiTietDonHang::class, 'chi_tiet_don_hang_da_ban_id');
+    }
+
+    public function donHangGiuCho(): BelongsTo
+    {
+        return $this->belongsTo(DonHang::class, 'giu_cho_boi_don_hang_id');
     }
 
     /**
@@ -117,20 +86,10 @@ class TaiKhoanGame extends Model
             'mat_khau_ma_hoa' => Crypt::encryptString($matKhau),
             'thong_tin_phu_ma_hoa' => !empty($thongTinPhu) ? Crypt::encryptString(json_encode($thongTinPhu)) : null,
             'trang_thai' => 'AVAILABLE',
-            'gia_nhap' => $thongTinPhu['cost_price'] ?? $thongTinPhu['gia_nhap'] ?? null,
-            'anh_minh_hoa' => $thongTinPhu['image_url'] ?? $thongTinPhu['anh_minh_hoa'] ?? null,
-            'thong_tin_cong_khai' => $thongTinPhu['public_details'] ?? $thongTinPhu['thong_tin_cong_khai'] ?? null,
+            'gia_nhap' => $thongTinPhu['gia_nhap'] ?? null,
+            'anh_minh_hoa' => $thongTinPhu['anh_minh_hoa'] ?? null,
+            'thong_tin_cong_khai' => $thongTinPhu['thong_tin_cong_khai'] ?? null,
         ]);
-    }
-
-    public static function createWithEncryption(
-        int $productId,
-        int $variantId,
-        string $username,
-        string $password,
-        array $extra = []
-    ): self {
-        return self::taoTaiKhoanMaHoa($productId, $variantId, $username, $password, $extra);
     }
 
     /**
@@ -139,32 +98,21 @@ class TaiKhoanGame extends Model
     public function giaiMaThongTin(): array
     {
         try {
-            $username = Crypt::decryptString($this->ten_dang_nhap_ma_hoa);
-            $password = Crypt::decryptString($this->mat_khau_ma_hoa);
-            $extra = $this->thong_tin_phu_ma_hoa ? json_decode(Crypt::decryptString($this->thong_tin_phu_ma_hoa), true) : [];
+            $tenDangNhap = Crypt::decryptString($this->ten_dang_nhap_ma_hoa);
+            $matKhau = Crypt::decryptString($this->mat_khau_ma_hoa);
+            $thongTinPhu = $this->thong_tin_phu_ma_hoa ? json_decode(Crypt::decryptString($this->thong_tin_phu_ma_hoa), true) : [];
 
             return [
-                'username' => $username,
-                'password' => $password,
-                'extra' => $extra,
-                'ten_dang_nhap' => $username,
-                'mat_khau' => $password,
-                'thong_tin_phu' => $extra,
+                'ten_dang_nhap' => $tenDangNhap,
+                'mat_khau' => $matKhau,
+                'thong_tin_phu' => $thongTinPhu,
             ];
         } catch (\Throwable $e) {
             return [
-                'username' => 'DECRYPTION_ERROR',
-                'password' => 'DECRYPTION_ERROR',
-                'extra' => [],
                 'ten_dang_nhap' => 'LỖI_GIẢI_MÃ',
                 'mat_khau' => 'LỖI_GIẢI_MÃ',
                 'thong_tin_phu' => [],
             ];
         }
-    }
-
-    public function decryptCredentials(): array
-    {
-        return $this->giaiMaThongTin();
     }
 }
