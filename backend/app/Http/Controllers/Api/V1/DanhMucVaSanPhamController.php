@@ -27,19 +27,25 @@ class DanhMucVaSanPhamController extends Controller
     public function danhMuc(Request $request): JsonResponse
     {
         $query = DanhMuc::where('trang_thai', 'ACTIVE')
-            ->with(['danhMucCon'])
             ->orderBy('thu_tu_hien_thi');
 
         $loai = $request->loai ?? $request->type;
         if ($loai) {
-            $query->where('loai_danh_muc', strtoupper($loai));
+            $loaiUpper = strtoupper((string) $loai);
+            if (in_array($loaiUpper, ['ACCOUNT', 'TAI_KHOAN', 'TAIKHOAN'])) {
+                $query->whereIn('loai_danh_muc', ['TAI_KHOAN', 'ACCOUNT']);
+            } elseif (in_array($loaiUpper, ['SERVICE', 'DICH_VU', 'DICHVU'])) {
+                $query->whereIn('loai_danh_muc', ['DICH_VU', 'SERVICE']);
+            } else {
+                $query->where('loai_danh_muc', $loaiUpper);
+            }
         }
 
         $items = $query->get()->map(function ($item) {
             $arr = $item->toArray();
-            $arr['children'] = $arr['danh_muc_con'] ?? [];
             $arr['name'] = $item->ten_danh_muc;
             $arr['slug'] = $item->duong_dan_tinh;
+            $arr['type'] = $item->loai_danh_muc;
             $arr['description'] = $item->mo_ta;
             return $arr;
         });
@@ -94,15 +100,13 @@ class DanhMucVaSanPhamController extends Controller
         $sapXep = $request->sap_xep ?? $request->sort;
 
         if ($danhMucId) {
-            $danhMucIds = $this->layIdDanhMucCon((int) $danhMucId);
-            $query->whereIn('danh_muc_id', $danhMucIds);
+            $query->where('danh_muc_id', (int) $danhMucId);
         } elseif ($danhMucSlug) {
             $cat = DanhMuc::where('duong_dan_tinh', $danhMucSlug)
                 ->orWhere('id', $danhMucSlug)
                 ->first();
             if ($cat) {
-                $danhMucIds = $this->layIdDanhMucCon($cat->id);
-                $query->whereIn('danh_muc_id', $danhMucIds);
+                $query->where('danh_muc_id', $cat->id);
             }
         }
 
@@ -193,7 +197,7 @@ class DanhMucVaSanPhamController extends Controller
         $sanPham = SanPham::where('duong_dan_tinh', $slug)
             ->where('trang_thai', 'ACTIVE')
             ->with([
-                'danhMuc:id,ten_danh_muc,duong_dan_tinh,danh_muc_cha_id',
+                'danhMuc:id,ten_danh_muc,duong_dan_tinh',
                 'bienThes' => fn($q) => $q->where('trang_thai', 'ACTIVE')->orderBy('thu_tu_hien_thi'),
                 'hinhAnhs' => fn($q) => $q->orderBy('thu_tu_hien_thi'),
                 'chinhSachBaoHanh',
@@ -363,16 +367,6 @@ class DanhMucVaSanPhamController extends Controller
             'du_lieu' => $formatted,
             'data' => $formatted,
         ]);
-    }
-
-    private function layIdDanhMucCon(int $danhMucChaId): array
-    {
-        $ids = [$danhMucChaId];
-        $con = DanhMuc::where('danh_muc_cha_id', $danhMucChaId)->pluck('id')->toArray();
-        foreach ($con as $conId) {
-            $ids = array_merge($ids, $this->layIdDanhMucCon($conId));
-        }
-        return $ids;
     }
 }
 

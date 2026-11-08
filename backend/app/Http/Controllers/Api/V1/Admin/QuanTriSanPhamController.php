@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\SanPham;
 use App\Models\BienTheSanPham;
-use App\Models\HinhAnhSanPham;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -18,7 +17,7 @@ class QuanTriSanPhamController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = SanPham::with(['danhMuc'])
+        $query = SanPham::with(['danhMuc', 'chinhSachBaoHanh'])
             ->withCount([
                 'taiKhoanGames as available_accounts_count' => fn ($q) => $q->where('trang_thai', 'AVAILABLE'),
                 'taiKhoanGames as reserved_accounts_count' => fn ($q) => $q->where('trang_thai', 'RESERVED'),
@@ -50,10 +49,17 @@ class QuanTriSanPhamController extends Controller
             $arr['min_price'] = $product->gia_thap_nhat;
             $arr['type'] = $product->loai_san_pham;
             $arr['status'] = $product->trang_thai;
+            $arr['rating_avg'] = $product->diem_danh_gia_tb;
+            $arr['rating_count'] = $product->so_luot_danh_gia;
+            $arr['sold_count'] = $product->so_luong_da_ban;
             $arr['category'] = $product->danhMuc ? [
                 'id' => $product->danhMuc->id,
                 'name' => $product->danhMuc->ten_danh_muc,
                 'slug' => $product->danhMuc->duong_dan_tinh,
+            ] : null;
+            $arr['warranty_policy'] = $product->chinhSachBaoHanh ? [
+                'id' => $product->chinhSachBaoHanh->id,
+                'name' => $product->chinhSachBaoHanh->ten_chinh_sach,
             ] : null;
             return $arr;
         });
@@ -71,7 +77,7 @@ class QuanTriSanPhamController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $product = SanPham::with(['danhMuc', 'hinhAnhs', 'bienThes'])
+        $product = SanPham::with(['danhMuc', 'bienThes', 'chinhSachBaoHanh'])
             ->findOrFail($id);
 
         $data = $product->toArray();
@@ -85,7 +91,9 @@ class QuanTriSanPhamController extends Controller
         $data['short_description'] = $product->mo_ta_ngan;
         $data['category'] = $product->danhMuc;
         $data['variants'] = $product->bienThes;
-        $data['images'] = $product->hinhAnhs;
+        $data['warranty_policy'] = $product->chinhSachBaoHanh;
+        $data['warranty_policy_id'] = $product->chinh_sach_bao_hanh_id;
+        $data['images'] = [];
 
         return response()->json([
             'thanh_cong' => true,
@@ -102,9 +110,9 @@ class QuanTriSanPhamController extends Controller
     {
         $name = $request->ten_san_pham ?? $request->name ?? 'Sản phẩm mới';
         $catId = $request->danh_muc_id ?? $request->category_id;
-        $type = $request->loai_san_pham ?? $request->type ?? 'ACCOUNT';
-        if ($type === 'TAI_KHOAN') $type = 'ACCOUNT';
-        if ($type === 'DICH_VU') $type = 'SERVICE';
+        $type = strtoupper((string) ($request->loai_san_pham ?? $request->type ?? 'TAI_KHOAN'));
+        if ($type === 'ACCOUNT') $type = 'TAI_KHOAN';
+        if ($type === 'SERVICE') $type = 'DICH_VU';
 
         $price = (float) ($request->gia_goc ?? $request->price ?? 0);
         $salePrice = $request->gia_khuyen_mai ?? $request->sale_price ?? null;
@@ -116,12 +124,15 @@ class QuanTriSanPhamController extends Controller
             $thumbnailUrl = Storage::disk('public')->url($file->store('products', 'public'));
         }
 
+        $warrantyPolicyId = $request->chinh_sach_bao_hanh_id ?? $request->warranty_policy_id ?? null;
+
         $product = SanPham::create([
             'ma_san_pham' => 'PROD-' . strtoupper(Str::random(6)),
             'duong_dan_tinh' => Str::slug($name) . '-' . strtolower(Str::random(4)),
             'ten_san_pham' => $name,
             'danh_muc_id' => $catId,
             'loai_san_pham' => $type,
+            'chinh_sach_bao_hanh_id' => $warrantyPolicyId,
             'gia_thap_nhat' => $salePrice ?? $price,
             'anh_dai_dien' => $thumbnailUrl,
             'mo_ta_ngan' => $request->mo_ta_ngan ?? $request->short_description ?? null,
@@ -165,6 +176,17 @@ class QuanTriSanPhamController extends Controller
         $catId = $request->danh_muc_id ?? $request->category_id;
         if ($catId) {
             $updateData['danh_muc_id'] = $catId;
+        }
+
+        if ($request->has('loai_san_pham') || $request->has('type')) {
+            $type = strtoupper((string) ($request->loai_san_pham ?? $request->type));
+            if ($type === 'ACCOUNT') $type = 'TAI_KHOAN';
+            if ($type === 'SERVICE') $type = 'DICH_VU';
+            $updateData['loai_san_pham'] = $type;
+        }
+
+        if ($request->has('chinh_sach_bao_hanh_id') || $request->has('warranty_policy_id')) {
+            $updateData['chinh_sach_bao_hanh_id'] = $request->chinh_sach_bao_hanh_id ?? $request->warranty_policy_id;
         }
 
         if ($request->has('mo_ta_ngan') || $request->has('short_description')) {
@@ -241,4 +263,3 @@ class QuanTriSanPhamController extends Controller
         ]);
     }
 }
-

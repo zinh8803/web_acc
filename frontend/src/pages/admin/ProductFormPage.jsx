@@ -9,6 +9,7 @@ const ProductFormPage = () => {
     const navigate = useNavigate();
     const [form] = Form.useForm();
     const [categories, setCategories] = useState([]);
+    const [warrantyPolicies, setWarrantyPolicies] = useState([]);
     const [currentImage, setCurrentImage] = useState(null);
     const [loading, setLoading] = useState(false);
     const [variants, setVariants] = useState([]);
@@ -17,19 +18,26 @@ const ProductFormPage = () => {
     useEffect(() => {
         const loadFormData = async () => {
             try {
-                const categoriesResponse = await api.get('/admin/categories');
+                const [categoriesResponse, policiesResponse] = await Promise.all([
+                    api.get('/admin/categories'),
+                    api.get('/admin/warranty-policies'),
+                ]);
                 setCategories(categoriesResponse.data?.data || []);
+                setWarrantyPolicies(policiesResponse.data?.data || []);
 
                 if (id) {
                     const productResponse = await api.get(`/admin/products/${id}`);
                     const product = productResponse.data?.data;
                     if (product) {
+                        const normalizedType = (product.type === 'SERVICE' || product.type === 'DICH_VU') ? 'SERVICE' : 'ACCOUNT';
                         form.setFieldsValue({
                             ...product,
+                            type: normalizedType,
+                            warranty_policy_id: product.warranty_policy_id || product.chinh_sach_bao_hanh_id,
                             price: product.variants?.[0]?.price ?? product.min_price,
                         });
                         setCurrentImage(product.thumbnail_url);
-                        setProductType(product.type || 'ACCOUNT');
+                        setProductType(normalizedType);
                         if (product.variants && Array.isArray(product.variants)) {
                             setVariants(product.variants);
                         }
@@ -196,9 +204,22 @@ const ProductFormPage = () => {
                         </Form.Item>
                     </div>
 
-                    <Form.Item name="price" label="Giá bán tham chiếu (VNĐ)" rules={[{ required: true }]}>
-                        <InputNumber min={0} style={{ width: '100%' }} size="large" />
-                    </Form.Item>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <Form.Item name="price" label="Giá bán tham chiếu (VNĐ)" rules={[{ required: true }]}>
+                            <InputNumber min={0} style={{ width: '100%' }} size="large" />
+                        </Form.Item>
+                        <Form.Item name="warranty_policy_id" label="Chính sách bảo hành">
+                            <Select
+                                allowClear
+                                size="large"
+                                placeholder="Chọn chính sách bảo hành..."
+                                options={warrantyPolicies.map((p) => ({
+                                    value: p.id,
+                                    label: `${p.name || p.ten_chinh_sach} (${p.is_lifetime || p.bao_hanh_tron_doi ? 'Trọn đời' : (p.duration_days || p.so_ngay_bao_hanh) + ' ngày'})`,
+                                }))}
+                            />
+                        </Form.Item>
+                    </div>
 
                     {/* BẢNG CHỈNH GIÁ CÁC GÓI DỊCH VỤ / VARIANTS */}
                     {(productType === 'SERVICE' || variants.length > 0) && (

@@ -288,16 +288,19 @@ class DonHangController extends Controller
                     ]);
 
                     $serviceData = $prepared['serviceData'] ?? null;
-                    if ($serviceData) {
+                    if (!empty($serviceData) && is_array($serviceData)) {
                         $loginInfo = [];
-                        if (!empty($serviceData['game_username'] ?? $serviceData['ten_dang_nhap'])) {
-                            $loginInfo['ten_dang_nhap'] = $serviceData['game_username'] ?? $serviceData['ten_dang_nhap'];
+                        $tenDangNhap = $serviceData['game_username'] ?? $serviceData['ten_dang_nhap'] ?? null;
+                        if (!empty($tenDangNhap)) {
+                            $loginInfo['ten_dang_nhap'] = $tenDangNhap;
                         }
-                        if (!empty($serviceData['game_password'] ?? $serviceData['mat_khau'])) {
-                            $loginInfo['mat_khau'] = $serviceData['game_password'] ?? $serviceData['mat_khau'];
+                        $matKhau = $serviceData['game_password'] ?? $serviceData['mat_khau'] ?? null;
+                        if (!empty($matKhau)) {
+                            $loginInfo['mat_khau'] = $matKhau;
                         }
-                        if (!empty($serviceData['two_factor'] ?? $serviceData['ma_2fa'])) {
-                            $loginInfo['ma_2fa'] = $serviceData['two_factor'] ?? $serviceData['ma_2fa'];
+                        $ma2fa = $serviceData['two_factor'] ?? $serviceData['ma_2fa'] ?? null;
+                        if (!empty($ma2fa)) {
+                            $loginInfo['ma_2fa'] = $ma2fa;
                         }
 
                         YeuCauDichVu::create([
@@ -305,7 +308,7 @@ class DonHangController extends Controller
                             'chi_tiet_don_hang_id' => $orderItem->id,
                             'nguoi_dung_id' => $user->id,
                             'du_lieu_bieu_mau' => [
-                                'server' => $serviceData['server'] ?? null,
+                                'server' => $serviceData['server'] ?? $serviceData['may_chu'] ?? null,
                                 'ingame_name' => $serviceData['ingame_name'] ?? $serviceData['ten_nhan_vat'] ?? null,
                                 'current_rank' => $serviceData['current_rank'] ?? $serviceData['rank_hien_tai'] ?? null,
                                 'target_rank' => $serviceData['target_rank'] ?? $serviceData['rank_mong_muon'] ?? null,
@@ -313,7 +316,7 @@ class DonHangController extends Controller
                                 'variant_name' => $variant->ten_bien_the,
                             ],
                             'thong_tin_dang_nhap_ma_hoa' => !empty($loginInfo) ? \Illuminate\Support\Facades\Crypt::encryptString(json_encode($loginInfo)) : null,
-                            'ghi_chu_khach_hang' => $serviceData['notes'] ?? $ghiChuKhachHang ?? null,
+                            'ghi_chu_khach_hang' => $serviceData['notes'] ?? $serviceData['ghi_chu'] ?? $ghiChuKhachHang ?? null,
                             'trang_thai' => 'PENDING',
                         ]);
                     }

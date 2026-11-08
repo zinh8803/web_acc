@@ -25,7 +25,6 @@ class ChinhSachBaoHanh extends Model
         'thoi_gian_xu_ly_gio',
         'mo_ta',
         'trang_thai',
-        'nguoi_tao_id',
     ];
 
     protected $casts = [
@@ -36,6 +35,63 @@ class ChinhSachBaoHanh extends Model
         'so_lan_yeu_cau_toi_da' => 'integer',
         'thoi_gian_xu_ly_gio' => 'integer',
     ];
+
+    protected $appends = [
+        'name',
+        'product_type',
+        'duration_days',
+        'is_lifetime',
+        'claim_sla_hours',
+        'status',
+        'description',
+    ];
+
+    public function getNameAttribute(): ?string
+    {
+        return $this->attributes['ten_chinh_sach'] ?? null;
+    }
+
+    public function getProductTypeAttribute(): string
+    {
+        return $this->attributes['loai_san_pham'] ?? 'TAI_KHOAN';
+    }
+
+    public function setLoaiSanPhamAttribute($value): void
+    {
+        $val = strtoupper((string) $value);
+        if ($val === 'ACCOUNT' || $val === 'TAIKHOAN' || $val === 'TAI_KHOAN') {
+            $this->attributes['loai_san_pham'] = 'TAI_KHOAN';
+        } elseif ($val === 'SERVICE' || $val === 'DICHVU' || $val === 'DICH_VU') {
+            $this->attributes['loai_san_pham'] = 'DICH_VU';
+        } else {
+            $this->attributes['loai_san_pham'] = $val ?: 'TAI_KHOAN';
+        }
+    }
+
+    public function getDurationDaysAttribute(): ?int
+    {
+        return isset($this->attributes['so_ngay_bao_hanh']) ? (int) $this->attributes['so_ngay_bao_hanh'] : null;
+    }
+
+    public function getIsLifetimeAttribute(): bool
+    {
+        return (bool) ($this->attributes['bao_hanh_tron_doi'] ?? false);
+    }
+
+    public function getClaimSlaHoursAttribute(): int
+    {
+        return (int) ($this->attributes['thoi_gian_xu_ly_gio'] ?? 24);
+    }
+
+    public function getStatusAttribute(): ?string
+    {
+        return $this->attributes['trang_thai'] ?? 'ACTIVE';
+    }
+
+    public function getDescriptionAttribute(): ?string
+    {
+        return $this->attributes['mo_ta'] ?? null;
+    }
 
     public function sanPhams(): HasMany
     {

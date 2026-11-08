@@ -57,7 +57,6 @@ class QuanTriBaoHanhController extends Controller
             'thoi_gian_xu_ly_gio' => $sla,
             'mo_ta' => $request->mo_ta ?? $request->description,
             'trang_thai' => $request->trang_thai ?? $request->status ?? 'ACTIVE',
-            'nguoi_tao_id' => $request->user()?->id,
         ]);
 
         return response()->json([

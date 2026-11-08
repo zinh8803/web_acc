@@ -31,7 +31,6 @@ class TaiKhoanGame extends Model
         'xac_minh_luc',
         'nguoi_xac_minh_id',
         'ghi_chu_noi_bo',
-        'nguoi_tao_id',
     ];
 
     protected $hidden = [

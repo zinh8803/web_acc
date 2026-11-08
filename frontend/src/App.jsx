@@ -19,6 +19,7 @@ const LoginPage = React.lazy(() => import('./pages/auth/LoginPage'));
 const RegisterPage = React.lazy(() => import('./pages/auth/RegisterPage'));
 const ForgotPasswordPage = React.lazy(() => import('./pages/auth/ForgotPasswordPage'));
 const ResetPasswordPage = React.lazy(() => import('./pages/auth/ResetPasswordPage'));
+const TermsPage = React.lazy(() => import('./pages/TermsPage'));
 
 // User protected pages
 const CartPage = React.lazy(() => import('./pages/CartPage'));
@@ -47,6 +48,7 @@ const AdminStaffPage = React.lazy(() => import('./pages/admin/StaffPage'));
 const AdminBannersPage = React.lazy(() => import('./pages/admin/BannersPage'));
 const AdminSettingsPage = React.lazy(() => import('./pages/admin/SettingsPage'));
 const AdminReportsPage = React.lazy(() => import('./pages/admin/ReportsPage'));
+const AdminReviewsPage = React.lazy(() => import('./pages/admin/ReviewsPage'));
 
 const antTheme = {
     algorithm: theme.defaultAlgorithm,
@@ -93,6 +95,7 @@ function App() {
                                 <Route path="staff" element={<AdminStaffPage />} />
                                 <Route path="reports" element={<AdminReportsPage />} />
                                 <Route path="banners" element={<AdminBannersPage />} />
+                                <Route path="reviews" element={<AdminReviewsPage />} />
                                 <Route path="settings" element={<AdminSettingsPage />} />
                             </Route>
 
@@ -102,6 +105,8 @@ function App() {
                                 <Route path="catalog" element={<CatalogPage />} />
                                 <Route path="catalog/:slug" element={<CatalogPage />} />
                                 <Route path="products/:slug" element={<ProductDetailPage />} />
+                                <Route path="terms" element={<TermsPage />} />
+                                <Route path="chinh-sach-su-dung" element={<TermsPage />} />
                                 <Route path="login" element={<LoginPage />} />
                                 <Route path="register" element={<RegisterPage />} />
                                 <Route path="forgot-password" element={<ForgotPasswordPage />} />

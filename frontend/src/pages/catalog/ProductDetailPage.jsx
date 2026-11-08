@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, Button, Card, Col, Empty, Form, Image, Input, message, Pagination, Radio, Row, Select, Skeleton, Space, Tag, Typography } from 'antd';
-import { ClockCircleOutlined, LockOutlined, SafetyCertificateOutlined, ShoppingCartOutlined, ThunderboltOutlined, UserOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Col, Empty, Form, Image, Input, message, Pagination, Radio, Row, Select, Skeleton, Space, Tag, Typography, Rate, Avatar } from 'antd';
+import { ClockCircleOutlined, LockOutlined, SafetyCertificateOutlined, ShoppingCartOutlined, ThunderboltOutlined, UserOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
 import api from '../../services/api';
 import { useCartStore } from '../../stores/cartStore';
 import { useAuthStore } from '../../stores/authStore';
@@ -38,6 +38,8 @@ const ProductDetailPage = () => {
     const [accountPage, setAccountPage] = useState(1);
     const [accountTotal, setAccountTotal] = useState(0);
     const [addingId, setAddingId] = useState(null);
+    const [reviews, setReviews] = useState([]);
+    const [reviewsLoading, setReviewsLoading] = useState(false);
 
     // Dành cho dịch vụ cày thuê (SERVICE)
     const [selectedVariantId, setSelectedVariantId] = useState(null);
@@ -80,6 +82,20 @@ const ProductDetailPage = () => {
         }
     };
 
+    const fetchReviews = async (productId) => {
+        if (!productId) return;
+        setReviewsLoading(true);
+        try {
+            const res = await api.get(`/products/${productId}/reviews`);
+            const list = res.data?.data?.data || res.data?.data || [];
+            setReviews(Array.isArray(list) ? list : []);
+        } catch {
+            // ignore
+        } finally {
+            setReviewsLoading(false);
+        }
+    };
+
     useEffect(() => {
         let active = true;
         const loadProduct = async () => {
@@ -89,6 +105,9 @@ const ProductDetailPage = () => {
                 const detail = response.data?.data;
                 if (!active) return;
                 setProduct(detail || null);
+                if (detail?.id) {
+                    fetchReviews(detail.id);
+                }
                 if (detail?.type === 'ACCOUNT') {
                     await fetchAccounts(1);
                 } else if (detail?.type === 'SERVICE') {
@@ -247,7 +266,21 @@ const ProductDetailPage = () => {
                             {product.type === 'SERVICE' ? 'DỊCH VỤ CÀY GAME' : 'TÀI KHOẢN GAME'}
                         </Tag>
                     </Space>
-                    <Typography.Title level={2} style={{ color: '#fff', marginTop: 12 }}>{product.name}</Typography.Title>
+                    <Typography.Title level={2} style={{ color: '#fff', marginTop: 12, marginBottom: 6 }}>{product.name}</Typography.Title>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 12 }}>
+                        <Rate
+                            disabled
+                            allowHalf
+                            value={Number(product.rating_avg || product.diem_danh_gia_tb || 5.0)}
+                            style={{ fontSize: 16, color: '#fbbf24' }}
+                        />
+                        <span style={{ color: '#fbbf24', fontWeight: 700 }}>
+                            {Number(product.rating_avg || product.diem_danh_gia_tb || 5.0).toFixed(1)} / 5.0
+                        </span>
+                        <span style={{ color: '#94a3b8' }}>
+                            ({product.rating_count ?? product.so_luot_danh_gia ?? 0} lượt đánh giá)
+                        </span>
+                    </div>
                     <Typography.Paragraph style={{ color: '#cbd5e1' }}>{product.short_description}</Typography.Paragraph>
                     {product.type === 'ACCOUNT' ? (
                         <Typography.Text style={{ color: '#94a3b8' }}>
@@ -576,6 +609,81 @@ const ProductDetailPage = () => {
                     </Typography.Paragraph>
                 </Card>
             )}
+
+            {/* PHẦN ĐÁNH GIÁ TỪ KHÁCH HÀNG */}
+            <Card
+                style={{
+                    marginTop: 32,
+                    background: '#121324',
+                    color: '#fff',
+                    borderColor: 'rgba(255,255,255,.1)',
+                    borderRadius: 14,
+                }}
+            >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                    <div>
+                        <Typography.Title level={4} style={{ color: '#fff', margin: 0 }}>
+                            Đánh Giá Từ Khách Hàng
+                        </Typography.Title>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                            <Rate
+                                disabled
+                                allowHalf
+                                value={Number(product.rating_avg || product.diem_danh_gia_tb || 5.0)}
+                                style={{ fontSize: 16, color: '#fbbf24' }}
+                            />
+                            <span style={{ color: '#fbbf24', fontWeight: 800, fontSize: 16 }}>
+                                {Number(product.rating_avg || product.diem_danh_gia_tb || 5.0).toFixed(1)} / 5.0
+                            </span>
+                            <span style={{ color: '#94a3b8', fontSize: 13 }}>
+                                • {product.rating_count ?? product.so_luot_danh_gia ?? 0} đánh giá
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {reviewsLoading ? (
+                    <Skeleton active />
+                ) : reviews.length === 0 ? (
+                    <div style={{ padding: '24px 0', textAlign: 'center', color: '#94a3b8' }}>
+                        <StarOutlined style={{ fontSize: 28, marginBottom: 8, color: '#475569' }} />
+                        <div>Chưa có đánh giá nào cho sản phẩm này. Hãy là người đầu tiên trải nghiệm và để lại nhận xét!</div>
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        {reviews.map((rev) => (
+                            <div
+                                key={rev.id}
+                                style={{
+                                    background: 'rgba(255,255,255,0.02)',
+                                    borderRadius: 10,
+                                    padding: '16px 20px',
+                                    border: '1px solid rgba(255,255,255,0.05)',
+                                }}
+                            >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                    <Space>
+                                        <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#6366f1' }} />
+                                        <div>
+                                            <span style={{ color: '#fff', fontWeight: 600 }}>
+                                                {rev.user?.full_name || rev.user?.ho_ten || 'Khách hàng'}
+                                            </span>
+                                        </div>
+                                    </Space>
+                                    <Rate
+                                        disabled
+                                        value={rev.rating || rev.so_sao || 5}
+                                        style={{ fontSize: 13, color: '#fbbf24' }}
+                                    />
+                                </div>
+                                <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6, paddingLeft: 40 }}>
+                                    {rev.content || rev.noi_dung_danh_gia}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </Card>
         </div>
     );
 };

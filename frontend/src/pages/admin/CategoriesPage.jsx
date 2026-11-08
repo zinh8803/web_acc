@@ -30,17 +30,19 @@ const CategoriesPage = () => {
     const openCreate = () => {
         setEditingCategory(null);
         form.resetFields();
-        form.setFieldsValue({ type: 'ACCOUNT', sort_order: 0 });
+        form.setFieldsValue({ type: 'TAI_KHOAN', sort_order: 0 });
         setOpen(true);
     };
 
     const openEdit = (category) => {
         setEditingCategory(category);
+        const rawType = (category.loai_danh_muc || category.type || '').toUpperCase();
+        const type = (rawType === 'SERVICE' || rawType === 'DICH_VU') ? 'DICH_VU' : 'TAI_KHOAN';
         form.setFieldsValue({
-            name: category.name || category.ten_danh_muc,
-            type: category.type || category.loai_danh_muc,
-            description: category.description || category.mo_ta,
-            sort_order: category.sort_order ?? category.thu_tu_hien_thi ?? 0
+            name: category.ten_danh_muc || category.name,
+            type: type,
+            description: category.mo_ta || category.description,
+            sort_order: category.thu_tu_hien_thi ?? category.sort_order ?? 0
         });
         setOpen(true);
     };
@@ -50,9 +52,13 @@ const CategoriesPage = () => {
         try {
             const payload = {
                 name: values.name,
+                ten_danh_muc: values.name,
                 type: values.type,
+                loai_danh_muc: values.type,
                 description: values.description,
+                mo_ta: values.description,
                 sort_order: values.sort_order ?? 0,
+                thu_tu_hien_thi: values.sort_order ?? 0,
             };
             if (editingCategory) {
                 await api.put(`/admin/categories/${editingCategory.id}`, payload);
@@ -76,23 +82,24 @@ const CategoriesPage = () => {
             message.success('Đã xóa danh mục.');
             await fetchData();
         } catch (error) {
-            message.error(error.response?.data?.message || 'Không thể xóa danh mục đang có sản phẩm hoặc danh mục con.');
+            message.error(error.response?.data?.message || 'Không thể xóa danh mục đang có sản phẩm.');
         }
     };
 
     const columns = [
         { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
-        { title: 'Tên danh mục', dataIndex: 'name', key: 'name', render: (name, record) => <strong style={{ color: '#fff' }}>{name || record.ten_danh_muc}</strong> },
-        { title: 'Loại', dataIndex: 'type', key: 'type', render: (type, record) => {
-            const val = type || record.loai_danh_muc;
-            return <Tag color={val === 'SERVICE' ? 'magenta' : 'geekblue'}>{val === 'SERVICE' ? 'Dịch vụ' : 'Tài khoản'}</Tag>;
+        { title: 'Tên danh mục', dataIndex: 'name', key: 'name', render: (name, record) => <strong style={{ color: '#fff' }}>{record.ten_danh_muc || name}</strong> },
+        { title: 'Loại danh mục', dataIndex: 'type', key: 'type', render: (type, record) => {
+            const val = (record.loai_danh_muc || type || '').toUpperCase();
+            const isService = val === 'SERVICE' || val === 'DICH_VU';
+            return <Tag color={isService ? 'magenta' : 'geekblue'}>{isService ? 'Dịch vụ' : 'Tài khoản'}</Tag>;
         }},
-        { title: 'Slug', dataIndex: 'slug', key: 'slug', render: (slug, record) => slug || record.duong_dan_tinh },
-        { title: 'Mô tả', dataIndex: 'description', key: 'description', ellipsis: true, render: (d, record) => d || record.mo_ta },
+        { title: 'Slug', dataIndex: 'slug', key: 'slug', render: (slug, record) => record.duong_dan_tinh || slug },
+        { title: 'Mô tả', dataIndex: 'description', key: 'description', ellipsis: true, render: (d, record) => record.mo_ta || d },
         { title: 'Thao tác', key: 'actions', render: (_, category) => (
             <Space>
                 <Button icon={<EditOutlined />} onClick={() => openEdit(category)}>Sửa</Button>
-                <Popconfirm title="Xóa danh mục này?" description="Danh mục còn sản phẩm hoặc danh mục con sẽ không thể xóa." onConfirm={() => deleteCategory(category)} okText="Xóa" cancelText="Hủy">
+                <Popconfirm title="Xóa danh mục này?" description="Danh mục còn sản phẩm sẽ không thể xóa." onConfirm={() => deleteCategory(category)} okText="Xóa" cancelText="Hủy">
                     <Button danger icon={<DeleteOutlined />}>Xóa</Button>
                 </Popconfirm>
             </Space>
@@ -116,8 +123,11 @@ const CategoriesPage = () => {
                     <Form.Item name="name" label="Tên danh mục" rules={[{ required: true, message: 'Vui lòng nhập tên danh mục.' }]}>
                         <Input maxLength={150} />
                     </Form.Item>
-                    <Form.Item name="type" label="Loại" rules={[{ required: true }]}>
-                        <Select options={[{ value: 'ACCOUNT', label: 'Tài khoản (Account)' }, { value: 'SERVICE', label: 'Dịch vụ (Service)' }]} />
+                    <Form.Item name="type" label="Loại danh mục" rules={[{ required: true, message: 'Vui lòng chọn loại danh mục.' }]}>
+                        <Select options={[
+                            { value: 'TAI_KHOAN', label: 'Tài khoản' },
+                            { value: 'DICH_VU', label: 'Dịch vụ' }
+                        ]} />
                     </Form.Item>
                     <Form.Item name="description" label="Mô tả">
                         <Input.TextArea rows={3} />

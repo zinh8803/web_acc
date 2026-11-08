@@ -380,9 +380,8 @@ const UserLayout = () => {
                         </h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px' }}>
                             <Link to="/warranty-claims" style={{ color: '#94a3b8' }}>Chính sách bảo hành & Đổi trả</Link>
-                            <span style={{ color: '#94a3b8' }}>Hướng dẫn mua hàng & Thanh toán</span>
-                            <span style={{ color: '#94a3b8' }}>Điều khoản sử dụng dịch vụ</span>
-                            <span style={{ color: '#94a3b8' }}>Bảo mật thông tin khách hàng</span>
+                            <Link to="/terms" style={{ color: '#94a3b8' }}>Điều khoản & Chính sách sử dụng dịch vụ</Link>
+                            <Link to="/terms" style={{ color: '#94a3b8' }}>Bảo mật thông tin khách hàng</Link>
                         </div>
                     </div>
 

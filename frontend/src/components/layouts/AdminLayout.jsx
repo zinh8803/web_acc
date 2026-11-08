@@ -16,6 +16,7 @@ import {
     BarChartOutlined,
     SettingOutlined,
     PictureOutlined,
+    StarOutlined,
     LogoutOutlined,
     HomeOutlined,
 } from '@ant-design/icons';
@@ -56,6 +57,7 @@ const AdminLayout = () => {
         { key: '/admin', icon: <DashboardOutlined />, label: <Link to="/admin">Tổng quan Dashboard</Link> },
         { key: '/admin/categories', icon: <AppstoreOutlined />, label: <Link to="/admin/categories">Danh mục</Link> },
         { key: '/admin/products', icon: <ShoppingOutlined />, label: <Link to="/admin/products">Sản phẩm & Giá</Link> },
+        { key: '/admin/reviews', icon: <StarOutlined />, label: <Link to="/admin/reviews">Đánh giá sản phẩm</Link> },
         { key: '/admin/inventory', icon: <KeyOutlined />, label: <Link to="/admin/inventory">Kho Tài Khoản Game</Link> },
         { key: '/admin/orders', icon: <OrderedListOutlined />, label: <Link to="/admin/orders">Đơn hàng & Giao dịch</Link> },
         { key: '/admin/service-requests', icon: <CustomerServiceOutlined />, label: <Link to="/admin/service-requests">Yêu cầu Cày thuê</Link> },

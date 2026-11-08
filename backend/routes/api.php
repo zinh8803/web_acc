@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\V1\Admin\QuanTriNhanVienController;
 use App\Http\Controllers\Api\V1\Admin\QuanTriBaoCaoController;
 use App\Http\Controllers\Api\V1\Admin\QuanTriCaiDatController;
 use App\Http\Controllers\Api\V1\Admin\QuanTriBannerController;
+use App\Http\Controllers\Api\V1\Admin\QuanTriDanhGiaController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -257,6 +258,10 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('banner-quang-cao', QuanTriBannerController::class);
             Route::post('banners/{banner}', [QuanTriBannerController::class, 'update']);
             Route::post('banner-quang-cao/{banner}', [QuanTriBannerController::class, 'update']);
+
+            // Reviews / Đánh giá
+            Route::apiResource('reviews', QuanTriDanhGiaController::class)->only(['index', 'update', 'destroy']);
+            Route::apiResource('danh-gia', QuanTriDanhGiaController::class)->only(['index', 'update', 'destroy']);
         });
     });
 });

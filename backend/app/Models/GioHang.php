@@ -24,4 +24,9 @@ class GioHang extends Model
     {
         return $this->hasMany(ChiTietGioHang::class, 'gio_hang_id');
     }
+
+    public function items(): HasMany
+    {
+        return $this->chiTiets();
+    }
 }

@@ -97,6 +97,14 @@ class DanhGiaController extends Controller
             'ngay_tao' => now(),
         ]);
 
+        // Cập nhật điểm đánh giá trung bình và số lượt đánh giá của sản phẩm
+        $avg = DanhGia::where('san_pham_id', $product->id)->where('trang_thai', 'APPROVED')->avg('so_sao');
+        $count = DanhGia::where('san_pham_id', $product->id)->where('trang_thai', 'APPROVED')->count();
+        $product->update([
+            'diem_danh_gia_tb' => $avg ? round($avg, 1) : 5.0,
+            'so_luot_danh_gia' => $count,
+        ]);
+
         return response()->json([
             'thanh_cong' => true,
             'success' => true,

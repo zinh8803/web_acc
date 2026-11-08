@@ -29,12 +29,14 @@ class XacThucController extends Controller
 
         $validated = $request->validate([
             'email' => 'required|email|max:191|unique:nguoi_dung,email',
-            'so_dien_thoai' => 'nullable|string|max:20|unique:nguoi_dung,so_dien_thoai',
+            'so_dien_thoai' => ['required', 'regex:/^0[0-9]{9}$/', 'unique:nguoi_dung,so_dien_thoai'],
             'ho_ten' => 'required|string|max:120',
             'mat_khau' => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()],
         ], [
             'email.required' => 'Email là bắt buộc.',
             'email.unique' => 'Email này đã được sử dụng.',
+            'so_dien_thoai.required' => 'Số điện thoại là bắt buộc.',
+            'so_dien_thoai.regex' => 'Số điện thoại phải gồm đúng 10 chữ số và bắt đầu bằng số 0.',
             'so_dien_thoai.unique' => 'Số điện thoại này đã được sử dụng.',
             'ho_ten.required' => 'Họ tên là bắt buộc.',
             'mat_khau.required' => 'Mật khẩu là bắt buộc.',

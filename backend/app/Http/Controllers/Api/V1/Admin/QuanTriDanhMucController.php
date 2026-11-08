@@ -40,10 +40,8 @@ class QuanTriDanhMucController extends Controller
     public function store(Request $request): JsonResponse
     {
         $ten = $request->ten_danh_muc ?? $request->name ?? 'Danh mục mới';
-        $danhMucChaId = $request->danh_muc_cha_id ?? $request->parent_id ?? null;
-        $loai = $request->loai_danh_muc ?? $request->type ?? 'ACCOUNT';
-        if ($loai === 'TAI_KHOAN') $loai = 'ACCOUNT';
-        if ($loai === 'DICH_VU') $loai = 'SERVICE';
+        $rawLoai = strtoupper((string) ($request->loai_danh_muc ?? $request->type ?? 'TAI_KHOAN'));
+        $loai = in_array($rawLoai, ['SERVICE', 'DICH_VU', 'DICHVU']) ? 'DICH_VU' : 'TAI_KHOAN';
 
         $moTa = $request->mo_ta ?? $request->description ?? null;
         $thuTu = (int) ($request->thu_tu_hien_thi ?? $request->sort_order ?? 0);
@@ -53,7 +51,6 @@ class QuanTriDanhMucController extends Controller
             'ten_danh_muc' => $ten,
             'duong_dan_tinh' => $slug,
             'loai_danh_muc' => $loai,
-            'danh_muc_cha_id' => $danhMucChaId,
             'mo_ta' => $moTa,
             'thu_tu_hien_thi' => $thuTu,
             'trang_thai' => 'ACTIVE',
@@ -82,11 +79,10 @@ class QuanTriDanhMucController extends Controller
             $updateData['duong_dan_tinh'] = Str::slug($ten) . '-' . Str::lower(Str::random(4));
         }
 
-        $loai = $request->loai_danh_muc ?? $request->type;
-        if ($loai) {
-            if ($loai === 'TAI_KHOAN') $loai = 'ACCOUNT';
-            if ($loai === 'DICH_VU') $loai = 'SERVICE';
-            $updateData['loai_danh_muc'] = $loai;
+        $rawLoai = $request->loai_danh_muc ?? $request->type;
+        if ($rawLoai !== null) {
+            $loaiUpper = strtoupper((string) $rawLoai);
+            $updateData['loai_danh_muc'] = in_array($loaiUpper, ['SERVICE', 'DICH_VU', 'DICHVU']) ? 'DICH_VU' : 'TAI_KHOAN';
         }
 
         if ($request->has('mo_ta') || $request->has('description')) {

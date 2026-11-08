@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Row, Col, Card, Select, Input, Slider, Button, Tag, Spin, Empty } from 'antd';
+import { Row, Col, Card, Select, Input, Slider, Button, Tag, Spin, Empty, Rate } from 'antd';
 import { FilterOutlined } from '@ant-design/icons';
 import api from '../../services/api';
 
@@ -226,13 +226,24 @@ const CatalogPage = () => {
                                         </div>
 
                                         <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                                                <Rate
+                                                    disabled
+                                                    allowHalf
+                                                    value={Number(prod.rating_avg || prod.diem_danh_gia_tb || 5)}
+                                                    style={{ fontSize: '13px', color: '#fbbf24' }}
+                                                />
+                                                <span style={{ color: '#94a3b8', fontSize: '12px' }}>
+                                                    ({prod.rating_count ?? prod.so_luot_danh_gia ?? 0})
+                                                </span>
+                                            </div>
                                             <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '14px' }}>
                                                 <span style={{ color: '#06b6d4', fontSize: '20px', fontWeight: 800, fontFamily: 'Rajdhani' }}>
                                                     {Number(prod.min_price || 0).toLocaleString('vi-VN')} đ
                                                 </span>
                                             </div>
                                             <Button type="primary" block style={{ borderRadius: '6px', fontWeight: 700 }}>
-                                                {prod.type === 'SERVICE' ? 'Xem Dịch Vụ & Đặt' : 'Xem Chi Tiết & Mua'}
+                                                {prod.type === 'SERVICE' || prod.type === 'DICH_VU' ? 'Xem Dịch Vụ & Đặt' : 'Xem Chi Tiết & Mua'}
                                             </Button>
                                         </div>
                                     </Card>

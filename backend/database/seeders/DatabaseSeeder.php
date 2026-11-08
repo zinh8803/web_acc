@@ -43,7 +43,7 @@ class DatabaseSeeder extends Seeder
 
         // 3. Categories
         $lqCatVip = DanhMuc::updateOrCreate(['duong_dan_tinh' => 'nick-lien-quan-vip'], [
-            'loai_danh_muc' => 'ACCOUNT',
+            'loai_danh_muc' => 'TAI_KHOAN',
             'ten_danh_muc' => 'Nick Liên Quân VIP Rank Thách Đấu',
             'duong_dan_tinh' => 'nick-lien-quan-vip',
             'mo_ta' => 'Acc full tướng, hàng trăm skin SSS Tuyệt Sắc, ngọc 90 chuẩn.',
@@ -52,7 +52,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $lqCatGiaRe = DanhMuc::updateOrCreate(['duong_dan_tinh' => 'nick-lien-quan-gia-re'], [
-            'loai_danh_muc' => 'ACCOUNT',
+            'loai_danh_muc' => 'TAI_KHOAN',
             'ten_danh_muc' => 'Nick Liên Quân Giá Rẻ Tân Thủ',
             'duong_dan_tinh' => 'nick-lien-quan-gia-re',
             'mo_ta' => 'Acc trắng thông tin 100%, 30-50 tướng, thích hợp leo rank.',
@@ -61,7 +61,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $serviceCat = DanhMuc::updateOrCreate(['duong_dan_tinh' => 'dich-vu-cay-thue-lq'], [
-            'loai_danh_muc' => 'SERVICE',
+            'loai_danh_muc' => 'DICH_VU',
             'ten_danh_muc' => 'Dịch Vụ Cày Thuê Rank & Chiến Tướng',
             'duong_dan_tinh' => 'dich-vu-cay-thue-lq',
             'mo_ta' => 'Cày thuê uy tín từ Cao Thủ lên Thách Đấu, bảo mật tài khoản tuyệt đối.',

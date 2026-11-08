@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Card, Row, Col, Tag, Spin } from 'antd';
+import { Button, Card, Row, Col, Tag, Spin, Rate } from 'antd';
 import {
     ThunderboltOutlined,
     SafetyCertificateOutlined,
     ClockCircleOutlined,
     FireOutlined,
     RightOutlined,
+    StarFilled,
 } from '@ant-design/icons';
 import api from '../services/api';
 
@@ -352,8 +353,8 @@ const HomePage = () => {
                             >
                                 <div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                                        <Tag color={cat.type === 'SERVICE' ? 'magenta' : 'geekblue'} style={{ fontWeight: 600 }}>
-                                            {cat.type === 'SERVICE' ? 'DỊCH VỤ' : 'TÀI KHOẢN'}
+                                        <Tag color={cat.type === 'SERVICE' || cat.type === 'DICH_VU' || cat.loai_danh_muc === 'DICH_VU' ? 'magenta' : 'geekblue'} style={{ fontWeight: 600 }}>
+                                            {cat.type === 'SERVICE' || cat.type === 'DICH_VU' || cat.loai_danh_muc === 'DICH_VU' ? 'DỊCH VỤ' : 'TÀI KHOẢN'}
                                         </Tag>
                                     </div>
                                     <h3 style={{ color: '#1e293b', fontSize: '15px', fontWeight: 700, marginBottom: '8px', lineHeight: 1.4 }}>
@@ -454,6 +455,17 @@ const HomePage = () => {
                                         </p>
                                     </div>
                                     <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                                            <Rate
+                                                disabled
+                                                allowHalf
+                                                value={Number(prod.rating_avg || prod.diem_danh_gia_tb || 5)}
+                                                style={{ fontSize: '13px', color: '#fbbf24' }}
+                                            />
+                                            <span style={{ color: '#94a3b8', fontSize: '12px' }}>
+                                                ({prod.rating_count ?? prod.so_luot_danh_gia ?? 0} đánh giá)
+                                            </span>
+                                        </div>
                                         <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '14px' }}>
                                             <span style={{ color: '#06b6d4', fontSize: '20px', fontWeight: 800, fontFamily: 'Rajdhani' }}>
                                                 {Number(prod.min_price || 0).toLocaleString('vi-VN')} đ

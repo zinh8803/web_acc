@@ -28,7 +28,6 @@ class MaGiamGia extends Model
         'ngay_bat_dau',
         'ngay_ket_thuc',
         'trang_thai',
-        'nguoi_tao_id',
     ];
 
     protected $casts = [

@@ -133,20 +133,22 @@ const AdminWarrantyPage = () => {
     const handleOpenPolicyModal = (policy = null) => {
         setEditingPolicy(policy);
         if (policy) {
+            const rawType = policy.product_type || policy.loai_san_pham || 'TAI_KHOAN';
+            const normalizedType = (rawType === 'SERVICE' || rawType === 'DICH_VU') ? 'DICH_VU' : 'TAI_KHOAN';
             policyForm.setFieldsValue({
-                name: policy.name,
-                product_type: policy.product_type,
-                is_lifetime: policy.is_lifetime,
-                duration_days: policy.duration_days,
-                claim_sla_hours: policy.claim_sla_hours || 24,
-                description: policy.description,
-                exclusions: policy.exclusions,
-                status: policy.status || 'ACTIVE',
+                name: policy.name || policy.ten_chinh_sach,
+                product_type: normalizedType,
+                is_lifetime: policy.is_lifetime ?? policy.bao_hanh_tron_doi ?? false,
+                duration_days: policy.duration_days ?? policy.so_ngay_bao_hanh,
+                claim_sla_hours: policy.claim_sla_hours || policy.thoi_gian_xu_ly_gio || 24,
+                description: policy.description || policy.mo_ta,
+                exclusions: policy.exclusions || policy.dieu_khoan_loai_tru,
+                status: policy.status || policy.trang_thai || 'ACTIVE',
             });
         } else {
             policyForm.resetFields();
             policyForm.setFieldsValue({
-                product_type: 'ACCOUNT',
+                product_type: 'TAI_KHOAN',
                 is_lifetime: true,
                 claim_sla_hours: 24,
                 status: 'ACTIVE',
@@ -313,11 +315,14 @@ const AdminWarrantyPage = () => {
             title: 'Áp dụng cho',
             dataIndex: 'product_type',
             key: 'product_type',
-            render: (t) => (
-                <Tag color={t === 'ACCOUNT' ? 'cyan' : 'orange'}>
-                    {t === 'ACCOUNT' ? 'Tài Khoản' : 'Dịch Vụ Cày'}
-                </Tag>
-            ),
+            render: (t) => {
+                const isService = t === 'SERVICE' || t === 'DICH_VU';
+                return (
+                    <Tag color={isService ? 'orange' : 'cyan'}>
+                        {isService ? 'Dịch Vụ Cày' : 'Tài Khoản'}
+                    </Tag>
+                );
+            },
         },
         {
             title: 'Thời hạn',
@@ -536,8 +541,8 @@ const AdminWarrantyPage = () => {
                         <Col span={12}>
                             <Form.Item name="product_type" label="Loại sản phẩm *" rules={[{ required: true }]}>
                                 <Select>
-                                    <Select.Option value="ACCOUNT">Tài Khoản Game</Select.Option>
-                                    <Select.Option value="SERVICE">Dịch Vụ Cày Game</Select.Option>
+                                    <Select.Option value="TAI_KHOAN">Tài Khoản Game</Select.Option>
+                                    <Select.Option value="DICH_VU">Dịch Vụ Cày Game</Select.Option>
                                 </Select>
                             </Form.Item>
                         </Col>

@@ -505,16 +505,19 @@ class ThanhToanController extends Controller
                             ]);
 
                             $serviceData = $itemData['service_data'] ?? null;
-                            if ($serviceData) {
+                            if (!empty($serviceData) && is_array($serviceData)) {
                                 $loginInfo = [];
-                                if (!empty($serviceData['game_username'] ?? $serviceData['ten_dang_nhap'])) {
-                                    $loginInfo['ten_dang_nhap'] = $serviceData['game_username'] ?? $serviceData['ten_dang_nhap'];
+                                $tenDangNhap = $serviceData['game_username'] ?? $serviceData['ten_dang_nhap'] ?? null;
+                                if (!empty($tenDangNhap)) {
+                                    $loginInfo['ten_dang_nhap'] = $tenDangNhap;
                                 }
-                                if (!empty($serviceData['game_password'] ?? $serviceData['mat_khau'])) {
-                                    $loginInfo['mat_khau'] = $serviceData['game_password'] ?? $serviceData['mat_khau'];
+                                $matKhau = $serviceData['game_password'] ?? $serviceData['mat_khau'] ?? null;
+                                if (!empty($matKhau)) {
+                                    $loginInfo['mat_khau'] = $matKhau;
                                 }
-                                if (!empty($serviceData['two_factor'] ?? $serviceData['ma_2fa'])) {
-                                    $loginInfo['ma_2fa'] = $serviceData['two_factor'] ?? $serviceData['ma_2fa'];
+                                $ma2fa = $serviceData['two_factor'] ?? $serviceData['ma_2fa'] ?? null;
+                                if (!empty($ma2fa)) {
+                                    $loginInfo['ma_2fa'] = $ma2fa;
                                 }
 
                                 YeuCauDichVu::create([
@@ -522,15 +525,15 @@ class ThanhToanController extends Controller
                                     'chi_tiet_don_hang_id' => $orderItem->id,
                                     'nguoi_dung_id' => $checkoutData['user_id'],
                                     'du_lieu_bieu_mau' => [
-                                        'server' => $serviceData['server'] ?? null,
-                                        'ingame_name' => $serviceData['ingame_name'] ?? null,
-                                        'current_rank' => $serviceData['current_rank'] ?? null,
-                                        'target_rank' => $serviceData['target_rank'] ?? null,
-                                        'target_hero' => $serviceData['target_hero'] ?? null,
+                                        'server' => $serviceData['server'] ?? $serviceData['may_chu'] ?? null,
+                                        'ingame_name' => $serviceData['ingame_name'] ?? $serviceData['ten_nhan_vat'] ?? null,
+                                        'current_rank' => $serviceData['current_rank'] ?? $serviceData['rank_hien_tai'] ?? null,
+                                        'target_rank' => $serviceData['target_rank'] ?? $serviceData['rank_mong_muon'] ?? null,
+                                        'target_hero' => $serviceData['target_hero'] ?? $serviceData['tuong_yeu_cau'] ?? null,
                                         'variant_name' => $itemData['variant_name'] ?? null,
                                     ],
                                     'thong_tin_dang_nhap_ma_hoa' => !empty($loginInfo) ? \Illuminate\Support\Facades\Crypt::encryptString(json_encode($loginInfo)) : null,
-                                    'ghi_chu_khach_hang' => $serviceData['notes'] ?? $checkoutData['customer_notes'] ?? null,
+                                    'ghi_chu_khach_hang' => $serviceData['notes'] ?? $serviceData['ghi_chu'] ?? $checkoutData['customer_notes'] ?? null,
                                     'trang_thai' => 'PENDING',
                                     'ngay_tao' => now(),
                                 ]);

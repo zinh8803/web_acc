@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Row, Col, Tag, Button, Spin, message, Alert, Divider, Card, Steps, Modal, Form, Input, Space } from 'antd';
+import { Row, Col, Tag, Button, Spin, message, Alert, Divider, Card, Steps, Modal, Form, Input, Space, Rate } from 'antd';
 import {
     CopyOutlined,
     KeyOutlined,
@@ -13,7 +13,8 @@ import {
     LockOutlined,
     UserOutlined,
     EyeOutlined,
-    EyeInvisibleOutlined
+    EyeInvisibleOutlined,
+    StarOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../services/api';
@@ -36,6 +37,43 @@ const OrderDetailPage = () => {
     const [activeOrderItem, setActiveOrderItem] = useState(null);
     const [submitLoading, setSubmitLoading] = useState(false);
     const [form] = Form.useForm();
+
+    // Modal đánh giá sản phẩm sau mua
+    const [reviewModalVisible, setReviewModalVisible] = useState(false);
+    const [reviewingItem, setReviewingItem] = useState(null);
+    const [reviewLoading, setReviewLoading] = useState(false);
+    const [reviewForm] = Form.useForm();
+    const [reviewedItems, setReviewedItems] = useState({});
+
+    const handleOpenReviewModal = (item) => {
+        setReviewingItem(item);
+        reviewForm.resetFields();
+        reviewForm.setFieldsValue({
+            rating: 5,
+            content: '',
+        });
+        setReviewModalVisible(true);
+    };
+
+    const handleSubmitReview = async (values) => {
+        if (!reviewingItem) return;
+        setReviewLoading(true);
+        try {
+            await api.post('/reviews', {
+                product_id: reviewingItem.product_id || reviewingItem.product?.id,
+                order_item_id: reviewingItem.id,
+                rating: values.rating,
+                content: values.content,
+            });
+            message.success('Cảm ơn bạn đã gửi đánh giá cho sản phẩm!');
+            setReviewedItems((prev) => ({ ...prev, [reviewingItem.id]: true }));
+            setReviewModalVisible(false);
+        } catch (err) {
+            message.error(err.response?.data?.message || err.response?.data?.error?.message || 'Không thể gửi đánh giá.');
+        } finally {
+            setReviewLoading(false);
+        }
+    };
 
     const [errorMessage, setErrorMessage] = useState(null);
 
@@ -465,20 +503,36 @@ const OrderDetailPage = () => {
                 <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>Danh Sách Mặt Hàng Trong Đơn</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
                     {order.items?.map((item) => (
-                        <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '14px 18px', borderRadius: '10px' }}>
                             <div>
                                 <div style={{ color: '#fff', fontSize: '15px', fontWeight: 600 }}>
                                     {item.product_name || item.product?.name} {item.variant_name ? `(${item.variant_name})` : ''}
                                 </div>
-                                <div style={{ color: '#94a3b8', fontSize: '13px' }}>
-                                    <Tag color={item.item_type === 'SERVICE' ? 'orange' : 'cyan'}>
-                                        {item.item_type === 'SERVICE' ? 'Dịch Vụ' : 'Tài Khoản'}
+                                <div style={{ color: '#94a3b8', fontSize: '13px', marginTop: '4px' }}>
+                                    <Tag color={item.item_type === 'SERVICE' || item.loai_muc === 'DICH_VU' ? 'orange' : 'cyan'}>
+                                        {item.item_type === 'SERVICE' || item.loai_muc === 'DICH_VU' ? 'Dịch Vụ' : 'Tài Khoản'}
                                     </Tag>
                                     Số lượng: {item.quantity} x {Number(item.unit_price).toLocaleString('vi-VN')} đ
                                 </div>
                             </div>
-                            <div style={{ color: '#06b6d4', fontWeight: 700, fontFamily: 'Rajdhani', fontSize: '16px' }}>
-                                {Number(item.line_total || 0).toLocaleString('vi-VN')} đ
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <div style={{ color: '#06b6d4', fontWeight: 700, fontFamily: 'Rajdhani', fontSize: '16px' }}>
+                                    {Number(item.line_total || 0).toLocaleString('vi-VN')} đ
+                                </div>
+                                {isPaid && (
+                                    reviewedItems[item.id] ? (
+                                        <Tag color="success" icon={<CheckCircleOutlined />}>Đã đánh giá</Tag>
+                                    ) : (
+                                        <Button
+                                            size="small"
+                                            icon={<StarOutlined />}
+                                            style={{ color: '#fbbf24', borderColor: '#fbbf24' }}
+                                            onClick={() => handleOpenReviewModal(item)}
+                                        >
+                                            Đánh giá
+                                        </Button>
+                                    )
+                                )}
                             </div>
                         </div>
                     ))}
@@ -502,9 +556,42 @@ const OrderDetailPage = () => {
                     </span>
                 </div>
 
-                <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
-                    <Link to={`/warranty-claims?order_code=${order.order_code}`}><Button type="primary" ghost icon={<SafetyCertificateOutlined />}>Yêu Cầu Bảo Hành Cho Đơn Này</Button></Link>
-                    <Link to="/orders"><Button type="default">Quay lại danh sách đơn hàng</Button></Link>
+                <div style={{ marginTop: '24px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <Link to={`/warranty-claims?order_code=${order.order_code}`}>
+                        <Button
+                            type="primary"
+                            icon={<SafetyCertificateOutlined />}
+                            style={{
+                                background: '#6366f1',
+                                borderColor: '#6366f1',
+                                color: '#ffffff',
+                                fontWeight: 700,
+                                height: '40px',
+                                padding: '0 20px',
+                                borderRadius: '8px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                            }}
+                        >
+                            Yêu Cầu Bảo Hành Cho Đơn Này
+                        </Button>
+                    </Link>
+                    <Link to="/orders">
+                        <Button
+                            type="default"
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.08)',
+                                borderColor: 'rgba(255, 255, 255, 0.15)',
+                                color: '#ffffff',
+                                fontWeight: 600,
+                                height: '40px',
+                                padding: '0 20px',
+                                borderRadius: '8px',
+                            }}
+                        >
+                            Quay lại danh sách đơn hàng
+                        </Button>
+                    </Link>
                 </div>
             </div>
 
@@ -550,6 +637,50 @@ const OrderDetailPage = () => {
                         Gửi Thông Tin & Bắt Đầu Cày
                     </Button>
                 </Form>
+            </Modal>
+
+            {/* MODAL ĐÁNH GIÁ SẢN PHẨM */}
+            <Modal
+                title={<span style={{ color: '#fff' }}>Đánh giá sản phẩm đã mua</span>}
+                open={reviewModalVisible}
+                onCancel={() => setReviewModalVisible(false)}
+                footer={null}
+            >
+                {reviewingItem && (
+                    <div style={{ marginBottom: '16px' }}>
+                        <div style={{ color: '#cbd5e1', fontSize: '14px', marginBottom: '16px' }}>
+                            Sản phẩm: <strong style={{ color: '#38bdf8' }}>{reviewingItem.product_name || reviewingItem.product?.name}</strong>
+                        </div>
+                        <Form form={reviewForm} layout="vertical" onFinish={handleSubmitReview} initialValues={{ rating: 5 }}>
+                            <Form.Item name="rating" label="Chất lượng sản phẩm & dịch vụ" rules={[{ required: true }]}>
+                                <Rate allowHalf={false} style={{ fontSize: '24px', color: '#fbbf24' }} />
+                            </Form.Item>
+                            <Form.Item
+                                name="content"
+                                label="Nhận xét của bạn *"
+                                rules={[
+                                    { required: true, message: 'Vui lòng nhập nhận xét!' },
+                                    { min: 5, message: 'Nhận xét tối thiểu 5 ký tự!' },
+                                ]}
+                            >
+                                <Input.TextArea
+                                    rows={4}
+                                    placeholder="Chia sẻ trải nghiệm của bạn về tài khoản / dịch vụ nhận được (đúng mô tả, tốc độ bàn giao, hỗ trợ CSKH...)..."
+                                />
+                            </Form.Item>
+                            <Button
+                                type="primary"
+                                htmlType="submit"
+                                block
+                                size="large"
+                                loading={reviewLoading}
+                                style={{ fontWeight: 700 }}
+                            >
+                                Gửi Đánh Giá Ngay
+                            </Button>
+                        </Form>
+                    </div>
+                )}
             </Modal>
         </div>
     );
