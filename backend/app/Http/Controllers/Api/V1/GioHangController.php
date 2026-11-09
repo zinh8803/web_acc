@@ -21,7 +21,7 @@ class GioHangController extends Controller
     public function xemGioHang(Request $request): JsonResponse
     {
         $gioHang = GioHang::firstOrCreate(['nguoi_dung_id' => $request->user()->id]);
-        $gioHang->load(['chiTiets.bienThe.sanPham.anhChinh', 'chiTiets.taiKhoanGame']);
+        $gioHang->load(['chiTiets.bienThe.sanPham', 'chiTiets.taiKhoanGame']);
 
         $data = $this->dinhDangGioHang($gioHang);
 
@@ -62,7 +62,7 @@ class GioHangController extends Controller
             ], 422);
         }
 
-        if ($bienThe->sanPham->loai_san_pham === 'ACCOUNT') {
+        if (in_array($bienThe->sanPham->loai_san_pham, ['ACCOUNT', 'TAI_KHOAN'])) {
             $tonKho = TaiKhoanGame::where('bien_the_id', $bienThe->id)->where('trang_thai', 'AVAILABLE')->count();
             if ($tonKho <= 0) {
                 return response()->json([
@@ -107,7 +107,7 @@ class GioHangController extends Controller
             $item->increment('so_luong', $soLuong);
         }
 
-        $item->load(['bienThe.sanPham.anhChinh', 'taiKhoanGame']);
+        $item->load(['bienThe.sanPham', 'taiKhoanGame']);
 
         return response()->json([
             'thanh_cong' => true,
@@ -144,7 +144,7 @@ class GioHangController extends Controller
         }
 
         $item->update(['so_luong' => $soLuong]);
-        $item->load(['bienThe.sanPham.anhChinh', 'taiKhoanGame']);
+        $item->load(['bienThe.sanPham', 'taiKhoanGame']);
 
         return response()->json([
             'thanh_cong' => true,
@@ -281,7 +281,8 @@ class GioHangController extends Controller
                         'id' => $sanPham->id,
                         'name' => $sanPham->ten_san_pham,
                         'slug' => $sanPham->duong_dan_tinh,
-                        'type' => $sanPham->loai_san_pham,
+                        'type' => in_array($sanPham->loai_san_pham, ['TAI_KHOAN', 'ACCOUNT']) ? 'ACCOUNT' : 'SERVICE',
+                        'loai_san_pham' => $sanPham->loai_san_pham,
                         'thumbnail_url' => $sanPham->anh_dai_dien,
                     ] : null,
                 ] : null,

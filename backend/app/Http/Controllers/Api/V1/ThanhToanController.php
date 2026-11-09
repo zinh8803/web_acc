@@ -100,7 +100,7 @@ class ThanhToanController extends Controller
             'bank_code' => 'MB',
             'bank_name' => 'Ngân hàng Quân Đội (MB Bank)',
             'account_number' => '0987654321',
-            'account_name' => 'NGUYEN QUOC VINH',
+            'account_name' => 'NGUYEN QUOC TRANG',
             'amount' => (int) $order->tong_tien,
             'content' => $order->ma_don_hang,
             'qr_url' => "https://img.vietqr.io/image/MB-0987654321-compact2.png?amount=" . (int)$order->tong_tien . "&addInfo=" . urlencode($order->ma_don_hang) . "&accountName=" . urlencode("NGUYEN QUOC VINH")
@@ -179,7 +179,7 @@ class ThanhToanController extends Controller
                     $lineTotal = (int) $unitPrice * $quantity;
                     $accountIds = [];
 
-                    if ($product->loai_san_pham === 'ACCOUNT') {
+                    if (in_array($product->loai_san_pham, ['ACCOUNT', 'TAI_KHOAN'])) {
                         if (!empty($gameAccountId)) {
                             if ($quantity !== 1) {
                                 throw ValidationException::withMessages(['items' => ['Mỗi tài khoản được bán riêng lẻ, số lượng luôn là 1.']]);
@@ -223,7 +223,7 @@ class ThanhToanController extends Controller
                         'product_name' => $product->ten_san_pham,
                         'variant_name' => $variant->ten_bien_the,
                         'thumbnail_url' => $product->anh_dai_dien,
-                        'item_type' => $product->loai_san_pham,
+                        'item_type' => in_array($product->loai_san_pham, ['ACCOUNT', 'TAI_KHOAN']) ? 'ACCOUNT' : 'SERVICE',
                         'unit_price' => $unitPrice,
                         'quantity' => $quantity,
                         'line_total' => $lineTotal,
@@ -453,7 +453,7 @@ class ThanhToanController extends Controller
                     ]);
 
                     foreach ($checkoutData['items'] as $itemData) {
-                        if ($itemData['item_type'] === 'ACCOUNT') {
+                        if (in_array($itemData['item_type'], ['ACCOUNT', 'TAI_KHOAN'])) {
                             foreach ($itemData['account_ids'] as $accId) {
                                 $orderItem = ChiTietDonHang::create([
                                     'don_hang_id' => $order->id,
@@ -573,7 +573,7 @@ class ThanhToanController extends Controller
                             'giu_cho_den_khi' => null,
                         ]);
                     foreach ($checkoutData['items'] as $itemData) {
-                        if ($itemData['item_type'] === 'ACCOUNT') {
+                        if (in_array($itemData['item_type'], ['ACCOUNT', 'TAI_KHOAN'])) {
                             BienTheSanPham::whereKey($itemData['variant_id'])->update([
                                 'so_luong_ton_kho' => TaiKhoanGame::where('bien_the_id', $itemData['variant_id'])->where('trang_thai', 'AVAILABLE')->count(),
                             ]);

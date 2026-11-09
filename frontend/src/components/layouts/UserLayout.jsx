@@ -97,9 +97,20 @@ const UserLayout = () => {
         })),
     ];
 
-    const serviceDropdownItems = dbServices.length > 0 ? (
-        dbServices.map((srv) => {
-            return {
+    const serviceDropdownItems = [
+        {
+            key: 'all-services',
+            label: (
+                <Link to="/catalog?type=service" style={{ fontWeight: 700, color: '#f43f5e', display: 'block', padding: '4px 0' }}>
+                    ⚡ Xem Toàn Bộ Bảng Giá Cày Thuê
+                </Link>
+            ),
+        },
+        {
+            type: 'divider',
+        },
+        ...(dbServices.length > 0 ? (
+            dbServices.map((srv) => ({
                 key: `service-${srv.id}`,
                 label: (
                     <Link to={`/products/${srv.slug}`} style={{ display: 'block', padding: '6px 4px' }}>
@@ -113,13 +124,13 @@ const UserLayout = () => {
                         </div>
                     </Link>
                 ),
-            };
-        })
-    ) : [
-        {
-            key: 'service-empty',
-            label: <span style={{ color: '#94a3b8', padding: '6px' }}>Đang tải danh sách dịch vụ...</span>,
-        },
+            }))
+        ) : [
+            {
+                key: 'service-empty',
+                label: <span style={{ color: '#94a3b8', padding: '6px' }}>Đang tải danh sách dịch vụ...</span>,
+            },
+        ]),
     ];
 
     const userMenuItems = [

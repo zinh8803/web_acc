@@ -211,7 +211,6 @@ class DanhMucVaSanPhamController extends Controller
             ->with([
                 'danhMuc:id,ten_danh_muc,duong_dan_tinh',
                 'bienThes' => fn($q) => $q->where('trang_thai', 'ACTIVE')->orderBy('thu_tu_hien_thi'),
-                'hinhAnhs' => fn($q) => $q->orderBy('thu_tu_hien_thi'),
                 'chinhSachBaoHanh',
             ])
             ->firstOrFail();
@@ -251,14 +250,7 @@ class DanhMucVaSanPhamController extends Controller
             'status' => $v->trang_thai,
             ...$v->toArray(),
         ])->toArray();
-        $data['images'] = collect($sanPham->hinhAnhs)->map(fn($img) => [
-            'id' => $img->id,
-            'url' => $img->duong_dan_anh,
-            'thumbnail_url' => $img->duong_dan_anh_nho,
-            'alt_text' => $img->chu_thich_anh,
-            'is_primary' => $img->anh_chinh,
-            ...$img->toArray(),
-        ])->toArray();
+        $data['images'] = [];
         $data['warrantyPolicy'] = $sanPham->chinhSachBaoHanh;
 
         return response()->json([

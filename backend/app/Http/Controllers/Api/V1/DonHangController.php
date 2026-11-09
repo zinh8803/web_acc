@@ -172,7 +172,7 @@ class DonHangController extends Controller
                 $lineTotal = (int) $unitPrice * $quantity;
                 $accounts = collect();
 
-                if ($product->loai_san_pham === 'ACCOUNT') {
+                if (in_array($product->loai_san_pham, ['ACCOUNT', 'TAI_KHOAN'])) {
                     if (!empty($gameAccountId)) {
                         if ($quantity !== 1) {
                             throw ValidationException::withMessages(['items' => ['Mỗi tài khoản game được bán riêng lẻ, số lượng luôn là 1.']]);
@@ -238,7 +238,7 @@ class DonHangController extends Controller
                 $product = $prepared['product'];
                 $variant = $prepared['variant'];
 
-                if ($product->loai_san_pham === 'ACCOUNT') {
+                if (in_array($product->loai_san_pham, ['ACCOUNT', 'TAI_KHOAN'])) {
                     foreach ($prepared['accounts'] as $account) {
                         ChiTietDonHang::create([
                             'don_hang_id' => $order->id,
