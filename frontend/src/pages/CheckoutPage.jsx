@@ -88,7 +88,7 @@ const CheckoutPage = () => {
                 items: items.map((i) => ({
                     variant_id: i.variant_id ?? i.bien_the_id,
                     game_account_id: i.game_account_id ?? i.tai_khoan_game_id,
-                    quantity: i.quantity || i.so_luong || 1,
+                    quantity: (i.game_account_id || i.tai_khoan_game_id) ? 1 : (i.quantity || i.so_luong || 1),
                     service_data: i.service_data || i.du_lieu_dich_vu || null,
                 })),
                 payment_method_code: 'vnpay',

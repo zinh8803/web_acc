@@ -97,18 +97,43 @@ class GioHangController extends Controller
 
         $gioHang = GioHang::firstOrCreate(['nguoi_dung_id' => $request->user()->id]);
 
-        $item = $taiKhoan
-            ? ChiTietGioHang::firstOrCreate(
-                ['gio_hang_id' => $gioHang->id, 'tai_khoan_game_id' => $taiKhoan->id],
-                ['bien_the_id' => $bienThe->id, 'so_luong' => 1]
-            )
-            : ChiTietGioHang::firstOrCreate(
+        if ($taiKhoan) {
+            $existing = ChiTietGioHang::where('gio_hang_id', $gioHang->id)
+                ->where('tai_khoan_game_id', $taiKhoan->id)
+                ->first();
+
+            if ($existing) {
+                $existing->load(['bienThe.sanPham', 'taiKhoanGame']);
+                return response()->json([
+                    'thanh_cong' => false,
+                    'success' => false,
+                    'thong_bao' => 'Tài khoản này đã có trong giỏ hàng của bạn rồi.',
+                    'message' => 'Tài khoản này đã có trong giỏ hàng của bạn rồi.',
+                    'error' => [
+                        'code' => 'ACCOUNT_ALREADY_IN_CART',
+                        'message' => 'Tài khoản này đã có trong giỏ hàng của bạn rồi.',
+                    ],
+                    'du_lieu' => $existing,
+                    'data' => $existing,
+                ], 409);
+            }
+
+            $item = ChiTietGioHang::create([
+                'gio_hang_id' => $gioHang->id,
+                'bien_the_id' => $bienThe->id,
+                'tai_khoan_game_id' => $taiKhoan->id,
+                'so_luong' => 1,
+                'ngay_them' => now(),
+            ]);
+        } else {
+            $item = ChiTietGioHang::firstOrCreate(
                 ['gio_hang_id' => $gioHang->id, 'bien_the_id' => $bienThe->id, 'tai_khoan_game_id' => null],
-                ['so_luong' => $soLuong]
+                ['so_luong' => $soLuong, 'ngay_them' => now()]
             );
 
-        if (!$taiKhoan && !$item->wasRecentlyCreated) {
-            $item->increment('so_luong', $soLuong);
+            if (!$item->wasRecentlyCreated) {
+                $item->increment('so_luong', $soLuong);
+            }
         }
 
         $item->load(['bienThe.sanPham', 'taiKhoanGame']);

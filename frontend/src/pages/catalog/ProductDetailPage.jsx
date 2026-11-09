@@ -29,7 +29,7 @@ const REGIONS_VN = [
 const ProductDetailPage = () => {
     const { slug } = useParams();
     const navigate = useNavigate();
-    const addItem = useCartStore((state) => state.addItem);
+    const { items: cartItems, addItem } = useCartStore();
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const [product, setProduct] = useState(null);
     const [accounts, setAccounts] = useState([]);
@@ -136,10 +136,25 @@ const ProductDetailPage = () => {
             navigate('/login');
             return;
         }
+
+        // Kiểm tra xem tài khoản này đã có trong giỏ hàng chưa
+        const existingInCart = (cartItems || []).find(
+            (i) => (i.game_account_id === account.id || i.tai_khoan_game_id === account.id)
+        );
+
+        if (existingInCart) {
+            if (buyNow) {
+                navigate('/checkout');
+                return;
+            }
+            message.warning('Tài khoản này đã có trong giỏ hàng của bạn.');
+            return;
+        }
+
         setAddingId(account.id);
         try {
             const response = await api.post('/cart/items', {
-                variant_id: account.variant_id,
+                variant_id: account.variant_id ?? account.bien_the_id,
                 game_account_id: account.id,
                 quantity: 1,
             });
@@ -160,7 +175,17 @@ const ProductDetailPage = () => {
             message.success('Đã thêm tài khoản này vào giỏ hàng.');
             if (buyNow) navigate('/checkout');
         } catch (error) {
-            message.error(error.response?.data?.error?.message || error.response?.data?.message || 'Tài khoản vừa hết hàng, vui lòng tải lại danh sách.');
+            const errCode = error.response?.data?.error?.code;
+            const errMsg = error.response?.data?.thong_bao || error.response?.data?.message || error.response?.data?.error?.message;
+            if (error.response?.status === 409 || errCode === 'ACCOUNT_ALREADY_IN_CART') {
+                if (buyNow) {
+                    navigate('/checkout');
+                    return;
+                }
+                message.warning(errMsg || 'Tài khoản này đã có trong giỏ hàng của bạn.');
+            } else {
+                message.error(errMsg || 'Tài khoản vừa hết hàng, vui lòng tải lại danh sách.');
+            }
         } finally {
             setAddingId(null);
         }

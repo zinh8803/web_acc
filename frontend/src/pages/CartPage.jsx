@@ -27,7 +27,7 @@ const CartPage = () => {
                     productId: product.id || item.variant?.product_id || item.bien_the?.san_pham_id,
                     name: product.name || product.ten_san_pham ? `${product.name || product.ten_san_pham}${account ? ` - Tài khoản #${account.id}` : ''}` : (item.product_name || item.name || 'Sản phẩm'),
                     price: Number(item.variant?.sale_price || item.variant?.price || item.bien_the?.gia_khuyen_mai || item.bien_the?.gia_goc || product.min_price || product.gia_thap_nhat || 0),
-                    quantity: item.quantity || item.so_luong || 1,
+                    quantity: gameAccountId ? 1 : (item.quantity || item.so_luong || 1),
                     thumbnailUrl: account?.image_url || account?.anh_minh_hoa || product.thumbnail_url || product.anh_dai_dien || image?.image_url || image?.url,
                     accountDetails: account?.public_details || account?.thong_tin_cong_khai || [],
                 };
