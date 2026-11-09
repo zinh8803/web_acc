@@ -86,10 +86,10 @@ const CheckoutPage = () => {
         try {
             const payload = {
                 items: items.map((i) => ({
-                    variant_id: i.variant_id,
-                    game_account_id: i.game_account_id,
-                    quantity: i.quantity,
-                    service_data: i.service_data || null,
+                    variant_id: i.variant_id ?? i.bien_the_id,
+                    game_account_id: i.game_account_id ?? i.tai_khoan_game_id,
+                    quantity: i.quantity || i.so_luong || 1,
+                    service_data: i.service_data || i.du_lieu_dich_vu || null,
                 })),
                 payment_method_code: 'vnpay',
                 coupon_code: discountAmount > 0 ? couponCode : null,

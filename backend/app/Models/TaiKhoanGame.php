@@ -114,4 +114,34 @@ class TaiKhoanGame extends Model
             ];
         }
     }
+
+    /**
+     * Tự động giải phóng các tài khoản hết hạn giữ chỗ về lại trạng thái AVAILABLE
+     */
+    public static function giaiPhongGiuChoHetHan(): int
+    {
+        $expired = self::where('trang_thai', 'RESERVED')
+            ->whereNotNull('giu_cho_den_khi')
+            ->where('giu_cho_den_khi', '<', now())
+            ->get();
+
+        if ($expired->isEmpty()) {
+            return 0;
+        }
+
+        $variantIds = $expired->pluck('bien_the_id')->unique()->filter();
+
+        $count = self::whereIn('id', $expired->pluck('id'))->update([
+            'trang_thai' => 'AVAILABLE',
+            'giu_cho_boi_don_hang_id' => null,
+            'giu_cho_den_khi' => null,
+        ]);
+
+        foreach ($variantIds as $vId) {
+            $avail = self::where('bien_the_id', $vId)->where('trang_thai', 'AVAILABLE')->count();
+            BienTheSanPham::whereKey($vId)->update(['so_luong_ton_kho' => $avail]);
+        }
+
+        return $count;
+    }
 }

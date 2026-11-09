@@ -24,6 +24,27 @@ class ChiTietGioHang extends Model
         'ngay_them' => 'datetime',
     ];
 
+    protected $appends = [
+        'variant_id',
+        'game_account_id',
+        'quantity',
+    ];
+
+    public function getVariantIdAttribute()
+    {
+        return $this->bien_the_id;
+    }
+
+    public function getGameAccountIdAttribute()
+    {
+        return $this->tai_khoan_game_id;
+    }
+
+    public function getQuantityAttribute()
+    {
+        return $this->so_luong;
+    }
+
     public function gioHang(): BelongsTo
     {
         return $this->belongsTo(GioHang::class, 'gio_hang_id');

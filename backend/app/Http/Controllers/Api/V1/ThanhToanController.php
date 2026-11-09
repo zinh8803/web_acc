@@ -139,6 +139,8 @@ class ThanhToanController extends Controller
      */
     public function taoDuongDanThanhToanVnPay(Request $request): JsonResponse
     {
+        TaiKhoanGame::giaiPhongGiuChoHetHan();
+
         $danhSachMuc = $request->chi_tiets ?? $request->items ?? [];
         if (empty($danhSachMuc) || !is_array($danhSachMuc)) {
             return response()->json(['thanh_cong' => false, 'success' => false, 'thong_bao' => 'Giỏ hàng trống.'], 422);
@@ -460,7 +462,7 @@ class ThanhToanController extends Controller
                                     'san_pham_id' => $itemData['product_id'],
                                     'bien_the_id' => $itemData['variant_id'],
                                     'tai_khoan_game_id' => $accId,
-                                    'loai_muc' => 'ACCOUNT',
+                                    'loai_muc' => 'TAI_KHOAN',
                                     'ten_san_pham_luu_lai' => $itemData['product_name'],
                                     'ten_bien_the_luu_lai' => $itemData['variant_name'],
                                     'anh_san_pham_luu_lai' => $itemData['thumbnail_url'],
@@ -492,7 +494,7 @@ class ThanhToanController extends Controller
                                 'don_hang_id' => $order->id,
                                 'san_pham_id' => $itemData['product_id'],
                                 'bien_the_id' => $itemData['variant_id'],
-                                'loai_muc' => 'SERVICE',
+                                'loai_muc' => 'DICH_VU',
                                 'ten_san_pham_luu_lai' => $itemData['product_name'],
                                 'ten_bien_the_luu_lai' => $itemData['variant_name'],
                                 'anh_san_pham_luu_lai' => $itemData['thumbnail_url'],

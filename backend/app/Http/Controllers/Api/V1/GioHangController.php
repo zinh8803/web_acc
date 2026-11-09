@@ -20,6 +20,8 @@ class GioHangController extends Controller
      */
     public function xemGioHang(Request $request): JsonResponse
     {
+        TaiKhoanGame::giaiPhongGiuChoHetHan();
+
         $gioHang = GioHang::firstOrCreate(['nguoi_dung_id' => $request->user()->id]);
         $gioHang->load(['chiTiets.bienThe.sanPham', 'chiTiets.taiKhoanGame']);
 
@@ -38,6 +40,8 @@ class GioHangController extends Controller
      */
     public function themSanPham(Request $request): JsonResponse
     {
+        TaiKhoanGame::giaiPhongGiuChoHetHan();
+
         $bienTheId = $request->bien_the_id ?? $request->variant_id;
         $taiKhoanGameId = $request->tai_khoan_game_id ?? $request->game_account_id;
         $soLuong = (int) ($request->so_luong ?? $request->quantity ?? 1);
@@ -267,6 +271,8 @@ class GioHangController extends Controller
                 'gio_hang_id' => $ct->gio_hang_id,
                 'bien_the_id' => $ct->bien_the_id,
                 'tai_khoan_game_id' => $ct->tai_khoan_game_id,
+                'variant_id' => $ct->bien_the_id,
+                'game_account_id' => $ct->tai_khoan_game_id,
                 'so_luong' => $ct->so_luong,
                 'quantity' => $ct->so_luong,
                 'bien_the' => $bienThe,
@@ -287,7 +293,12 @@ class GioHangController extends Controller
                     ] : null,
                 ] : null,
                 'tai_khoan_game' => $ct->taiKhoanGame,
-                'game_account' => $ct->taiKhoanGame,
+                'game_account' => $ct->taiKhoanGame ? [
+                    'id' => $ct->taiKhoanGame->id,
+                    'image_url' => $ct->taiKhoanGame->anh_minh_hoa ?: $sanPham?->anh_dai_dien,
+                    'public_details' => $ct->taiKhoanGame->thong_tin_cong_khai ?? [],
+                    'price' => $bienThe?->gia_khuyen_mai ?? $bienThe?->gia_goc ?? $sanPham?->gia_thap_nhat,
+                ] : null,
             ];
         });
 

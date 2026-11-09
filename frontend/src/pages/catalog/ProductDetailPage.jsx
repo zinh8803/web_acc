@@ -108,9 +108,11 @@ const ProductDetailPage = () => {
                 if (detail?.id) {
                     fetchReviews(detail.id);
                 }
-                if (detail?.type === 'ACCOUNT') {
+                const isAcc = detail?.type === 'ACCOUNT' || detail?.type === 'TAI_KHOAN' || detail?.loai_san_pham === 'TAI_KHOAN';
+                const isSrv = detail?.type === 'SERVICE' || detail?.type === 'DICH_VU' || detail?.loai_san_pham === 'DICH_VU';
+                if (isAcc) {
                     await fetchAccounts(1);
-                } else if (detail?.type === 'SERVICE') {
+                } else if (isSrv) {
                     if (detail.variants && detail.variants.length > 0) {
                         handleSelectVariant(detail.variants[0].id, detail);
                     }
@@ -144,8 +146,10 @@ const ProductDetailPage = () => {
             const cartItem = response.data?.data;
             addItem({
                 id: cartItem.id,
-                variant_id: account.variant_id,
+                variant_id: account.variant_id ?? account.bien_the_id,
+                bien_the_id: account.variant_id ?? account.bien_the_id,
                 game_account_id: account.id,
+                tai_khoan_game_id: account.id,
                 productId: product.id,
                 name: `${product.name} - Tài khoản #${account.id}`,
                 price: Number(account.price || 0),
@@ -244,6 +248,8 @@ const ProductDetailPage = () => {
     if (!product) return <Empty description="Không tìm thấy sản phẩm." style={{ padding: 80 }} />;
 
     const selectedVariant = product.variants?.find((v) => v.id === selectedVariantId) || product.variants?.[0];
+    const isProductAccount = product?.type === 'ACCOUNT' || product?.type === 'TAI_KHOAN' || product?.loai_san_pham === 'TAI_KHOAN';
+    const isProductService = product?.type === 'SERVICE' || product?.type === 'DICH_VU' || product?.loai_san_pham === 'DICH_VU';
 
     return (
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 20px 60px' }}>
@@ -262,8 +268,8 @@ const ProductDetailPage = () => {
                         <Tag color="cyan">{product.sku}</Tag>
                         {product.game && <Tag color="purple">{product.game.name}</Tag>}
                         <Tag color="blue">{product.category?.name}</Tag>
-                        <Tag color={product.type === 'SERVICE' ? 'orange' : 'green'}>
-                            {product.type === 'SERVICE' ? 'DỊCH VỤ CÀY GAME' : 'TÀI KHOẢN GAME'}
+                        <Tag color={isProductService ? 'orange' : 'green'}>
+                            {isProductService ? 'DỊCH VỤ CÀY GAME' : 'TÀI KHOẢN GAME'}
                         </Tag>
                     </Space>
                     <Typography.Title level={2} style={{ color: '#fff', marginTop: 12, marginBottom: 6 }}>{product.name}</Typography.Title>
@@ -282,7 +288,7 @@ const ProductDetailPage = () => {
                         </span>
                     </div>
                     <Typography.Paragraph style={{ color: '#cbd5e1' }}>{product.short_description}</Typography.Paragraph>
-                    {product.type === 'ACCOUNT' ? (
+                    {isProductAccount ? (
                         <Typography.Text style={{ color: '#94a3b8' }}>
                             Trong kho hiện có {product.available_count || 0} tài khoản để chọn.
                         </Typography.Text>
@@ -295,7 +301,7 @@ const ProductDetailPage = () => {
             </Row>
 
             {/* PHẦN 1: DÀNH CHO DỊCH VỤ CÀY THUÊ / LEO RANK / TOP TƯỚNG (SERVICE) */}
-            {product.type === 'SERVICE' && (
+            {isProductService && (
                 <section style={{ marginTop: 36 }}>
                     <Row gutter={[28, 28]}>
                         <Col xs={24} lg={12}>
@@ -525,7 +531,7 @@ const ProductDetailPage = () => {
             )}
 
             {/* PHẦN 2: DÀNH CHO BÁN TÀI KHOẢN (ACCOUNT) */}
-            {product.type === 'ACCOUNT' && (
+            {isProductAccount && (
                 <section style={{ marginTop: 36 }}>
                     <Typography.Title level={3} style={{ color: '#fff' }}>Chọn tài khoản muốn mua</Typography.Title>
                     {accountsLoading ? (

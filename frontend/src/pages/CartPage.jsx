@@ -11,21 +11,25 @@ const CartPage = () => {
 
     useEffect(() => {
         api.get('/cart').then((response) => {
-            const cartItems = response.data?.data?.items || [];
+            const cartItems = response.data?.data?.items || response.data?.data?.chi_tiets || [];
             setItems(cartItems.map((item) => {
-                const product = item.variant?.product || {};
-                const account = item.game_account;
+                const product = item.variant?.product || item.bien_the?.san_pham || {};
+                const account = item.game_account || item.tai_khoan_game;
                 const image = product.primary_image || product.primaryImage;
+                const variantId = item.variant_id ?? item.bien_the_id;
+                const gameAccountId = item.game_account_id ?? item.tai_khoan_game_id;
                 return {
                     id: item.id,
-                    variant_id: item.variant_id,
-                    game_account_id: item.game_account_id,
-                    productId: product.id || item.variant?.product_id,
-                    name: product.name ? `${product.name}${account ? ` - Tài khoản #${account.id}` : ''}` : item.product_name,
-                    price: Number(item.variant?.sale_price || item.variant?.price || product.min_price || 0),
-                    quantity: item.quantity,
-                    thumbnailUrl: account?.image_url || product.thumbnail_url || image?.image_url || image?.url,
-                    accountDetails: account?.public_details || [],
+                    variant_id: variantId,
+                    bien_the_id: variantId,
+                    game_account_id: gameAccountId,
+                    tai_khoan_game_id: gameAccountId,
+                    productId: product.id || item.variant?.product_id || item.bien_the?.san_pham_id,
+                    name: product.name || product.ten_san_pham ? `${product.name || product.ten_san_pham}${account ? ` - Tài khoản #${account.id}` : ''}` : (item.product_name || item.name || 'Sản phẩm'),
+                    price: Number(item.variant?.sale_price || item.variant?.price || item.bien_the?.gia_khuyen_mai || item.bien_the?.gia_goc || product.min_price || product.gia_thap_nhat || 0),
+                    quantity: item.quantity || item.so_luong || 1,
+                    thumbnailUrl: account?.image_url || account?.anh_minh_hoa || product.thumbnail_url || product.anh_dai_dien || image?.image_url || image?.url,
+                    accountDetails: account?.public_details || account?.thong_tin_cong_khai || [],
                 };
             }));
         }).catch((error) => message.error(error.response?.data?.error?.message || 'Không tải được giỏ hàng từ máy chủ.'));
@@ -55,7 +59,7 @@ const CartPage = () => {
             {item.thumbnailUrl && <img src={item.thumbnailUrl} alt="" style={{ width: 72, height: 60, objectFit: 'cover', borderRadius: 8 }} />}
             <div><strong style={{ color: '#fff' }}>{item.name}</strong>{item.accountDetails?.map((detail, index) => <div key={`${detail.label}-${index}`} style={{ color: '#94a3b8', fontSize: 12 }}>{detail.label}: {detail.value}</div>)}<div style={{ color: '#06b6d4', marginTop: 4 }}>{Number(item.price || 0).toLocaleString('vi-VN')} đ</div></div>
         </div> },
-        { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', width: 140, render: (quantity, item) => item.game_account_id ? '1 tài khoản' : <InputNumber min={1} max={10} value={quantity} onChange={(value) => update(item.id, value || 1)} /> },
+        { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', width: 140, render: (quantity, item) => (item.game_account_id || item.tai_khoan_game_id) ? '1 tài khoản' : <InputNumber min={1} max={10} value={quantity} onChange={(value) => update(item.id, value || 1)} /> },
         { title: 'Thành tiền', key: 'total', render: (_, item) => <strong style={{ color: '#06b6d4' }}>{(Number(item.price || 0) * item.quantity).toLocaleString('vi-VN')} đ</strong> },
         { title: '', key: 'action', width: 60, render: (_, item) => <Button type="text" danger icon={<DeleteOutlined />} onClick={() => remove(item.id)} /> },
     ];

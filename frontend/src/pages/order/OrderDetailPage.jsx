@@ -217,8 +217,8 @@ const OrderDetailPage = () => {
     }
 
     const isPaid = ['completed', 'paid', 'COMPLETED', 'PAID', 'processing', 'PROCESSING'].includes(order.status);
-    const serviceItems = order.items?.filter((i) => i.item_type === 'SERVICE') || [];
-    const accountItems = order.items?.filter((i) => i.item_type === 'ACCOUNT') || [];
+    const serviceItems = order.items?.filter((i) => i.item_type === 'SERVICE' || i.item_type === 'DICH_VU' || i.loai_muc === 'DICH_VU') || [];
+    const accountItems = order.items?.filter((i) => i.item_type === 'ACCOUNT' || i.item_type === 'TAI_KHOAN' || i.loai_muc === 'TAI_KHOAN') || [];
 
     return (
         <div style={{ maxWidth: '1050px', margin: '0 auto', padding: '36px 20px 60px' }}>

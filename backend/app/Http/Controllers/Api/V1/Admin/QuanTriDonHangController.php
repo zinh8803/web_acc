@@ -71,6 +71,8 @@ class QuanTriDonHangController extends Controller
 
         $data['items'] = collect($order->chiTiets)->map(function ($item) {
             $itemData = $item->toArray();
+            $itemData['item_type'] = in_array($item->loai_muc, ['TAI_KHOAN', 'ACCOUNT']) ? 'ACCOUNT' : 'SERVICE';
+            $itemData['loai_muc'] = $item->loai_muc;
             $itemData['product'] = $item->sanPham;
             $itemData['product_name'] = $item->ten_san_pham_luu_lai;
             $itemData['variant_name'] = $item->ten_bien_the_luu_lai;
@@ -78,6 +80,26 @@ class QuanTriDonHangController extends Controller
             $itemData['line_total'] = $item->thanh_tien;
             $itemData['quantity'] = $item->so_luong;
             $itemData['thumbnail_url'] = $item->anh_san_pham_luu_lai;
+
+            if ($item->yeuCauDichVu) {
+                $ycdv = $item->yeuCauDichVu;
+                $itemData['service_request'] = [
+                    'id' => $ycdv->id,
+                    'request_code' => $ycdv->ma_yeu_cau,
+                    'status' => $ycdv->trang_thai,
+                    'due_at' => $ycdv->han_hoan_thanh,
+                    'started_at' => $ycdv->bat_dau_luc,
+                    'completed_at' => $ycdv->hoan_thanh_luc,
+                    'cancel_reason' => $ycdv->ly_do_huy,
+                    'form_data' => $ycdv->du_lieu_bieu_mau,
+                    'staff' => $ycdv->nhanVienPhuTrach ? [
+                        'id' => $ycdv->nhanVienPhuTrach->id,
+                        'full_name' => $ycdv->nhanVienPhuTrach->ho_ten,
+                    ] : null,
+                ];
+            } else {
+                $itemData['service_request'] = null;
+            }
 
             if ($item->taiKhoanGame) {
                 $thongTin = $item->taiKhoanGame->giaiMaThongTin();

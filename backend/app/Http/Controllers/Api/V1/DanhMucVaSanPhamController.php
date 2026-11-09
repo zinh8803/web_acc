@@ -63,6 +63,8 @@ class DanhMucVaSanPhamController extends Controller
      */
     public function sanPham(Request $request): JsonResponse
     {
+        TaiKhoanGame::giaiPhongGiuChoHetHan();
+
         $query = SanPham::query()
             ->where('trang_thai', 'ACTIVE')
             ->with([
@@ -206,6 +208,8 @@ class DanhMucVaSanPhamController extends Controller
      */
     public function chiTiet(string $slug): JsonResponse
     {
+        TaiKhoanGame::giaiPhongGiuChoHetHan();
+
         $sanPham = SanPham::where('duong_dan_tinh', $slug)
             ->where('trang_thai', 'ACTIVE')
             ->with([
@@ -266,6 +270,8 @@ class DanhMucVaSanPhamController extends Controller
      */
     public function danhSachTaiKhoan(Request $request, string $slug): JsonResponse
     {
+        TaiKhoanGame::giaiPhongGiuChoHetHan();
+
         $sanPham = SanPham::where('duong_dan_tinh', $slug)
             ->whereIn('loai_san_pham', ['ACCOUNT', 'TAI_KHOAN'])
             ->where('trang_thai', 'ACTIVE')

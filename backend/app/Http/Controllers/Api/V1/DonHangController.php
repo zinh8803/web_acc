@@ -91,6 +91,8 @@ class DonHangController extends Controller
 
         $data['items'] = collect($order->chiTiets)->map(function (ChiTietDonHang $item) use ($isPaid) {
             $itemData = $item->toArray();
+            $itemData['item_type'] = in_array($item->loai_muc, ['TAI_KHOAN', 'ACCOUNT']) ? 'ACCOUNT' : 'SERVICE';
+            $itemData['loai_muc'] = $item->loai_muc;
             $itemData['product_name'] = $item->ten_san_pham_luu_lai;
             $itemData['variant_name'] = $item->ten_bien_the_luu_lai;
             $itemData['unit_price'] = $item->don_gia;
@@ -98,6 +100,26 @@ class DonHangController extends Controller
             $itemData['quantity'] = $item->so_luong;
             $itemData['thumbnail_url'] = $item->anh_san_pham_luu_lai;
             $itemData['product'] = $item->sanPham;
+
+            if ($item->yeuCauDichVu) {
+                $ycdv = $item->yeuCauDichVu;
+                $itemData['service_request'] = [
+                    'id' => $ycdv->id,
+                    'request_code' => $ycdv->ma_yeu_cau,
+                    'status' => $ycdv->trang_thai,
+                    'due_at' => $ycdv->han_hoan_thanh,
+                    'started_at' => $ycdv->bat_dau_luc,
+                    'completed_at' => $ycdv->hoan_thanh_luc,
+                    'cancel_reason' => $ycdv->ly_do_huy,
+                    'form_data' => $ycdv->du_lieu_bieu_mau,
+                    'staff' => $ycdv->nhanVienPhuTrach ? [
+                        'id' => $ycdv->nhanVienPhuTrach->id,
+                        'full_name' => $ycdv->nhanVienPhuTrach->ho_ten,
+                    ] : null,
+                ];
+            } else {
+                $itemData['service_request'] = null;
+            }
 
             if ($isPaid && $item->taiKhoanGame) {
                 $thongTin = $item->taiKhoanGame->giaiMaThongTin();
@@ -131,6 +153,8 @@ class DonHangController extends Controller
      */
     public function taoDonHang(Request $request): JsonResponse
     {
+        TaiKhoanGame::giaiPhongGiuChoHetHan();
+
         $danhSachMuc = $request->chi_tiets ?? $request->items ?? [];
         if (empty($danhSachMuc) || !is_array($danhSachMuc)) {
             return response()->json([
@@ -245,7 +269,7 @@ class DonHangController extends Controller
                             'san_pham_id' => $product->id,
                             'bien_the_id' => $variant->id,
                             'tai_khoan_game_id' => $account->id,
-                            'loai_muc' => 'ACCOUNT',
+                            'loai_muc' => 'TAI_KHOAN',
                             'ten_san_pham_luu_lai' => $product->ten_san_pham,
                             'ten_bien_the_luu_lai' => $variant->ten_bien_the,
                             'anh_san_pham_luu_lai' => $account->anh_minh_hoa ?: $product->anh_dai_dien,
@@ -275,7 +299,7 @@ class DonHangController extends Controller
                         'don_hang_id' => $order->id,
                         'san_pham_id' => $product->id,
                         'bien_the_id' => $variant->id,
-                        'loai_muc' => 'SERVICE',
+                        'loai_muc' => 'DICH_VU',
                         'ten_san_pham_luu_lai' => $product->ten_san_pham,
                         'ten_bien_the_luu_lai' => $variant->ten_bien_the,
                         'anh_san_pham_luu_lai' => $product->anh_dai_dien,
