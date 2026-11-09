@@ -25,6 +25,8 @@ class DanhGiaController extends Controller
             $arr = $item->toArray();
             $arr['rating'] = $item->so_sao;
             $arr['content'] = $item->noi_dung_danh_gia;
+            $arr['created_at'] = $item->ngay_tao;
+            $arr['ngay_tao'] = $item->ngay_tao;
             $arr['user'] = $item->nguoiDung ? [
                 'id' => $item->nguoiDung->id,
                 'full_name' => $item->nguoiDung->ho_ten,

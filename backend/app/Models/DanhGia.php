@@ -26,6 +26,27 @@ class DanhGia extends Model
         'ngay_tao' => 'datetime',
     ];
 
+    protected $appends = [
+        'created_at',
+        'rating',
+        'content',
+    ];
+
+    public function getCreatedAtAttribute()
+    {
+        return $this->ngay_tao;
+    }
+
+    public function getRatingAttribute()
+    {
+        return $this->so_sao;
+    }
+
+    public function getContentAttribute()
+    {
+        return $this->noi_dung_danh_gia;
+    }
+
     public function nguoiDung(): BelongsTo
     {
         return $this->belongsTo(NguoiDung::class, 'nguoi_dung_id');

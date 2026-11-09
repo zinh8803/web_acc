@@ -188,9 +188,9 @@ const AdminReviewsPage = () => {
             dataIndex: 'created_at',
             key: 'created_at',
             width: 140,
-            render: (d) => (
+            render: (d, record) => (
                 <span style={{ color: '#94a3b8', fontSize: '12px' }}>
-                    {d ? dayjs(d).format('DD/MM/YYYY HH:mm') : '-'}
+                    {(d || record.ngay_tao) ? dayjs(d || record.ngay_tao).format('DD/MM/YYYY HH:mm') : '-'}
                 </span>
             ),
         },

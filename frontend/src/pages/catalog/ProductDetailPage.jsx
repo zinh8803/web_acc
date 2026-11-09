@@ -5,6 +5,7 @@ import { ClockCircleOutlined, LockOutlined, SafetyCertificateOutlined, ShoppingC
 import api from '../../services/api';
 import { useCartStore } from '../../stores/cartStore';
 import { useAuthStore } from '../../stores/authStore';
+import dayjs from 'dayjs';
 
 const PROVINCES_VN = [
     'An Giang', 'Bà Rịa - Vũng Tàu', 'Bắc Giang', 'Bắc Kạn', 'Bạc Liêu', 'Bắc Ninh',
@@ -699,6 +700,11 @@ const ProductDetailPage = () => {
                                             <span style={{ color: '#fff', fontWeight: 600 }}>
                                                 {rev.user?.full_name || rev.user?.ho_ten || 'Khách hàng'}
                                             </span>
+                                            {(rev.created_at || rev.ngay_tao) && (
+                                                <span style={{ color: '#94a3b8', fontSize: '12px', marginLeft: 10 }}>
+                                                    {dayjs(rev.created_at || rev.ngay_tao).format('DD/MM/YYYY HH:mm')}
+                                                </span>
+                                            )}
                                         </div>
                                     </Space>
                                     <Rate

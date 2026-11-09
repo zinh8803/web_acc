@@ -8,7 +8,11 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const isAdminRequest = config.url?.startsWith('/admin/');
+  const isAdminRequest = Boolean(
+    config.url?.startsWith('/admin') ||
+    config.url?.startsWith('admin') ||
+    config.url?.includes('/admin/')
+  );
   const token = isAdminRequest
     ? localStorage.getItem('admin_access_token') || localStorage.getItem('admin_token')
     : localStorage.getItem('access_token') || localStorage.getItem('admin_access_token') || localStorage.getItem('admin_token');

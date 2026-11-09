@@ -18,7 +18,8 @@ class QuanTriDanhGiaController extends Controller
         $query = DanhGia::with([
             'nguoiDung:id,ho_ten,email,so_dien_thoai',
             'sanPham:id,ten_san_pham,ma_san_pham,anh_dai_dien,duong_dan_tinh',
-            'chiTietDonHang:id,don_hang_id,ma_don_hang,ten_san_pham',
+            'chiTietDonHang:id,don_hang_id,ten_san_pham_luu_lai',
+            'chiTietDonHang.donHang:id,ma_don_hang',
         ])->orderByDesc('id');
 
         $search = $request->get('tu_khoa') ?? $request->get('search');
@@ -66,10 +67,15 @@ class QuanTriDanhGiaController extends Controller
                 'sku' => $item->sanPham->ma_san_pham,
                 'thumbnail_url' => $item->sanPham->anh_dai_dien,
             ] : null;
+            $arr['order'] = $item->chiTietDonHang?->donHang ? [
+                'id' => $item->chiTietDonHang->donHang->id,
+                'order_code' => $item->chiTietDonHang->donHang->ma_don_hang,
+            ] : null;
             $arr['rating'] = $item->so_sao;
             $arr['content'] = $item->noi_dung_danh_gia;
             $arr['status'] = $item->trang_thai;
             $arr['created_at'] = $item->ngay_tao;
+            $arr['ngay_tao'] = $item->ngay_tao;
             return $arr;
         });
 

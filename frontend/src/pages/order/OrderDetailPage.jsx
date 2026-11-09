@@ -520,8 +520,15 @@ const OrderDetailPage = () => {
                                     {Number(item.line_total || 0).toLocaleString('vi-VN')} đ
                                 </div>
                                 {isPaid && (
-                                    reviewedItems[item.id] ? (
-                                        <Tag color="success" icon={<CheckCircleOutlined />}>Đã đánh giá</Tag>
+                                    (reviewedItems[item.id] || item.is_reviewed || item.review) ? (
+                                        <Space size="small">
+                                            <Tag color="success" icon={<CheckCircleOutlined />}>Đã đánh giá</Tag>
+                                            {item.review?.created_at && (
+                                                <span style={{ color: '#94a3b8', fontSize: '11px' }}>
+                                                    {dayjs(item.review.created_at).format('DD/MM/YYYY')}
+                                                </span>
+                                            )}
+                                        </Space>
                                     ) : (
                                         <Button
                                             size="small"

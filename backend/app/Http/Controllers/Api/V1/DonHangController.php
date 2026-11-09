@@ -68,7 +68,7 @@ class DonHangController extends Controller
     public function chiTiet(Request $request, string $orderCode): JsonResponse
     {
         $query = DonHang::where('ma_don_hang', $orderCode)
-            ->with(['chiTiets.sanPham', 'chiTiets.taiKhoanGame', 'chiTiets.yeuCauDichVu.nhanVienPhuTrach', 'maGiamGia']);
+            ->with(['chiTiets.sanPham', 'chiTiets.taiKhoanGame', 'chiTiets.yeuCauDichVu.nhanVienPhuTrach', 'chiTiets.danhGia', 'maGiamGia']);
 
         $user = $request->user();
         $vaiTro = $user->vai_tro ?? '';
@@ -100,6 +100,14 @@ class DonHangController extends Controller
             $itemData['quantity'] = $item->so_luong;
             $itemData['thumbnail_url'] = $item->anh_san_pham_luu_lai;
             $itemData['product'] = $item->sanPham;
+            $itemData['is_reviewed'] = !empty($item->danhGia);
+            $itemData['review'] = $item->danhGia ? [
+                'id' => $item->danhGia->id,
+                'rating' => $item->danhGia->so_sao,
+                'content' => $item->danhGia->noi_dung_danh_gia,
+                'created_at' => $item->danhGia->ngay_tao,
+                'ngay_tao' => $item->danhGia->ngay_tao,
+            ] : null;
 
             if ($item->yeuCauDichVu) {
                 $ycdv = $item->yeuCauDichVu;

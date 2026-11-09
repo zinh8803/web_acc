@@ -76,4 +76,9 @@ class ChiTietDonHang extends Model
     {
         return $this->hasMany(YeuCauBaoHanh::class, 'chi_tiet_don_hang_id');
     }
+
+    public function danhGia(): HasOne
+    {
+        return $this->hasOne(DanhGia::class, 'chi_tiet_don_hang_id');
+    }
 }
