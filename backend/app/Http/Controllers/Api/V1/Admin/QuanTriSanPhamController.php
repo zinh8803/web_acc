@@ -47,7 +47,8 @@ class QuanTriSanPhamController extends Controller
             $arr['slug'] = $product->duong_dan_tinh;
             $arr['thumbnail_url'] = $product->anh_dai_dien;
             $arr['min_price'] = $product->gia_thap_nhat;
-            $arr['type'] = $product->loai_san_pham;
+            $arr['type'] = in_array($product->loai_san_pham, ['TAI_KHOAN', 'ACCOUNT']) ? 'ACCOUNT' : 'SERVICE';
+            $arr['loai_san_pham'] = $product->loai_san_pham;
             $arr['status'] = $product->trang_thai;
             $arr['rating_avg'] = $product->diem_danh_gia_tb;
             $arr['rating_count'] = $product->so_luot_danh_gia;
@@ -86,7 +87,8 @@ class QuanTriSanPhamController extends Controller
         $data['slug'] = $product->duong_dan_tinh;
         $data['thumbnail_url'] = $product->anh_dai_dien;
         $data['min_price'] = $product->gia_thap_nhat;
-        $data['type'] = $product->loai_san_pham;
+        $data['type'] = in_array($product->loai_san_pham, ['TAI_KHOAN', 'ACCOUNT']) ? 'ACCOUNT' : 'SERVICE';
+        $data['loai_san_pham'] = $product->loai_san_pham;
         $data['description'] = $product->noi_dung_chi_tiet;
         $data['short_description'] = $product->mo_ta_ngan;
         $data['category'] = $product->danhMuc;

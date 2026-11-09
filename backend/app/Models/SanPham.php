@@ -93,7 +93,8 @@ class SanPham extends Model
 
     public function getTypeAttribute(): string
     {
-        return $this->attributes['loai_san_pham'] ?? 'TAI_KHOAN';
+        $val = $this->attributes['loai_san_pham'] ?? 'TAI_KHOAN';
+        return in_array($val, ['TAI_KHOAN', 'ACCOUNT']) ? 'ACCOUNT' : 'SERVICE';
     }
 
     public function setLoaiSanPhamAttribute($value): void

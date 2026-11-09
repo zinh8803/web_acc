@@ -111,7 +111,14 @@ class DanhMucVaSanPhamController extends Controller
         }
 
         if ($loaiSanPham) {
-            $query->where('loai_san_pham', strtoupper($loaiSanPham));
+            $loaiUpper = strtoupper((string) $loaiSanPham);
+            if (in_array($loaiUpper, ['ACCOUNT', 'TAI_KHOAN', 'TAIKHOAN'])) {
+                $query->whereIn('loai_san_pham', ['TAI_KHOAN', 'ACCOUNT']);
+            } elseif (in_array($loaiUpper, ['SERVICE', 'DICH_VU', 'DICHVU'])) {
+                $query->whereIn('loai_san_pham', ['DICH_VU', 'SERVICE']);
+            } else {
+                $query->where('loai_san_pham', $loaiUpper);
+            }
         }
 
         if ($giaTu) {
@@ -149,9 +156,14 @@ class DanhMucVaSanPhamController extends Controller
             $arr = $item->toArray();
             $arr['name'] = $item->ten_san_pham;
             $arr['slug'] = $item->duong_dan_tinh;
+            $arr['sku'] = $item->ma_san_pham;
+            $arr['short_description'] = $item->mo_ta_ngan;
             $arr['thumbnail_url'] = $item->anh_dai_dien;
             $arr['min_price'] = $item->gia_thap_nhat;
-            $arr['type'] = $item->loai_san_pham;
+            $arr['type'] = in_array($item->loai_san_pham, ['TAI_KHOAN', 'ACCOUNT']) ? 'ACCOUNT' : 'SERVICE';
+            $arr['loai_san_pham'] = $item->loai_san_pham;
+            $arr['rating_avg'] = $item->diem_danh_gia_tb ?? 5.0;
+            $arr['rating_count'] = $item->so_luot_danh_gia ?? 0;
             $arr['category'] = $item->danhMuc ? [
                 'id' => $item->danhMuc->id,
                 'name' => $item->danhMuc->ten_danh_muc,
@@ -207,7 +219,7 @@ class DanhMucVaSanPhamController extends Controller
         $sanPham->increment('luot_xem');
 
         $soLuongKhaDung = 0;
-        if ($sanPham->loai_san_pham === 'ACCOUNT') {
+        if (in_array($sanPham->loai_san_pham, ['ACCOUNT', 'TAI_KHOAN'])) {
             $soLuongKhaDung = $sanPham->taiKhoanGames()->where('trang_thai', 'AVAILABLE')->count();
         }
 
@@ -217,12 +229,14 @@ class DanhMucVaSanPhamController extends Controller
 
         // Aliases tương thích frontend
         $data['name'] = $sanPham->ten_san_pham;
+        $data['sku'] = $sanPham->ma_san_pham;
         $data['slug'] = $sanPham->duong_dan_tinh;
         $data['thumbnail_url'] = $sanPham->anh_dai_dien;
         $data['min_price'] = $sanPham->gia_thap_nhat;
         $data['description'] = $sanPham->noi_dung_chi_tiet;
         $data['short_description'] = $sanPham->mo_ta_ngan;
-        $data['type'] = $sanPham->loai_san_pham;
+        $data['type'] = in_array($sanPham->loai_san_pham, ['TAI_KHOAN', 'ACCOUNT']) ? 'ACCOUNT' : 'SERVICE';
+        $data['loai_san_pham'] = $sanPham->loai_san_pham;
         $data['category'] = $sanPham->danhMuc ? [
             'id' => $sanPham->danhMuc->id,
             'name' => $sanPham->danhMuc->ten_danh_muc,
@@ -261,7 +275,7 @@ class DanhMucVaSanPhamController extends Controller
     public function danhSachTaiKhoan(Request $request, string $slug): JsonResponse
     {
         $sanPham = SanPham::where('duong_dan_tinh', $slug)
-            ->where('loai_san_pham', 'ACCOUNT')
+            ->whereIn('loai_san_pham', ['ACCOUNT', 'TAI_KHOAN'])
             ->where('trang_thai', 'ACTIVE')
             ->firstOrFail();
 
